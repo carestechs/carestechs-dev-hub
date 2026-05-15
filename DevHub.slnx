@@ -16,5 +16,6 @@
     <Project Path="tests/DevHub.Modules.Notifications.Tests/DevHub.Modules.Notifications.Tests.csproj" />
     <Project Path="tests/DevHub.Modules.WorkItems.Tests/DevHub.Modules.WorkItems.Tests.csproj" />
     <Project Path="tests/DevHub.Modules.Workspace.Tests/DevHub.Modules.Workspace.Tests.csproj" />
+    <Project Path="tests/DevHub.TestHarness/DevHub.TestHarness.csproj" />
   </Folder>
 </Solution>
