@@ -1,0 +1,13 @@
+<button
+  [type]="type()"
+  [class]="classes()"
+  [disabled]="disabled() || loading()"
+  [attr.aria-label]="ariaLabel()"
+  [attr.aria-busy]="loading() ? 'true' : null"
+  (click)="onClick($event)"
+>
+  @if (loading()) {
+    <app-spinner size="sm" ariaLabel="Submitting" />
+  }
+  <ng-content />
+</button>

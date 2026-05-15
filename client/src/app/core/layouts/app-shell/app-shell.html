@@ -1,0 +1,34 @@
+<div class="min-h-screen bg-slate-50">
+  <app-header
+    [pendingCount]="pendingCount()"
+    [memberName]="memberName()"
+    (menuToggle)="toggleDrawer()"
+    (logout)="onLogout()" />
+
+  <div class="flex">
+    <!-- Sidebar pinned from md: and up -->
+    <aside class="hidden md:block sticky top-14 self-start">
+      <app-sidebar [pendingCount]="pendingCount()" [isOperator]="isOperator()" />
+    </aside>
+
+    <!-- Mobile drawer -->
+    @if (drawerVisible()) {
+      <div
+        class="fixed inset-0 z-40 bg-slate-900/40 backdrop-blur-sm md:hidden"
+        aria-hidden="true"
+        (click)="closeDrawer()"></div>
+      <aside class="fixed top-14 left-0 z-50 h-[calc(100vh-3.5rem)] md:hidden shadow-lg">
+        <app-sidebar
+          [pendingCount]="pendingCount()"
+          [isOperator]="isOperator()"
+          (navigated)="closeDrawer()" />
+      </aside>
+    }
+
+    <main class="flex-1 min-w-0">
+      <div class="mx-auto py-8 px-4 md:px-6 max-w-5xl">
+        <router-outlet />
+      </div>
+    </main>
+  </div>
+</div>

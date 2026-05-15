@@ -1,0 +1,36 @@
+@import "tailwindcss";
+
+/* Modern Minimal design tokens — compiled from the ui-design modern-minimal profile. */
+@theme {
+  /* Primary (sky) */
+  --color-primary: #0EA5E9;        /* sky-500 */
+  --color-primary-light: #E0F2FE;  /* sky-100 */
+  --color-primary-dark: #0284C7;   /* sky-600 */
+  --color-on-primary: #FFFFFF;
+
+  /* Secondary (violet) */
+  --color-secondary: #8B5CF6;
+  --color-on-secondary: #FFFFFF;
+
+  /* Semantic */
+  --color-success: #10B981;        /* emerald-500 */
+  --color-warning: #F59E0B;        /* amber-500 */
+  --color-error:   #EF4444;        /* red-500   */
+  --color-info:    #0EA5E9;        /* same as primary */
+
+  /* Typography */
+  --font-heading: "Poppins", system-ui, -apple-system, sans-serif;
+  --font-body:    "Inter",   system-ui, -apple-system, sans-serif;
+}
+
+html, body {
+  height: 100%;
+  font-family: var(--font-body);
+  background-color: #F8FAFC; /* slate-50 */
+  color: #334155;            /* slate-700 */
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading);
+  color: #0F172A;            /* slate-900 */
+}

@@ -1,0 +1,10 @@
+<div class="text-center py-12">
+  <ng-content select="[empty-icon]" />
+  <h3 class="mt-4 text-lg font-semibold">{{ title() }}</h3>
+  @if (description()) {
+    <p class="mt-2 text-sm text-slate-500 max-w-sm mx-auto">{{ description() }}</p>
+  }
+  <div class="mt-6">
+    <ng-content />
+  </div>
+</div>

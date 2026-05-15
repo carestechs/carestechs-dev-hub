@@ -1,0 +1,62 @@
+<nav class="w-64 bg-white border-r border-slate-200 h-full p-3 space-y-6 overflow-y-auto">
+  <div>
+    <h2 class="text-xs font-semibold text-slate-500 uppercase tracking-wide px-3 mb-2">Workspace</h2>
+    <ul class="space-y-1">
+      <li>
+        <a routerLink="/" [routerLinkActiveOptions]="{ exact: true }" routerLinkActive="bg-sky-50 text-sky-700"
+           class="flex items-center gap-3 rounded-lg px-3 h-10 hover:bg-slate-50 font-medium"
+           (click)="onLinkClick()">Home</a>
+      </li>
+      <li>
+        <a routerLink="/projects" routerLinkActive="bg-sky-50 text-sky-700"
+           class="flex items-center gap-3 rounded-lg px-3 h-10 hover:bg-slate-50 font-medium"
+           (click)="onLinkClick()">Projects</a>
+      </li>
+    </ul>
+  </div>
+
+  <div>
+    <div class="flex items-center justify-between px-3 mb-2">
+      <h2 class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Pending on you</h2>
+      @if (pendingCount() > 0) {
+        <span class="inline-flex items-center justify-center bg-sky-500 text-white text-xs font-medium rounded-full h-5 min-w-[20px] px-1"
+              aria-label="Pending count">
+          {{ pendingCount() }}
+        </span>
+      }
+    </div>
+    <p class="px-3 text-xs text-slate-500">Live list lands in FEAT-005.</p>
+  </div>
+
+  @if (isOperator()) {
+    <div>
+      <h2 class="text-xs font-semibold text-slate-500 uppercase tracking-wide px-3 mb-2">Operator</h2>
+      <ul class="space-y-1">
+        <li><a routerLink="/operator" routerLinkActive="bg-sky-50 text-sky-700"
+               class="flex items-center gap-3 rounded-lg px-3 h-10 hover:bg-slate-50 font-medium"
+               (click)="onLinkClick()">Dashboard</a></li>
+        <li><a routerLink="/operator/audit" routerLinkActive="bg-sky-50 text-sky-700"
+               class="flex items-center gap-3 rounded-lg px-3 h-10 hover:bg-slate-50 font-medium"
+               (click)="onLinkClick()">Audit log</a></li>
+      </ul>
+    </div>
+
+    <div>
+      <h2 class="text-xs font-semibold text-slate-500 uppercase tracking-wide px-3 mb-2">Admin</h2>
+      <ul class="space-y-1">
+        <li><a routerLink="/admin/teams" routerLinkActive="bg-sky-50 text-sky-700"
+               class="flex items-center gap-3 rounded-lg px-3 h-10 hover:bg-slate-50 font-medium"
+               (click)="onLinkClick()">Teams</a></li>
+        <li><a routerLink="/admin/members" routerLinkActive="bg-sky-50 text-sky-700"
+               class="flex items-center gap-3 rounded-lg px-3 h-10 hover:bg-slate-50 font-medium"
+               (click)="onLinkClick()">Members</a></li>
+        <li><a routerLink="/admin/executors" routerLinkActive="bg-sky-50 text-sky-700"
+               class="flex items-center gap-3 rounded-lg px-3 h-10 hover:bg-slate-50 font-medium"
+               (click)="onLinkClick()">Executors</a></li>
+        <li><a routerLink="/admin/executor-bindings" routerLinkActive="bg-sky-50 text-sky-700"
+               class="flex items-center gap-3 rounded-lg px-3 h-10 hover:bg-slate-50 font-medium"
+               (click)="onLinkClick()">Executor bindings</a></li>
+      </ul>
+    </div>
+  }
+</nav>
