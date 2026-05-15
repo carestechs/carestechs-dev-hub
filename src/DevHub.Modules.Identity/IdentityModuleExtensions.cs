@@ -1,4 +1,6 @@
 using DevHub.Contracts.Persistence;
+using DevHub.Modules.Identity.Seeding;
+using DevHub.Modules.Identity.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -17,6 +19,14 @@ public static class IdentityModuleExtensions
                 .UseSnakeCaseNamingConvention()
                 .AddInterceptors(sp.GetRequiredService<TimestampingInterceptor>());
         });
+
+        services.AddSingleton<IPasswordHasher, Argon2PasswordHasher>();
+
+        services.AddOptions<IdentitySeedOptions>()
+            .Bind(configuration.GetSection(IdentitySeedOptions.SectionName));
+
+        services.AddHostedService<IdentitySeeder>();
+
         return services;
     }
 }
