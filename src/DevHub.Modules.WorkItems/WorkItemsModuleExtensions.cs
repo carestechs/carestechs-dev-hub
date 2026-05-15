@@ -17,6 +17,7 @@ public static class WorkItemsModuleExtensions
                 .UseSnakeCaseNamingConvention()
                 .AddInterceptors(sp.GetRequiredService<TimestampingInterceptor>());
         });
+        services.AddHostedService<MigrateOnStartup<WorkItemsDbContext>>();
         return services;
     }
 }

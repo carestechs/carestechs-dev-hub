@@ -17,6 +17,7 @@ public static class ExecutorRegistryModuleExtensions
                 .UseSnakeCaseNamingConvention()
                 .AddInterceptors(sp.GetRequiredService<TimestampingInterceptor>());
         });
+        services.AddHostedService<MigrateOnStartup<ExecutorRegistryDbContext>>();
         return services;
     }
 }

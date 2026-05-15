@@ -17,6 +17,7 @@ public static class NotificationsModuleExtensions
                 .UseSnakeCaseNamingConvention()
                 .AddInterceptors(sp.GetRequiredService<TimestampingInterceptor>());
         });
+        services.AddHostedService<MigrateOnStartup<NotificationsDbContext>>();
         return services;
     }
 }

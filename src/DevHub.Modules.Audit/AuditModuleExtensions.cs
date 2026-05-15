@@ -17,6 +17,7 @@ public static class AuditModuleExtensions
                 .UseSnakeCaseNamingConvention()
                 .AddInterceptors(sp.GetRequiredService<TimestampingInterceptor>());
         });
+        services.AddHostedService<MigrateOnStartup<AuditDbContext>>();
         return services;
     }
 }
