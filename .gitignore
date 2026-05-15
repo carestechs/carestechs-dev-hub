@@ -1,0 +1,27 @@
+# Env
+.env
+.env.*
+!.env.example
+!.env.production.example
+
+# .NET
+bin/
+obj/
+*.user
+*.suo
+.vs/
+.vscode/.deps.cache
+*.swp
+
+# JetBrains
+.idea/
+
+# Node / Angular
+node_modules/
+dist/
+.angular/
+
+# Test outputs
+coverage/
+TestResults/
+*.lcov
