@@ -24,7 +24,7 @@ Single-page Tailwind mockups for each layout. App shell mockup covers mobile (dr
 <main class="min-h-screen flex items-center justify-center bg-slate-50 p-6">
   <div class="w-full max-w-md">
     <div class="flex justify-center mb-6">
-      <span class="text-2xl font-heading font-bold text-slate-900">Portfolio</span>
+      <span class="text-2xl font-heading font-bold text-slate-900">DevHub</span>
     </div>
     <router-outlet />
   </div>

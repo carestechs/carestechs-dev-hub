@@ -2,9 +2,9 @@
 
 ## Overview
 
-The Portfolio domain models the **human and organizational layer** above one or more headless lifecycle executors. Every entity is project-scoped or one level above (workspace primitives). Lifecycle state itself lives in the executors — the portfolio holds only an **index** of work items (id, project, type, latest known status snapshot, executor correlation marker), never the full execution graph.
+DevHub domain models the **human and organizational layer** above one or more headless lifecycle executors. Every entity is project-scoped or one level above (workspace primitives). Lifecycle state itself lives in the executors — DevHub holds only an **index** of work items (id, project, type, latest known status snapshot, executor correlation marker), never the full execution graph.
 
-Six modules own data; each owns its own `DbContext` and its own schema. Cross-module references are by **ID + `Portfolio.Contracts/` interface only** — no navigation properties cross module boundaries.
+Six modules own data; each owns its own `DbContext` and its own schema. Cross-module references are by **ID + `DevHub.Contracts/` interface only** — no navigation properties cross module boundaries.
 
 ### Key Modeling Decisions
 
@@ -14,8 +14,8 @@ Six modules own data; each owns its own `DbContext` and its own schema. Cross-mo
 | Soft vs hard deletes | Soft deletes (`deleted_at` nullable timestamptz) on **workspace primitives** (Project, Team, Member, ProjectMembership, ExecutorRegistration, ExecutorBinding); hard on transient queues; **append-only** for AuditEntry | Org structure needs undo + history; audit log must never lose evidence |
 | Timestamp handling | `timestamptz`, C# `DateTimeOffset`, always UTC at rest | Timezone consistency across distributed members |
 | Naming | snake_case for tables and columns (EF Core naming convention) | PostgreSQL idiom; no quoting required |
-| Cross-module reference | ID only, resolved via `Portfolio.Contracts` interfaces | Module isolation; lets a module be extracted later |
-| Lifecycle state ownership | Executor owns full state; portfolio caches `latest_state_snapshot` for the work-item index only | Stakeholder rule 4: "transparent facade for live state" — don't accumulate state |
+| Cross-module reference | ID only, resolved via `DevHub.Contracts` interfaces | Module isolation; lets a module be extracted later |
+| Lifecycle state ownership | Executor owns full state; DevHub caches `latest_state_snapshot` for the work-item index only | Stakeholder rule 4: "transparent facade for live state" — don't accumulate state |
 | Authorization scope | Every authorized resource resolves to `(member, role, project, target)` | Stakeholder Product Philosophy #5 |
 
 ## Module Ownership
@@ -106,7 +106,7 @@ Six modules own data; each owns its own `DbContext` and its own schema. Cross-mo
 | key | varchar(60) | Required, unique, `^[a-z][a-z0-9_-]*$` | Stable identifier (e.g. `reviewer`, `approver`, `operator`) |
 | name | varchar(120) | Required | Human-readable name |
 | description | text | Optional | What this role can do |
-| is_system | boolean | Required, default false | True for portfolio-shipped roles (e.g. `operator`); cannot be deleted |
+| is_system | boolean | Required, default false | True for DevHub-shipped roles (e.g. `operator`); cannot be deleted |
 | created_at | timestamptz | Required, Auto | |
 | updated_at | timestamptz | Required, Auto | |
 
@@ -188,7 +188,7 @@ Six modules own data; each owns its own `DbContext` and its own schema. Cross-mo
 
 ### ExecutorRegistration
 
-> *Module: ExecutorRegistry — A registered lifecycle executor available to the portfolio.*
+> *Module: ExecutorRegistry — A registered lifecycle executor available to DevHub.*
 
 | Field | Type | Constraints | Description |
 |-------|------|-------------|-------------|
@@ -253,7 +253,7 @@ Six modules own data; each owns its own `DbContext` and its own schema. Cross-mo
 | id | UUID | PK | |
 | project_id | UUID | Required | Cross-module reference to `Workspace.Project.id` |
 | executor_id | UUID | Required | Cross-module reference to `ExecutorRegistry.ExecutorRegistration.id` |
-| executor_correlation_marker | varchar(120) | Required, unique per executor | Portfolio-issued id passed to the executor on every command; how we recognise this run later |
+| executor_correlation_marker | varchar(120) | Required, unique per executor | DevHub-issued id passed to the executor on every command; how we recognise this run later |
 | title | varchar(255) | Required | Human-readable title for the work |
 | current_status | varchar(60) | Required | Latest snapshot (`Running`, `WaitingOnCheckpoint`, `Completed`, `Failed`, `Cancelled`) — kept fresh by fetch + stream wrappers, not authoritative |
 | current_checkpoint_key | varchar(60) | Nullable | Set when `current_status = WaitingOnCheckpoint` |
@@ -294,7 +294,7 @@ Six modules own data; each owns its own `DbContext` and its own schema. Cross-mo
 
 ### AuditEntry
 
-> *Module: Audit — Append-only record of every portfolio-mediated action (grants AND denies). Never updated, never deleted.*
+> *Module: Audit — Append-only record of every DevHub-mediated action (grants AND denies). Never updated, never deleted.*
 
 | Field | Type | Constraints | Description |
 |-------|------|-------------|-------------|
@@ -419,7 +419,7 @@ Six modules own data; each owns its own `DbContext` and its own schema. Cross-mo
 
 > *Used by: WorkItem.current_status*
 
-Conventional values: `Running`, `WaitingOnCheckpoint`, `Completed`, `Failed`, `Cancelled`. Stored as `varchar(60)` because executors may extend the set; the portfolio displays whatever the executor reports.
+Conventional values: `Running`, `WaitingOnCheckpoint`, `Completed`, `Failed`, `Cancelled`. Stored as `varchar(60)` because executors may extend the set; DevHub displays whatever the executor reports.
 
 ## Database Conventions
 
@@ -431,16 +431,16 @@ Conventional values: `Running`, `WaitingOnCheckpoint`, `Completed`, `Failed`, `C
 | Timestamps | `timestamptz`, always UTC; `created_at` + `updated_at` on every mutable entity | `created_at timestamptz NOT NULL` |
 | Soft delete | `deleted_at timestamptz NULL`; queries filter `deleted_at IS NULL` by default | applied to all Workspace + ExecutorRegistry primitives |
 | Audit immutability | INSERT only on `audit.audit_entries`; no UPDATE/DELETE | enforced by application contract |
-| Migrations | Per-module (`dotnet ef migrations add ... --project src/Portfolio.Modules.<Name>`) | each module owns its own migration history table |
+| Migrations | Per-module (`dotnet ef migrations add ... --project src/DevHub.Modules.<Name>`) | each module owns its own migration history table |
 
 ## AI Task Generation Notes
 
-- **Module boundaries**: Every data-access task must target the correct module's DbContext. Never load entities across DbContexts; resolve by ID via `Portfolio.Contracts` interfaces.
+- **Module boundaries**: Every data-access task must target the correct module's DbContext. Never load entities across DbContexts; resolve by ID via `DevHub.Contracts` interfaces.
 - **Field completeness**: Generated entity classes must include all fields defined here, including the soft-delete `deleted_at` column where applicable.
 - **Authorization data is the spine.** Any feature that touches end-user data must compose with `ProjectMembership` + `RoleAssignment` for its authorization check.
-- **Audit on every mutation.** Every portfolio-mediated mutation must write an `AuditEntry` in the same transaction as the change.
-- **Lifecycle state is not ours.** Do not propose adding "full execution graph" fields to `WorkItem`. The portfolio caches only `current_status` + `current_checkpoint_key`.
+- **Audit on every mutation.** Every DevHub-mediated mutation must write an `AuditEntry` in the same transaction as the change.
+- **Lifecycle state is not ours.** Do not propose adding "full execution graph" fields to `WorkItem`. DevHub caches only `current_status` + `current_checkpoint_key`.
 
 ## Changelog
 
-- **2026-05-15** — Initial data model compiled from the portfolio stakeholder definition. Defines 12 entities across 6 modules (Workspace, Identity, ExecutorRegistry, WorkItems, Audit, Notifications), the soft-delete + append-only-audit policy, and the ID-only cross-module reference contract.
+- **2026-05-15** — Initial data model compiled from DevHub stakeholder definition. Defines 12 entities across 6 modules (Workspace, Identity, ExecutorRegistry, WorkItems, Audit, Notifications), the soft-delete + append-only-audit policy, and the ID-only cross-module reference contract.

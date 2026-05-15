@@ -14,11 +14,11 @@
 
 ## 2. User Story
 
-**As an** operator, **I want to** see in-flight work and pending approvals across every project in one place, plus inspect the audit log of every portfolio-mediated action, **so that** I stop being the routing layer and can debug failed forwards quickly.
+**As an** operator, **I want to** see in-flight work and pending approvals across every project in one place, plus inspect the audit log of every DevHub-mediated action, **so that** I stop being the routing layer and can debug failed forwards quickly.
 
 ## 3. Goal
 
-Cross-project dashboard + project- and workspace-scoped audit log. Validates Success Metrics "Authorization correctness 100%" (every denial is in the log) and "Front-door discipline" (every Granted action carries a portfolio-issued correlation marker).
+Cross-project dashboard + project- and workspace-scoped audit log. Validates Success Metrics "Authorization correctness 100%" (every denial is in the log) and "Front-door discipline" (every Granted action carries a DevHub-issued correlation marker).
 
 ## 4. Feature Scope
 

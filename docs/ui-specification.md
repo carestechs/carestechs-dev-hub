@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Portfolio SPA is the **single front door** for every end user. It surfaces every project the member belongs to, every work item in those projects, and every checkpoint waiting on the member's role — without the member ever knowing which lifecycle executor handled what. It also hosts the operator dashboard (cross-project view of in-flight work and pending approvals) and the admin surfaces for workspace primitives and the executor registry.
+DevHub SPA is the **single front door** for every end user. It surfaces every project the member belongs to, every work item in those projects, and every checkpoint waiting on the member's role — without the member ever knowing which lifecycle executor handled what. It also hosts the operator dashboard (cross-project view of in-flight work and pending approvals) and the admin surfaces for workspace primitives and the executor registry.
 
 The visual identity is **Modern Minimal** (compiled from the `modern-minimal` DDR profile): sky-blue primary, Poppins headings, Inter body, generous whitespace, elevated cards on a soft slate background, calm content-first rhythm.
 
@@ -151,7 +151,7 @@ Roughly 14 first-class screens grouped into five areas:
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
-│ Header   [Portfolio logo]      [global search]    [pending: 3] [me] │
+│ Header   [DevHub logo]      [global search]    [pending: 3] [me] │
 ├──────────┬──────────────────────────────────────────────────────────┤
 │ Sidebar  │  Main content area                                       │
 │          │  ┌──────────────────────────────────────────────────┐    │
@@ -179,7 +179,7 @@ Roughly 14 first-class screens grouped into five areas:
 │                                                          │
 │                                                          │
 │              ┌──────────────────────────┐                │
-│              │   [Portfolio logo]       │                │
+│              │   [DevHub logo]       │                │
 │              │   Sign in                │                │
 │              │   [email]                │                │
 │              │   [password]             │                │
@@ -200,7 +200,7 @@ Centered card on `bg-slate-50`. `max-w-md`, `shadow-sm`, `rounded-xl`.
 
 ```
 ┌─────────────────────────────────┐
-│         [Portfolio]             │
+│         [DevHub]             │
 │   Sign in to your workspace     │
 │                                 │
 │   Email      [_______________]  │
@@ -362,7 +362,7 @@ ProjectHomePage
 |-----------|------|-----|---------|
 | ProjectHeader | project | `GET /api/projects/{id}` | Page load |
 | WorkItemTable | items | `GET /api/projects/{id}/work-items` (paginated, filters) | Page load + filter change |
-| StartWorkModal | (input shape — opaque to portfolio) | `POST /api/projects/{id}/work-items` | Submit |
+| StartWorkModal | (input shape — opaque to DevHub) | `POST /api/projects/{id}/work-items` | Submit |
 
 **States** per the global pattern. Additionally: 403 if the route guard finds the member is not on the project — redirects to `/projects` with a toast.
 

@@ -18,7 +18,7 @@
 
 ## 3. Goal
 
-The portfolio-mediated entry points to executors, fully authorized at the boundary, fully audited, and streaming pass-through. Satisfies Success Criteria #2 ("no end-user action requires reaching a lifecycle executor directly") and #4 ("authorization is end-to-end").
+The DevHub-mediated entry points to executors, fully authorized at the boundary, fully audited, and streaming pass-through. Satisfies Success Criteria #2 ("no end-user action requires reaching a lifecycle executor directly") and #4 ("authorization is end-to-end").
 
 ## 4. Feature Scope
 
@@ -40,8 +40,8 @@ The portfolio-mediated entry points to executors, fully authorized at the bounda
 ## 5. Acceptance Criteria
 
 - **AC-1:** A member without the required role for a checkpoint receives 403 and the action **never reaches the executor** (verified by absence of any outbound HTTP call in the test double).
-- **AC-2:** P95 added latency by the portfolio over a direct executor call on `/stream` and `GET /work-items/{id}` is within an order of magnitude of the executor's own P95.
-- **AC-3:** Every audit entry for a Granted action carries the portfolio-issued `executorCorrelationMarker` (matches Success Metric "Front-door discipline").
+- **AC-2:** P95 added latency by DevHub over a direct executor call on `/stream` and `GET /work-items/{id}` is within an order of magnitude of the executor's own P95.
+- **AC-3:** Every audit entry for a Granted action carries the DevHub-issued `executorCorrelationMarker` (matches Success Metric "Front-door discipline").
 - **AC-4:** SSE bytes from the executor reach the browser without buffering — verified by streaming a controlled byte sequence from a test executor and observing chunk-by-chunk arrival.
 - **AC-5:** Cancellation requires the role declared by the cancel checkpoint contract (or `System:operator`).
 - **AC-6:** A signal with an outcome not in `allowedOutcomes` returns 400 before forward.
@@ -82,7 +82,7 @@ All `/api/projects/{id}/work-items/*` endpoints in `api-spec.md` § Work Items.
 
 ## 11. Motivation and Priority Justification
 
-**Motivation:** This is the feature that the portfolio exists for. Everything else is in service of this surface.
+**Motivation:** This is the feature that DevHub exists for. Everything else is in service of this surface.
 **Impact if delayed:** No end users can act; v1 has nothing to demo.
 **Dependencies on this feature:** FEAT-005, FEAT-006.
 

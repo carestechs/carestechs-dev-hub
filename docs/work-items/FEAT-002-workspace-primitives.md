@@ -18,7 +18,7 @@
 
 ## 3. Goal
 
-CRUD for every workspace primitive, the `IProjectAuthorizationService` published in `Portfolio.Contracts`, and the admin screens to drive it all — sufficient to satisfy Success Criterion #1 ("≥3 distinct projects, each owned by a distinct team").
+CRUD for every workspace primitive, the `IProjectAuthorizationService` published in `DevHub.Contracts`, and the admin screens to drive it all — sufficient to satisfy Success Criterion #1 ("≥3 distinct projects, each owned by a distinct team").
 
 ## 4. Feature Scope
 
@@ -26,7 +26,7 @@ CRUD for every workspace primitive, the `IProjectAuthorizationService` published
 
 - All entities in `data-model.md` for the **Workspace** module: Team, Member, Project, Role, RoleAssignment, ProjectMembership.
 - All endpoints under `/api/teams`, `/api/members`, `/api/projects`, `/api/projects/{id}/memberships`, `/api/roles` (see `api-spec.md`).
-- `IProjectAuthorizationService.AuthorizeAsync(member, projectId, action, requiredRoleKey?)` exposed via `Portfolio.Contracts`.
+- `IProjectAuthorizationService.AuthorizeAsync(member, projectId, action, requiredRoleKey?)` exposed via `DevHub.Contracts`.
 - Soft delete with `deleted_at` on every workspace primitive.
 - Audit entry written on every mutation.
 - Admin UI: Teams, Members, Project memberships screens (see `ui-specification.md` §9–11).
@@ -81,7 +81,7 @@ All `/api/teams/*`, `/api/members/*`, `/api/projects/*` (excluding `/work-items/
 
 ## 10. Constraints
 
-- All cross-module references are by ID, via `Portfolio.Contracts`. No navigation properties from Identity or other modules into Workspace.
+- All cross-module references are by ID, via `DevHub.Contracts`. No navigation properties from Identity or other modules into Workspace.
 - `IProjectAuthorizationService` is the single check used everywhere — never re-implement.
 
 ## 11. Motivation and Priority Justification

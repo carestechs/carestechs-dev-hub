@@ -13,20 +13,20 @@ Stand up the test harness: a shared Postgres container started once per test run
 ## Implementation Steps
 
 ### Step 1: Shared test harness project
-**File:** `tests/Portfolio.TestHarness/Portfolio.TestHarness.csproj`
+**File:** `tests/DevHub.TestHarness/DevHub.TestHarness.csproj`
 **Action:** Create
 Class library with `<TargetFramework>net10.0</TargetFramework>` and `<IsPackable>false</IsPackable>`. PackageReferences: `Testcontainers.PostgreSql`, `xunit`, `Microsoft.AspNetCore.Mvc.Testing`, `Microsoft.EntityFrameworkCore.Design`. Add to solution.
 
 ### Step 2: PostgresFixture
-**File:** `tests/Portfolio.TestHarness/PostgresFixture.cs`
+**File:** `tests/DevHub.TestHarness/PostgresFixture.cs`
 **Action:** Create
 ```csharp
 public sealed class PostgresFixture : IAsyncLifetime
 {
     private readonly PostgreSqlContainer _container = new PostgreSqlBuilder()
         .WithImage("postgres:16-alpine")
-        .WithUsername("portfolio_test")
-        .WithPassword("portfolio_test")
+        .WithUsername("devhub_test")
+        .WithPassword("devhub_test")
         .Build();
 
     public string AdminConnectionString => _container.GetConnectionString();
@@ -48,7 +48,7 @@ public sealed class PostgresFixture : IAsyncLifetime
 ```
 
 ### Step 3: Collection definition
-**File:** `tests/Portfolio.TestHarness/PostgresCollection.cs`
+**File:** `tests/DevHub.TestHarness/PostgresCollection.cs`
 **Action:** Create
 ```csharp
 [CollectionDefinition("postgres")]
@@ -57,12 +57,12 @@ public class PostgresCollection : ICollectionFixture<PostgresFixture> { }
 Test classes opt in with `[Collection("postgres")]`.
 
 ### Step 4: Hook test projects to the harness
-**Files:** `tests/Portfolio.Modules.<Module>.Tests/*.csproj` (×6)
+**Files:** `tests/DevHub.Modules.<Module>.Tests/*.csproj` (×6)
 **Action:** Modify
-Add `<ProjectReference Include="..\..\tests\Portfolio.TestHarness\Portfolio.TestHarness.csproj" />`.
+Add `<ProjectReference Include="..\..\tests\DevHub.TestHarness\DevHub.TestHarness.csproj" />`.
 
 ### Step 5: One migration smoke test per module
-**Files:** `tests/Portfolio.Modules.<Module>.Tests/Migration_Applies.cs` (×6)
+**Files:** `tests/DevHub.Modules.<Module>.Tests/Migration_Applies.cs` (×6)
 **Action:** Create
 For each module:
 ```csharp
@@ -86,15 +86,15 @@ public class Migration_Applies(PostgresFixture pg)
 (Equivalent class per module with that module's DbContext.)
 
 ### Step 6: Argon2 hasher unit test (Identity)
-**File:** `tests/Portfolio.Modules.Identity.Tests/Argon2PasswordHasherTests.cs`
+**File:** `tests/DevHub.Modules.Identity.Tests/Argon2PasswordHasherTests.cs`
 **Action:** Create
 Verify round-trip (`Hash("pwd")` then `Verify("pwd", hash)` is true; `Verify("other", hash)` is false). Benchmark a single hash and `Assert.That(time, Is.LessThan(2.seconds))` as a rough guard against accidental parameter blow-ups.
 
 ### Step 7: WebApplicationFactory for Auth integration tests
-**File:** `tests/Portfolio.TestHarness/PortfolioApiFactory.cs`
+**File:** `tests/DevHub.TestHarness/DevHubApiFactory.cs`
 **Action:** Create
 ```csharp
-public sealed class PortfolioApiFactory : WebApplicationFactory<Program>
+public sealed class DevHubApiFactory : WebApplicationFactory<Program>
 {
     public string? ConnectionStringOverride { get; init; }
     protected override void ConfigureWebHost(IWebHostBuilder builder)
@@ -116,7 +116,7 @@ public sealed class PortfolioApiFactory : WebApplicationFactory<Program>
     }
 }
 ```
-Note: this requires `Portfolio.Api` to expose `Program` as a partial class (add `public partial class Program;` at the end of `Program.cs` — already in T-004 plan if `WebApplication` minimal hosting is used).
+Note: this requires `DevHub.Api` to expose `Program` as a partial class (add `public partial class Program;` at the end of `Program.cs` — already in T-004 plan if `WebApplication` minimal hosting is used).
 
 ### Step 8: Verify
 **Action:** Verify
@@ -125,14 +125,14 @@ Note: this requires `Portfolio.Api` to expose `Program` as a partial class (add 
 ## Files Affected
 | File | Action | Summary |
 |------|--------|---------|
-| `tests/Portfolio.TestHarness/Portfolio.TestHarness.csproj` | Create | Shared harness library |
-| `tests/Portfolio.TestHarness/PostgresFixture.cs` | Create | Single-container fixture |
-| `tests/Portfolio.TestHarness/PostgresCollection.cs` | Create | xUnit collection wrapper |
-| `tests/Portfolio.TestHarness/PortfolioApiFactory.cs` | Create | `WebApplicationFactory<Program>` for API integration tests |
-| `tests/Portfolio.Modules.<Module>.Tests/*.csproj` (×6) | Modify | Reference the harness |
-| `tests/Portfolio.Modules.<Module>.Tests/Migration_Applies.cs` (×6) | Create | One smoke test per module |
-| `tests/Portfolio.Modules.Identity.Tests/Argon2PasswordHasherTests.cs` | Create | Hasher round-trip |
-| `src/Portfolio.Api/Program.cs` | Modify | `public partial class Program;` at end (for WAF) |
+| `tests/DevHub.TestHarness/DevHub.TestHarness.csproj` | Create | Shared harness library |
+| `tests/DevHub.TestHarness/PostgresFixture.cs` | Create | Single-container fixture |
+| `tests/DevHub.TestHarness/PostgresCollection.cs` | Create | xUnit collection wrapper |
+| `tests/DevHub.TestHarness/DevHubApiFactory.cs` | Create | `WebApplicationFactory<Program>` for API integration tests |
+| `tests/DevHub.Modules.<Module>.Tests/*.csproj` (×6) | Modify | Reference the harness |
+| `tests/DevHub.Modules.<Module>.Tests/Migration_Applies.cs` (×6) | Create | One smoke test per module |
+| `tests/DevHub.Modules.Identity.Tests/Argon2PasswordHasherTests.cs` | Create | Hasher round-trip |
+| `src/DevHub.Api/Program.cs` | Modify | `public partial class Program;` at end (for WAF) |
 
 ## Edge Cases & Risks
 - **Slow first run** — Testcontainers pulls the Postgres image once; budget ~30s on a fresh machine. Pre-pulling in CI cache is a later optimization.

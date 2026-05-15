@@ -34,7 +34,7 @@ A single-command-startable backend + frontend with health checks, JWT login, and
 
 ### 4.1 Included
 
-- Solution structure: `Portfolio.Api`, `Portfolio.Contracts`, all six `Portfolio.Modules.*` projects empty but wired.
+- Solution structure: `DevHub.Api`, `DevHub.Contracts`, all six `DevHub.Modules.*` projects empty but wired.
 - `Program.cs` composition root with DI, JWT bearer middleware, global RFC 7807 exception handler, and `Add<Module>Module()` registration for each module.
 - PostgreSQL via Docker Compose; one `DbContext` per module with a no-op initial migration each.
 - Identity module: `POST /api/auth/login`, `POST /api/auth/refresh`, `POST /api/auth/logout`, `GET /api/auth/me`. Seed one operator member for first-run.
@@ -56,7 +56,7 @@ A single-command-startable backend + frontend with health checks, JWT login, and
 
 ## 5. Acceptance Criteria
 
-- **AC-1:** `docker compose up -d && dotnet run --project src/Portfolio.Api` starts the API; `GET /health` returns 200 with `{ status: "ok", checks: { db: "up" } }`.
+- **AC-1:** `docker compose up -d && dotnet run --project src/DevHub.Api` starts the API; `GET /health` returns 200 with `{ status: "ok", checks: { db: "up" } }`.
 - **AC-2:** `cd client && ng serve` starts the SPA; navigating to `/` redirects to `/login`.
 - **AC-3:** Logging in with the seeded operator credentials returns an access token, sets the refresh cookie, and lands on the empty Home screen.
 - **AC-4:** `GET /api/auth/me` returns the member with an empty memberships list.
@@ -141,5 +141,5 @@ A single-command-startable backend + frontend with health checks, JWT login, and
 |-----------|------|
 | **Persona** | `docs/personas/primary-user.md` (foundational — every member sees Home + Login) |
 | **Stakeholder Scope Item** | "Identity and end-to-end authorization"; "Single front door, single identity" |
-| **Success Metric** | "Front-door discipline" (zero end-user actions bypass the portfolio in production) |
+| **Success Metric** | "Front-door discipline" (zero end-user actions bypass DevHub in production) |
 | **Related Work Items** | Blocks: FEAT-002, FEAT-003, FEAT-004, FEAT-005, FEAT-006 |

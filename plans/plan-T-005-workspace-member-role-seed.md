@@ -13,7 +13,7 @@ Land the Workspace module's entities (Member, Role, plus minimal scaffolds for T
 ## Implementation Steps
 
 ### Step 1: Entity scaffolds
-**Files:** `src/Portfolio.Modules.Workspace/Entities/*.cs`
+**Files:** `src/DevHub.Modules.Workspace/Entities/*.cs`
 **Action:** Create
 - `Member.cs` — `BaseEntity`, `ISoftDeletable`. Fields: `DisplayName (string, 120)`, `Email (string, 255)`, `Status (MemberStatus)`.
 - `Role.cs` — `BaseEntity` (no soft delete). Fields: `Key (string, 60)`, `Name (string, 120)`, `Description (string?)`, `IsSystem (bool)`.
@@ -23,7 +23,7 @@ Land the Workspace module's entities (Member, Role, plus minimal scaffolds for T
 Per `docs/data-model.md`, all six are `BaseEntity` + `ISoftDeletable` except `Role`.
 
 ### Step 2: Configure mappings
-**File:** `src/Portfolio.Modules.Workspace/WorkspaceDbContext.cs`
+**File:** `src/DevHub.Modules.Workspace/WorkspaceDbContext.cs`
 **Action:** Modify
 Add `DbSet<Member>`, `DbSet<Role>`, and `DbSet<...>` for the others. In `OnModelCreating`:
 - Apply `HasDefaultSchema("workspace")` (already set in T-002).
@@ -36,13 +36,13 @@ Add `DbSet<Member>`, `DbSet<Role>`, and `DbSet<...>` for the others. In `OnModel
 **Action:** Generate
 ```
 dotnet ef migrations add Initial \
-  --project src/Portfolio.Modules.Workspace \
-  --startup-project src/Portfolio.Api
+  --project src/DevHub.Modules.Workspace \
+  --startup-project src/DevHub.Api
 ```
 Inspect the generated migration: tables must be `workspace.members`, `workspace.roles`, etc., columns must be snake_case, `created_at`/`updated_at`/`deleted_at` are `timestamptz`. The `migrations_history` table must live under the `workspace` schema (via `migrationsHistoryTable: ..., schema: "workspace"`).
 
 ### Step 4: Seeder
-**File:** `src/Portfolio.Modules.Workspace/Seeding/WorkspaceSeeder.cs`
+**File:** `src/DevHub.Modules.Workspace/Seeding/WorkspaceSeeder.cs`
 **Action:** Create
 `IHostedService`. On `StartAsync`:
 1. Resolve `WorkspaceDbContext` from a created scope.
@@ -54,7 +54,7 @@ Inspect the generated migration: tables must be `workspace.members`, `workspace.
 Idempotency is critical — every step must check existence first.
 
 ### Step 5: Register the seeder
-**File:** `src/Portfolio.Modules.Workspace/WorkspaceModuleExtensions.cs`
+**File:** `src/DevHub.Modules.Workspace/WorkspaceModuleExtensions.cs`
 **Action:** Modify
 Add `services.AddHostedService<WorkspaceSeeder>();` inside `AddWorkspaceModule`.
 
@@ -65,14 +65,14 @@ With Postgres up (T-003), run the API. Confirm the migration table exists, `work
 ## Files Affected
 | File | Action | Summary |
 |------|--------|---------|
-| `src/Portfolio.Modules.Workspace/Entities/Member.cs` | Create | Member entity |
-| `src/Portfolio.Modules.Workspace/Entities/Role.cs` | Create | Role entity |
-| `src/Portfolio.Modules.Workspace/Entities/Team.cs` (and others) | Create | Minimal scaffolds for FK targets |
-| `src/Portfolio.Modules.Workspace/Entities/Enums/MemberStatus.cs` | Create | Enum |
-| `src/Portfolio.Modules.Workspace/WorkspaceDbContext.cs` | Modify | DbSets, indexes, query filters |
-| `src/Portfolio.Modules.Workspace/Migrations/*` | Create | Initial migration |
-| `src/Portfolio.Modules.Workspace/Seeding/WorkspaceSeeder.cs` | Create | Idempotent role + member seed |
-| `src/Portfolio.Modules.Workspace/WorkspaceModuleExtensions.cs` | Modify | Register seeder |
+| `src/DevHub.Modules.Workspace/Entities/Member.cs` | Create | Member entity |
+| `src/DevHub.Modules.Workspace/Entities/Role.cs` | Create | Role entity |
+| `src/DevHub.Modules.Workspace/Entities/Team.cs` (and others) | Create | Minimal scaffolds for FK targets |
+| `src/DevHub.Modules.Workspace/Entities/Enums/MemberStatus.cs` | Create | Enum |
+| `src/DevHub.Modules.Workspace/WorkspaceDbContext.cs` | Modify | DbSets, indexes, query filters |
+| `src/DevHub.Modules.Workspace/Migrations/*` | Create | Initial migration |
+| `src/DevHub.Modules.Workspace/Seeding/WorkspaceSeeder.cs` | Create | Idempotent role + member seed |
+| `src/DevHub.Modules.Workspace/WorkspaceModuleExtensions.cs` | Modify | Register seeder |
 
 ## Edge Cases & Risks
 - **Two app instances seeding concurrently** — wrap upserts in a transaction with `SERIALIZABLE` isolation, or do `INSERT ... ON CONFLICT DO NOTHING` via `ExecuteSqlInterpolatedAsync`. Pick the latter for simplicity.
@@ -80,7 +80,7 @@ With Postgres up (T-003), run the API. Confirm the migration table exists, `work
 - **Migration ordering across modules** — each module's migration is independent; ordering is *not* guaranteed. Confirm no cross-module FK in this task (there is none — Member is referenced only by ID from other modules).
 
 ## Acceptance Verification
-- [ ] `dotnet ef database update --project src/Portfolio.Modules.Workspace --startup-project src/Portfolio.Api` applies cleanly on an empty database.
+- [ ] `dotnet ef database update --project src/DevHub.Modules.Workspace --startup-project src/DevHub.Api` applies cleanly on an empty database.
 - [ ] After startup, `SELECT count(*) FROM workspace.roles WHERE key='operator' AND is_system=true` returns 1.
 - [ ] After startup, `SELECT count(*) FROM workspace.members WHERE email=$OPERATOR_SEED_EMAIL` returns 1.
 - [ ] Re-running the API produces no duplicates and no exceptions.

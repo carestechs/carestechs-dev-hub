@@ -73,7 +73,7 @@ A live "Pending on you" inbox in the SPA sidebar and on Home, kept current by a 
 
 ## 11. Motivation and Priority Justification
 
-**Motivation:** Without this, members must hunt for pending work — exactly the pain the portfolio is supposed to remove.
+**Motivation:** Without this, members must hunt for pending work — exactly the pain DevHub is supposed to remove.
 **Impact if delayed:** Operator dependence persists; Success Metric "Operator self-service ratio" stays low.
 **Dependencies on this feature:** None block on this, but the operator dashboard (FEAT-006) is materially better with notifications in place.
 

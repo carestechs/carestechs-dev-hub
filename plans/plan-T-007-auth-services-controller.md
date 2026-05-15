@@ -13,7 +13,7 @@ Layer the four authentication endpoints onto the entities + hasher from T-005/T-
 ## Implementation Steps
 
 ### Step 1: JWT token issuer
-**Files:** `src/Portfolio.Modules.Identity/Services/IJwtTokenIssuer.cs`, `JwtTokenIssuer.cs`
+**Files:** `src/DevHub.Modules.Identity/Services/IJwtTokenIssuer.cs`, `JwtTokenIssuer.cs`
 **Action:** Create
 ```csharp
 public interface IJwtTokenIssuer
@@ -24,7 +24,7 @@ public interface IJwtTokenIssuer
 Implementation reads `JwtOptions`, builds a `JwtSecurityToken` with claims (`sub`=memberId, `role`=each roleKey), `iss` and `aud` from options, `exp` 15 min from now. Sign with `HmacSha256` over the configured signing key.
 
 ### Step 2: Refresh-token store
-**Files:** `src/Portfolio.Modules.Identity/Services/IRefreshTokenStore.cs`, `RefreshTokenStore.cs`
+**Files:** `src/DevHub.Modules.Identity/Services/IRefreshTokenStore.cs`, `RefreshTokenStore.cs`
 **Action:** Create
 ```csharp
 public interface IRefreshTokenStore
@@ -41,7 +41,7 @@ Internals:
 - `RotateAsync`: validate old, set its `RevokedAt = now` and `ReplacedByTokenId = newId`. If old token's `RevokedAt` is already set → suspected replay → revoke the entire chain and return null/throw.
 
 ### Step 3: Authentication service
-**Files:** `src/Portfolio.Modules.Identity/Services/IAuthenticationService.cs`, `AuthenticationService.cs`
+**Files:** `src/DevHub.Modules.Identity/Services/IAuthenticationService.cs`, `AuthenticationService.cs`
 **Action:** Create
 Operations:
 - `LoginAsync(email, password)` → `(accessToken, expiresAt, refreshTokenRaw, memberDto)`. Steps:
@@ -57,12 +57,12 @@ Operations:
 - `GetCurrentMemberAsync(memberId)` → `MeResponse`. Fetch member + memberships via Contracts.
 
 ### Step 4: Current-member accessor
-**Files:** `src/Portfolio.Contracts/Identity/ICurrentMember.cs` (already in T-007 task list — finalize here), `src/Portfolio.Modules.Identity/Services/CurrentMemberAccessor.cs`
+**Files:** `src/DevHub.Contracts/Identity/ICurrentMember.cs` (already in T-007 task list — finalize here), `src/DevHub.Modules.Identity/Services/CurrentMemberAccessor.cs`
 **Action:** Create
 `ICurrentMember` exposes `Guid MemberId`, `IReadOnlyList<string> RoleKeys` (workspace-global), `bool IsAuthenticated`. Implementation reads `IHttpContextAccessor.HttpContext.User`. Register in DI as scoped.
 
 ### Step 5: DTOs
-**Files:** `src/Portfolio.Modules.Identity/DTOs/*.cs`
+**Files:** `src/DevHub.Modules.Identity/DTOs/*.cs`
 **Action:** Create
 - `LoginRequest { string Email; string Password; }` — with FluentValidation rules (`[Required]`, `[EmailAddress]`).
 - `LoginResponse { string AccessToken; DateTimeOffset ExpiresAt; MemberDto Member; }`.
@@ -70,10 +70,10 @@ Operations:
 - `MeResponse { MemberDto Member; List<MembershipDto> Memberships; }`.
 - `MemberDto { Guid Id; string DisplayName; string Email; }`.
 - `MembershipDto { Guid ProjectId; string ProjectSlug; string[] Roles; }`.
-- Wrap success responses in `EnvelopeDto<T>` from `Portfolio.Contracts`.
+- Wrap success responses in `EnvelopeDto<T>` from `DevHub.Contracts`.
 
 ### Step 6: AuthController
-**File:** `src/Portfolio.Modules.Identity/Controllers/AuthController.cs`
+**File:** `src/DevHub.Modules.Identity/Controllers/AuthController.cs`
 **Action:** Create
 Routes:
 ```csharp
@@ -118,12 +118,12 @@ public sealed class AuthController(IAuthenticationService auth) : ControllerBase
 `RefreshCookieOptions`: `HttpOnly = true`, `Secure = !env.IsDevelopment() || request is https`, `SameSite = SameSiteMode.Lax`, `Path = "/api/auth"`, `Expires = now + 14 days`.
 
 ### Step 7: Wire DI
-**File:** `src/Portfolio.Modules.Identity/IdentityModuleExtensions.cs`
+**File:** `src/DevHub.Modules.Identity/IdentityModuleExtensions.cs`
 **Action:** Modify
 Register `IJwtTokenIssuer`, `IRefreshTokenStore`, `IAuthenticationService`, `ICurrentMember`. Add `services.AddHttpContextAccessor()`.
 
 ### Step 8: Integration tests
-**File:** `tests/Portfolio.Modules.Identity.Tests/AuthEndpointsTests.cs`
+**File:** `tests/DevHub.Modules.Identity.Tests/AuthEndpointsTests.cs`
 **Action:** Create
 Using the Testcontainers fixture (T-020) + `WebApplicationFactory`, cover:
 - Login with seeded operator → 200, body shape, refresh cookie present.
@@ -139,16 +139,16 @@ Using the Testcontainers fixture (T-020) + `WebApplicationFactory`, cover:
 ## Files Affected
 | File | Action | Summary |
 |------|--------|---------|
-| `src/Portfolio.Modules.Identity/Services/IJwtTokenIssuer.cs`, `JwtTokenIssuer.cs` | Create | Access-token issuance |
-| `src/Portfolio.Modules.Identity/Services/IRefreshTokenStore.cs`, `RefreshTokenStore.cs` | Create | Refresh rotation + revocation |
-| `src/Portfolio.Modules.Identity/Services/IAuthenticationService.cs`, `AuthenticationService.cs` | Create | Login/Refresh/Logout/Me |
-| `src/Portfolio.Modules.Identity/Services/CurrentMemberAccessor.cs` | Create | Resolves `ICurrentMember` from `HttpContext.User` |
-| `src/Portfolio.Modules.Identity/DTOs/*.cs` | Create | Request/response DTOs |
-| `src/Portfolio.Modules.Identity/Controllers/AuthController.cs` | Create | Endpoints |
-| `src/Portfolio.Contracts/Identity/ICurrentMember.cs` | Create | Cross-module current-member |
-| `src/Portfolio.Contracts/EnvelopeDto.cs` | Create | `{ data, meta }` envelope record |
-| `src/Portfolio.Modules.Identity/IdentityModuleExtensions.cs` | Modify | DI |
-| `tests/Portfolio.Modules.Identity.Tests/AuthEndpointsTests.cs` | Create | Integration tests |
+| `src/DevHub.Modules.Identity/Services/IJwtTokenIssuer.cs`, `JwtTokenIssuer.cs` | Create | Access-token issuance |
+| `src/DevHub.Modules.Identity/Services/IRefreshTokenStore.cs`, `RefreshTokenStore.cs` | Create | Refresh rotation + revocation |
+| `src/DevHub.Modules.Identity/Services/IAuthenticationService.cs`, `AuthenticationService.cs` | Create | Login/Refresh/Logout/Me |
+| `src/DevHub.Modules.Identity/Services/CurrentMemberAccessor.cs` | Create | Resolves `ICurrentMember` from `HttpContext.User` |
+| `src/DevHub.Modules.Identity/DTOs/*.cs` | Create | Request/response DTOs |
+| `src/DevHub.Modules.Identity/Controllers/AuthController.cs` | Create | Endpoints |
+| `src/DevHub.Contracts/Identity/ICurrentMember.cs` | Create | Cross-module current-member |
+| `src/DevHub.Contracts/EnvelopeDto.cs` | Create | `{ data, meta }` envelope record |
+| `src/DevHub.Modules.Identity/IdentityModuleExtensions.cs` | Modify | DI |
+| `tests/DevHub.Modules.Identity.Tests/AuthEndpointsTests.cs` | Create | Integration tests |
 
 ## Edge Cases & Risks
 - **Same-IP brute force** — no rate limiting in this task; tracked as a v1 IMP. Document the gap.

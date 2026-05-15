@@ -29,7 +29,7 @@ Configure `singleRun: true` when launched non-interactively (Angular CLI sets th
 ### Step 2: angular.json test target
 **File:** `client/angular.json`
 **Action:** Modify
-Under `projects.portfolio.architect.test.options`:
+Under `projects.dev-hub.architect.test.options`:
 - `"karmaConfig": "karma.conf.js"`
 - `"watch": false` (CI default; dev can still pass `--watch`)
 - `"codeCoverage": true`

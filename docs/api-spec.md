@@ -2,9 +2,9 @@
 
 ## Overview
 
-The Portfolio API is the **single front door** for every end-user action and for operator administration of executors. All endpoints live under `/api/`, are served by `Portfolio.Api` (the thin host), and are organized into per-module controllers. Six modules expose endpoints: Identity, Workspace, ExecutorRegistry, WorkItems (the façade), Audit, and Notifications.
+DevHub API is the **single front door** for every end-user action and for operator administration of executors. All endpoints live under `/api/`, are served by `DevHub.Api` (the thin host), and are organized into per-module controllers. Six modules expose endpoints: Identity, Workspace, ExecutorRegistry, WorkItems (the façade), Audit, and Notifications.
 
-Every endpoint that wraps a lifecycle executor action **MUST authorize `(member, role, project, target)` at the portfolio boundary before forwarding**. Denied requests never reach the executor.
+Every endpoint that wraps a lifecycle executor action **MUST authorize `(member, role, project, target)` at DevHub boundary before forwarding**. Denied requests never reach the executor.
 
 ### Key API Decisions
 
@@ -419,7 +419,7 @@ Query: `page`, `pageSize`, `sortBy` ∈ {`name`, `createdAt`}, `sortDir`, `teamI
 
 ### Work Items (the façade)
 
-> The portfolio's only path to lifecycle executors. Every endpoint here authorizes before forwarding.
+> DevHub's only path to lifecycle executors. Every endpoint here authorizes before forwarding.
 
 #### Work Item Index
 
@@ -466,7 +466,7 @@ Query: `page`, `pageSize`, `sortBy` ∈ {`createdAt`, `updatedAt`, `title`}, `so
 
 ##### GET /api/projects/{projectId}/work-items/{workItemId}
 
-> *Get the latest snapshot from the executor (pass-through), enriched with portfolio metadata.*
+> *Get the latest snapshot from the executor (pass-through), enriched with DevHub metadata.*
 
 | Attribute | Value |
 |-----------|-------|
@@ -487,7 +487,7 @@ Query: `page`, `pageSize`, `sortBy` ∈ {`createdAt`, `updatedAt`, `title`}, `so
     "currentCheckpointKey": "string|null",
     "createdAt": "iso-8601",
     "createdBy": { "id": "uuid", "displayName": "string" },
-    "executorState": { "any": "executor-shaped — opaque to portfolio" }
+    "executorState": { "any": "executor-shaped — opaque to DevHub" }
   }
 }
 ```
@@ -548,7 +548,7 @@ Query: `page`, `pageSize`, `sortBy` ∈ {`createdAt`, `updatedAt`, `title`}, `so
 | **Roles** | Project:any |
 | **Content-Type** | `text/event-stream` |
 
-Events are forwarded **byte-for-byte** from the executor with no buffering, batching, or transformation. On client disconnect the upstream connection is closed; no replay state is held in the portfolio.
+Events are forwarded **byte-for-byte** from the executor with no buffering, batching, or transformation. On client disconnect the upstream connection is closed; no replay state is held in DevHub.
 
 ##### POST /api/projects/{projectId}/work-items/{workItemId}/cancel
 
