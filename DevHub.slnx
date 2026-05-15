@@ -1,0 +1,20 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/DevHub.Api/DevHub.Api.csproj" />
+    <Project Path="src/DevHub.Contracts/DevHub.Contracts.csproj" />
+    <Project Path="src/DevHub.Modules.Audit/DevHub.Modules.Audit.csproj" />
+    <Project Path="src/DevHub.Modules.ExecutorRegistry/DevHub.Modules.ExecutorRegistry.csproj" />
+    <Project Path="src/DevHub.Modules.Identity/DevHub.Modules.Identity.csproj" />
+    <Project Path="src/DevHub.Modules.Notifications/DevHub.Modules.Notifications.csproj" />
+    <Project Path="src/DevHub.Modules.WorkItems/DevHub.Modules.WorkItems.csproj" />
+    <Project Path="src/DevHub.Modules.Workspace/DevHub.Modules.Workspace.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/DevHub.Modules.Audit.Tests/DevHub.Modules.Audit.Tests.csproj" />
+    <Project Path="tests/DevHub.Modules.ExecutorRegistry.Tests/DevHub.Modules.ExecutorRegistry.Tests.csproj" />
+    <Project Path="tests/DevHub.Modules.Identity.Tests/DevHub.Modules.Identity.Tests.csproj" />
+    <Project Path="tests/DevHub.Modules.Notifications.Tests/DevHub.Modules.Notifications.Tests.csproj" />
+    <Project Path="tests/DevHub.Modules.WorkItems.Tests/DevHub.Modules.WorkItems.Tests.csproj" />
+    <Project Path="tests/DevHub.Modules.Workspace.Tests/DevHub.Modules.Workspace.Tests.csproj" />
+  </Folder>
+</Solution>
