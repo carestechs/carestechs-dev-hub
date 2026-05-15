@@ -1,5 +1,5 @@
 using DevHub.Contracts.Persistence;
-using DevHub.Modules.Workspace.Entities.Enums;
+using DevHub.Contracts.Identity;
 
 namespace DevHub.Modules.Workspace.Entities;
 

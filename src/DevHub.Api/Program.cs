@@ -83,7 +83,16 @@ builder.Services.AddProblemDetails();
 builder.Services.AddExceptionHandler<ProblemDetailsHandler>();
 
 builder.Services.AddHttpContextAccessor();
-builder.Services.AddControllers();
+// Controllers live in feature modules. Each module's assembly is registered as
+// an application part so MVC discovers its [ApiController] types. Host owns
+// no controllers itself.
+builder.Services.AddControllers()
+    .AddApplicationPart(typeof(DevHub.Modules.Workspace.WorkspaceDbContext).Assembly)
+    .AddApplicationPart(typeof(DevHub.Modules.Identity.IdentityDbContext).Assembly)
+    .AddApplicationPart(typeof(DevHub.Modules.ExecutorRegistry.ExecutorRegistryDbContext).Assembly)
+    .AddApplicationPart(typeof(DevHub.Modules.WorkItems.WorkItemsDbContext).Assembly)
+    .AddApplicationPart(typeof(DevHub.Modules.Audit.AuditDbContext).Assembly)
+    .AddApplicationPart(typeof(DevHub.Modules.Notifications.NotificationsDbContext).Assembly);
 
 // ----------------------------------------------------------------------------
 // Module registration. Each module is self-contained: it owns its DbContext,

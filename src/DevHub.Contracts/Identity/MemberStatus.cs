@@ -1,4 +1,4 @@
-namespace DevHub.Modules.Workspace.Entities.Enums;
+namespace DevHub.Contracts.Identity;
 
 public enum MemberStatus
 {

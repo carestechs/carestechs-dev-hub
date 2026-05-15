@@ -12,4 +12,4 @@ public interface IMemberLookup
     Task<MemberLookupResult?> FindByIdAsync(Guid id, CancellationToken cancellationToken = default);
 }
 
-public sealed record MemberLookupResult(Guid Id, string DisplayName, string Email, string Status);
+public sealed record MemberLookupResult(Guid Id, string DisplayName, string Email, MemberStatus Status);

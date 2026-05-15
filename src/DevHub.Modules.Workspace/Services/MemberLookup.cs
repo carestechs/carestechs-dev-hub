@@ -21,5 +21,5 @@ internal sealed class MemberLookup(WorkspaceDbContext db) : IMemberLookup
     }
 
     private static MemberLookupResult Map(Member m) =>
-        new(m.Id, m.DisplayName, m.Email, m.Status.ToString());
+        new(m.Id, m.DisplayName, m.Email, m.Status);
 }

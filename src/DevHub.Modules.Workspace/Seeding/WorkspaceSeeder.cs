@@ -1,5 +1,5 @@
 using DevHub.Modules.Workspace.Entities;
-using DevHub.Modules.Workspace.Entities.Enums;
+using DevHub.Contracts.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
