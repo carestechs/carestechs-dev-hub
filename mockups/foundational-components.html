@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>DevHub — Foundational components mockup</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    html, body { font-family: 'Inter', system-ui, sans-serif; background: #F8FAFC; color: #334155; }
+    h1, h2, h3, h4 { font-family: 'Poppins', system-ui, sans-serif; color: #0F172A; }
+  </style>
+</head>
+<body class="min-h-screen py-8 px-4 md:px-6">
+  <main class="mx-auto max-w-5xl space-y-12">
+
+    <header>
+      <h1 class="text-3xl font-bold">Foundational components</h1>
+      <p class="text-slate-500 mt-2">Static mockup of the six shared building blocks. Modern Minimal tokens.</p>
+    </header>
+
+    <!-- Spinner -->
+    <section>
+      <h2 class="text-xl font-semibold mb-4">AppSpinner</h2>
+      <div class="bg-white rounded-xl shadow-sm p-6 flex items-center gap-6">
+        <span class="text-sky-500"><svg class="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"/></svg></span>
+        <span class="text-sky-500"><svg class="animate-spin h-5 w-5" viewBox="0 0 24 24" fill="none"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"/></svg></span>
+        <span class="text-sky-500"><svg class="animate-spin h-6 w-6" viewBox="0 0 24 24" fill="none"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"/></svg></span>
+        <span class="text-xs text-slate-500">sizes: sm, md, lg · color from <code class="text-xs bg-slate-100 px-1 rounded">currentColor</code></span>
+      </div>
+    </section>
+
+    <!-- Buttons -->
+    <section>
+      <h2 class="text-xl font-semibold mb-4">AppButton</h2>
+      <div class="bg-white rounded-xl shadow-sm p-6 space-y-6">
+        <div class="space-y-2">
+          <h3 class="text-sm font-medium text-slate-500 uppercase tracking-wide">Variants — idle / hover / pressed</h3>
+          <div class="flex flex-wrap gap-3">
+            <button class="inline-flex items-center justify-center gap-2 rounded-lg font-medium h-10 px-4 text-base bg-sky-500 text-white hover:bg-sky-600">Primary</button>
+            <button class="inline-flex items-center justify-center gap-2 rounded-lg font-medium h-10 px-4 text-base bg-white border border-slate-300 text-slate-700 hover:bg-slate-50">Secondary</button>
+            <button class="inline-flex items-center justify-center gap-2 rounded-lg font-medium h-10 px-4 text-base text-sky-600 hover:bg-sky-50">Ghost</button>
+            <button class="inline-flex items-center justify-center gap-2 rounded-lg font-medium h-10 px-4 text-base bg-red-500 text-white hover:bg-red-600">Danger</button>
+          </div>
+        </div>
+        <div class="space-y-2">
+          <h3 class="text-sm font-medium text-slate-500 uppercase tracking-wide">Sizes</h3>
+          <div class="flex flex-wrap items-end gap-3">
+            <button class="inline-flex items-center justify-center gap-2 rounded-lg font-medium h-9 px-3 text-sm bg-sky-500 text-white">Small</button>
+            <button class="inline-flex items-center justify-center gap-2 rounded-lg font-medium h-10 px-4 text-base bg-sky-500 text-white">Medium</button>
+            <button class="inline-flex items-center justify-center gap-2 rounded-lg font-medium h-12 px-5 text-lg bg-sky-500 text-white">Large</button>
+          </div>
+        </div>
+        <div class="space-y-2">
+          <h3 class="text-sm font-medium text-slate-500 uppercase tracking-wide">States</h3>
+          <div class="flex flex-wrap gap-3">
+            <button disabled class="inline-flex items-center justify-center gap-2 rounded-lg font-medium h-10 px-4 bg-sky-500 text-white opacity-50 cursor-not-allowed">Disabled</button>
+            <button class="inline-flex items-center justify-center gap-2 rounded-lg font-medium h-10 px-4 bg-sky-500 text-white">
+              <svg class="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"/></svg>
+              Loading
+            </button>
+            <button class="inline-flex items-center justify-center gap-2 rounded-lg font-medium h-10 px-4 bg-sky-500 text-white ring-2 ring-sky-300 ring-offset-2 ring-offset-white">Focused</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Card -->
+    <section>
+      <h2 class="text-xl font-semibold mb-4">AppCard</h2>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="bg-white rounded-xl shadow-sm p-6">
+          <h3 class="font-semibold">Static card</h3>
+          <p class="text-slate-500 mt-2 text-sm">Default elevation — <code class="text-xs bg-slate-100 px-1 rounded">shadow-sm</code>, no border.</p>
+        </div>
+        <div class="bg-white rounded-xl shadow-md -translate-y-0.5 transition-all duration-200 p-6 cursor-pointer">
+          <h3 class="font-semibold">Clickable card (hover state)</h3>
+          <p class="text-slate-500 mt-2 text-sm">Lift on hover — <code class="text-xs bg-slate-100 px-1 rounded">hover:shadow-md hover:-translate-y-0.5</code>. Focus ring on Tab.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Form field -->
+    <section>
+      <h2 class="text-xl font-semibold mb-4">AppFormField</h2>
+      <div class="bg-white rounded-xl shadow-sm p-6 space-y-4 max-w-md">
+        <label class="block">
+          <span class="block text-sm font-medium text-slate-700 mb-1">Email <span class="text-red-500">*</span></span>
+          <input type="email" placeholder="op@devhub.local"
+                 class="block w-full border border-slate-300 focus:border-sky-500 focus:ring-2 focus:ring-sky-100 rounded-lg px-3 h-10 outline-none">
+          <p class="mt-1 text-xs text-slate-500">We'll never share your email.</p>
+        </label>
+        <label class="block">
+          <span class="block text-sm font-medium text-slate-700 mb-1">Password <span class="text-red-500">*</span></span>
+          <input type="password" aria-invalid="true"
+                 class="block w-full border border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-100 rounded-lg px-3 h-10 outline-none">
+          <p class="mt-1 text-sm text-red-600">Password is required.</p>
+        </label>
+      </div>
+    </section>
+
+    <!-- Error banner -->
+    <section>
+      <h2 class="text-xl font-semibold mb-4">AppErrorBanner</h2>
+      <div class="bg-white rounded-xl shadow-sm p-6">
+        <div role="alert" class="bg-red-50 border border-red-200 text-red-700 rounded-lg p-4 flex items-start gap-3">
+          <svg class="h-5 w-5 mt-0.5 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM10 5a1 1 0 011 1v4a1 1 0 11-2 0V6a1 1 0 011-1zm0 8a1 1 0 100 2 1 1 0 000-2z" clip-rule="evenodd"/></svg>
+          <div class="flex-1">
+            <p class="font-semibold">Sign-in failed</p>
+            <p class="text-sm mt-1">Invalid email or password.</p>
+            <p class="text-xs mt-2 font-mono text-red-500">correlationId: 00-abc123-456def…</p>
+          </div>
+          <button class="text-xs font-medium underline hover:no-underline" type="button">Copy id</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Empty state -->
+    <section>
+      <h2 class="text-xl font-semibold mb-4">EmptyState</h2>
+      <div class="bg-white rounded-xl shadow-sm p-6">
+        <div class="text-center py-12">
+          <svg class="mx-auto h-12 w-12 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+          <h3 class="mt-4 text-lg font-semibold">You're all caught up.</h3>
+          <p class="mt-2 text-sm text-slate-500 max-w-sm mx-auto">When a checkpoint waits on your role in any project, it shows up here.</p>
+          <button class="mt-6 inline-flex items-center justify-center gap-2 rounded-lg font-medium h-10 px-4 bg-sky-500 text-white hover:bg-sky-600">Browse projects →</button>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</body>
+</html>

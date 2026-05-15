@@ -1,0 +1,25 @@
+@if (error(); as err) {
+  <div role="alert" class="bg-red-50 border border-red-200 text-red-700 rounded-lg p-4 flex items-start gap-3">
+    <svg class="h-5 w-5 mt-0.5 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+      <path fill-rule="evenodd"
+            d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM10 5a1 1 0 011 1v4a1 1 0 11-2 0V6a1 1 0 011-1zm0 8a1 1 0 100 2 1 1 0 000-2z"
+            clip-rule="evenodd" />
+    </svg>
+    <div class="flex-1 min-w-0">
+      <p class="font-semibold">{{ err.title }}</p>
+      @if (err.detail) {
+        <p class="text-sm mt-1">{{ err.detail }}</p>
+      }
+      @if (err.correlationId) {
+        <p class="text-xs mt-2 font-mono text-red-500 break-all">correlationId: {{ err.correlationId }}</p>
+      }
+    </div>
+    @if (err.correlationId) {
+      <button type="button"
+              class="text-xs font-medium underline hover:no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-300 rounded"
+              (click)="copyCorrelationId()">
+        Copy id
+      </button>
+    }
+  </div>
+}
