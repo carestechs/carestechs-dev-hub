@@ -1,4 +1,5 @@
 using System.Text;
+using DevHub.Api;
 using DevHub.Api.Middleware;
 using DevHub.Api.Options;
 using DevHub.Contracts.Persistence;
@@ -9,6 +10,8 @@ using DevHub.Modules.Notifications;
 using DevHub.Modules.WorkItems;
 using DevHub.Modules.Workspace;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.IdentityModel.Tokens;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -83,7 +86,16 @@ builder.Services.AddProblemDetails();
 builder.Services.AddExceptionHandler<ProblemDetailsHandler>();
 
 builder.Services.AddHttpContextAccessor();
-builder.Services.AddControllers();
+// Controllers live in feature modules. Each module's assembly is registered as
+// an application part so MVC discovers its [ApiController] types. Host owns
+// no controllers itself.
+builder.Services.AddControllers()
+    .AddApplicationPart(typeof(DevHub.Modules.Workspace.WorkspaceDbContext).Assembly)
+    .AddApplicationPart(typeof(DevHub.Modules.Identity.IdentityDbContext).Assembly)
+    .AddApplicationPart(typeof(DevHub.Modules.ExecutorRegistry.ExecutorRegistryDbContext).Assembly)
+    .AddApplicationPart(typeof(DevHub.Modules.WorkItems.WorkItemsDbContext).Assembly)
+    .AddApplicationPart(typeof(DevHub.Modules.Audit.AuditDbContext).Assembly)
+    .AddApplicationPart(typeof(DevHub.Modules.Notifications.NotificationsDbContext).Assembly);
 
 // ----------------------------------------------------------------------------
 // Module registration. Each module is self-contained: it owns its DbContext,
@@ -96,6 +108,9 @@ builder.Services
     .AddWorkItemsModule(builder.Configuration)
     .AddAuditModule(builder.Configuration)
     .AddNotificationsModule(builder.Configuration);
+
+builder.Services.AddHealthChecks()
+    .AddDbContextCheck<WorkspaceDbContext>(name: "db", failureStatus: HealthStatus.Unhealthy);
 
 var app = builder.Build();
 
@@ -110,10 +125,16 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 
-// Health endpoint lands in T-008. For now expose a smoke endpoint so the host
-// has at least one route while the modules' controllers come online.
-app.MapGet("/", () => Results.Ok(new { service = "devhub-api", status = "ok" }))
-   .AllowAnonymous();
+app.MapHealthChecks("/health", new HealthCheckOptions
+{
+    ResponseWriter = HealthCheckResponseWriter.WriteAsync,
+    ResultStatusCodes =
+    {
+        [HealthStatus.Healthy] = StatusCodes.Status200OK,
+        [HealthStatus.Degraded] = StatusCodes.Status200OK,
+        [HealthStatus.Unhealthy] = StatusCodes.Status503ServiceUnavailable,
+    },
+}).AllowAnonymous();
 
 app.Run();
 

@@ -1,4 +1,7 @@
+using DevHub.Contracts.Identity;
 using DevHub.Contracts.Persistence;
+using DevHub.Modules.Workspace.Seeding;
+using DevHub.Modules.Workspace.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -17,6 +20,14 @@ public static class WorkspaceModuleExtensions
                 .UseSnakeCaseNamingConvention()
                 .AddInterceptors(sp.GetRequiredService<TimestampingInterceptor>());
         });
+
+        services.AddScoped<IMemberLookup, MemberLookup>();
+
+        services.AddOptions<WorkspaceSeedOptions>()
+            .Bind(configuration.GetSection(WorkspaceSeedOptions.SectionName));
+
+        services.AddHostedService<WorkspaceSeeder>();
+
         return services;
     }
 }
