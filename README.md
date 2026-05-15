@@ -15,11 +15,15 @@ src/
 ├── DevHub.Contracts/                # Cross-module interfaces, DTOs, persistence base
 └── DevHub.Modules.{Workspace,Identity,ExecutorRegistry,WorkItems,Audit,Notifications}/
 tests/
-└── DevHub.Modules.<Module>.Tests/   # xUnit per-module
-client/                              # Angular SPA (added in a later PR)
-docker-compose.yml                   # Local infra (Postgres only)
+├── DevHub.TestHarness/              # Shared Postgres fixture + WebApplicationFactory
+└── DevHub.Modules.<Module>.Tests/   # xUnit per-module (uses TestHarness)
+client/                              # Angular 20 SPA (dev-hub workspace)
+docker-compose.yml                   # Dev infra (Postgres only)
+docker-compose.prod.yml              # Self-contained prod stack (postgres + api + web)
+scripts/verify-docker.sh             # End-to-end prod-stack smoke test
 docs/                                # Stakeholder def, architecture, data model, API spec, UI spec, work items
 plans/                               # Per-task implementation plans
+mockups/                             # Stakeholder-facing HTML mockups for new screens
 ```
 
 Module projects reference `DevHub.Contracts` only — never each other. `DevHub.Api` is the only project that references every module. See `CLAUDE.md` for the full convention set.
@@ -47,15 +51,41 @@ dotnet build DevHub.slnx
 # 5. Start the API (hot reload via `dotnet watch`)
 dotnet run --project src/DevHub.Api
 
-# 6. (Later) Frontend
-# cd client && npm install && ng serve
+# 6. Frontend (dev — proxies /api to the API on :5234)
+cd client && npm install && npm start
 ```
 
 ### Running tests
 
+**Backend** — xUnit + Testcontainers. Each test class spins up an isolated
+Postgres database inside the shared `postgres:16-alpine` container managed
+by `DevHub.TestHarness/PostgresFixture`. Docker must be available.
+
 ```bash
-dotnet test
+dotnet test DevHub.slnx
 ```
+
+**Frontend** — Karma + Jasmine, headless Chrome. The dev `test` command
+watches; the `test:ci` command runs once with coverage and the
+`ChromeHeadlessCI` launcher (adds `--no-sandbox` etc. for unprivileged
+CI containers).
+
+```bash
+cd client
+npm test         # watch mode (interactive)
+npm run test:ci  # single run + coverage (writes coverage/dev-hub/lcov.info)
+```
+
+### Smoke-testing the prod stack
+
+```bash
+cp .env.production.example .env.production  # edit at minimum POSTGRES_PASSWORD and Jwt__SigningKey
+WEB_HOST_PORT=8081 ./scripts/verify-docker.sh
+```
+
+Builds the API + web images, brings up `docker-compose.prod.yml`
+(postgres + api + web), waits for healthchecks, then exercises `/`,
+`/api/auth/login`, and `/api/auth/me`. Tears the stack down on exit.
 
 ---
 
