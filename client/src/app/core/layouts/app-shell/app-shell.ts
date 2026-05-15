@@ -2,20 +2,19 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
-  EventEmitter,
   HostListener,
-  input,
-  Output,
+  inject,
   signal,
 } from '@angular/core';
-import { RouterOutlet } from '@angular/router';
+import { Router, RouterOutlet } from '@angular/router';
+import { AuthService } from '../../auth/auth.service';
 import { AppHeader } from './header';
 import { AppSidebar } from './sidebar';
 
 /**
- * Authenticated app shell: persistent header + collapsible sidebar + content outlet.
- * Inputs are kept dumb so a parent component (App) can wire AuthService signals to them
- * once T-013 lands. AppShell itself has no AuthService dependency.
+ * Authenticated app shell — persistent header + collapsible sidebar + content outlet.
+ * Reads AuthService signals directly so child routes don't have to plumb member state.
+ * pendingCount is 0 in v1 (FEAT-005 will wire the live notification stream).
  */
 @Component({
   selector: 'app-shell',
@@ -25,21 +24,22 @@ import { AppSidebar } from './sidebar';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class AppShell {
-  readonly memberName = input<string>('');
-  readonly pendingCount = input<number>(0);
-  readonly isOperator = input<boolean>(false);
+  private readonly auth = inject(AuthService);
+  private readonly router = inject(Router);
 
-  @Output() readonly logout = new EventEmitter<void>();
+  protected readonly memberName = computed(() => this.auth.currentMember()?.displayName ?? '');
+  protected readonly isOperator = this.auth.isOperator;
+  protected readonly pendingCount = signal(0); // FEAT-005 wires this to the live stream
 
   protected readonly drawerOpen = signal(false);
   protected readonly drawerVisible = computed(() => this.drawerOpen());
 
-  protected toggleDrawer(): void {
-    this.drawerOpen.update(o => !o);
-  }
+  protected toggleDrawer(): void { this.drawerOpen.update(o => !o); }
+  protected closeDrawer(): void { this.drawerOpen.set(false); }
 
-  protected closeDrawer(): void {
-    this.drawerOpen.set(false);
+  protected async onLogout(): Promise<void> {
+    await this.auth.logout();
+    await this.router.navigateByUrl('/login');
   }
 
   /** Auto-close the drawer when the viewport crosses into md+. */

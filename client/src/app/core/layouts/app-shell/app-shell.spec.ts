@@ -1,26 +1,35 @@
-import { provideRouter } from '@angular/router';
+import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
+import { provideRouter, Router } from '@angular/router';
 import { By } from '@angular/platform-browser';
+import { AuthService } from '../../auth/auth.service';
 import { AppShell } from './app-shell';
 import { AppHeader } from './header';
 
 describe('AppShell', () => {
+  let auth: AuthService;
+
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [AppShell],
-      providers: [provideRouter([])],
+      providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([])],
     }).compileComponents();
+    auth = TestBed.inject(AuthService);
   });
 
-  function render(setInputs: (f: ReturnType<typeof TestBed.createComponent<AppShell>>) => void = () => {}) {
+  function render() {
     const fixture = TestBed.createComponent(AppShell);
-    setInputs(fixture);
     fixture.detectChanges();
     return fixture;
   }
 
-  it('renders header, sidebar, and router-outlet', () => {
-    const fixture = render(f => f.componentRef.setInput('memberName', 'Operator'));
+  it('renders header, sidebar, router-outlet, and the current member name', () => {
+    auth.setAccessToken('jwt');
+    (auth as unknown as { _member: { set: (v: unknown) => void } })._member.set({
+      id: 'm1', displayName: 'Operator', email: 'op@devhub.local',
+    });
+    const fixture = render();
     const html = fixture.nativeElement as HTMLElement;
     expect(html.querySelector('app-header')).toBeTruthy();
     expect(html.querySelector('app-sidebar')).toBeTruthy();
@@ -37,12 +46,17 @@ describe('AppShell', () => {
     expect((fixture.nativeElement as HTMLElement).querySelectorAll('app-sidebar').length).toBe(2);
   });
 
-  it('emits logout when the header emits logout', () => {
+  it('logout: calls AuthService.logout and routes to /login', async () => {
     const fixture = render();
-    let count = 0;
-    fixture.componentInstance.logout.subscribe(() => count++);
+    const router = TestBed.inject(Router);
+    const navSpy = spyOn(router, 'navigateByUrl').and.resolveTo(true);
+    const logoutSpy = spyOn(auth, 'logout').and.resolveTo();
     const header = fixture.debugElement.query(By.directive(AppHeader)).componentInstance as AppHeader;
+
     header.logout.emit();
-    expect(count).toBe(1);
+    await Promise.resolve(); await Promise.resolve();
+
+    expect(logoutSpy).toHaveBeenCalled();
+    expect(navSpy).toHaveBeenCalledWith('/login');
   });
 });
