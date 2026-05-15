@@ -11,32 +11,32 @@
 **Type:** DevOps · **Workflow:** standard · **Complexity:** M · **Dependencies:** None
 
 **Description:**
-Create `Portfolio.sln`, the thin host `Portfolio.Api`, the shared `Portfolio.Contracts`, and the six feature module projects (`Portfolio.Modules.Workspace`, `.Identity`, `.ExecutorRegistry`, `.WorkItems`, `.Audit`, `.Notifications`), each with the per-module directory layout from the architecture profile. Wire project references and create the per-module test projects under `tests/`.
+Create `DevHub.sln`, the thin host `DevHub.Api`, the shared `DevHub.Contracts`, and the six feature module projects (`DevHub.Modules.Workspace`, `.Identity`, `.ExecutorRegistry`, `.WorkItems`, `.Audit`, `.Notifications`), each with the per-module directory layout from the architecture profile. Wire project references and create the per-module test projects under `tests/`.
 
 **Rationale:**
 Foundational — every later backend task lands in one of these projects. The modular monolith structure is required by the architecture profile.
 
 **Acceptance Criteria:**
-- [ ] `Portfolio.sln` exists and `dotnet build` succeeds with zero errors and zero warnings.
-- [ ] `Portfolio.Api` references all six module projects and `Portfolio.Contracts`.
-- [ ] Every module project references `Portfolio.Contracts` only (never another module directly).
-- [ ] `tests/Portfolio.Modules.<Module>.Tests/` exists for each module; all test projects build.
+- [ ] `DevHub.sln` exists and `dotnet build` succeeds with zero errors and zero warnings.
+- [ ] `DevHub.Api` references all six module projects and `DevHub.Contracts`.
+- [ ] Every module project references `DevHub.Contracts` only (never another module directly).
+- [ ] `tests/DevHub.Modules.<Module>.Tests/` exists for each module; all test projects build.
 
 **Files to Modify/Create:**
-- Create: `Portfolio.sln`
-- Create: `src/Portfolio.Api/Portfolio.Api.csproj`
-- Create: `src/Portfolio.Contracts/Portfolio.Contracts.csproj`
-- Create: `src/Portfolio.Modules.Workspace/Portfolio.Modules.Workspace.csproj`
-- Create: `src/Portfolio.Modules.Identity/Portfolio.Modules.Identity.csproj`
-- Create: `src/Portfolio.Modules.ExecutorRegistry/Portfolio.Modules.ExecutorRegistry.csproj`
-- Create: `src/Portfolio.Modules.WorkItems/Portfolio.Modules.WorkItems.csproj`
-- Create: `src/Portfolio.Modules.Audit/Portfolio.Modules.Audit.csproj`
-- Create: `src/Portfolio.Modules.Notifications/Portfolio.Modules.Notifications.csproj`
-- Create: `tests/Portfolio.Modules.<Module>.Tests/*.csproj` (×6)
+- Create: `DevHub.sln`
+- Create: `src/DevHub.Api/DevHub.Api.csproj`
+- Create: `src/DevHub.Contracts/DevHub.Contracts.csproj`
+- Create: `src/DevHub.Modules.Workspace/DevHub.Modules.Workspace.csproj`
+- Create: `src/DevHub.Modules.Identity/DevHub.Modules.Identity.csproj`
+- Create: `src/DevHub.Modules.ExecutorRegistry/DevHub.Modules.ExecutorRegistry.csproj`
+- Create: `src/DevHub.Modules.WorkItems/DevHub.Modules.WorkItems.csproj`
+- Create: `src/DevHub.Modules.Audit/DevHub.Modules.Audit.csproj`
+- Create: `src/DevHub.Modules.Notifications/DevHub.Modules.Notifications.csproj`
+- Create: `tests/DevHub.Modules.<Module>.Tests/*.csproj` (×6)
 - Create: `.editorconfig`, `Directory.Build.props` (nullable enable, ImplicitUsings, TreatWarningsAsErrors)
 
 **Technical Notes:**
-TargetFramework `net10.0`. `<TreatWarningsAsErrors>true</TreatWarningsAsErrors>`. No module .csproj has a `ProjectReference` to another module — only to `Portfolio.Contracts`. Per the profile, `Portfolio.Api` is the *only* project that references every module.
+TargetFramework `net10.0`. `<TreatWarningsAsErrors>true</TreatWarningsAsErrors>`. No module .csproj has a `ProjectReference` to another module — only to `DevHub.Contracts`. Per the profile, `DevHub.Api` is the *only* project that references every module.
 
 ---
 
@@ -54,14 +54,14 @@ Profile mandates snake_case, `timestamptz`, UUID PKs end-to-end. Centralizing th
 - [ ] A trivial migration on any module produces `snake_case` table/column names and `timestamptz` columns.
 - [ ] `Id` columns are `uuid` in PostgreSQL and `Guid` in C#.
 - [ ] `BaseEntity` defines `Id`, `CreatedAt`, `UpdatedAt`; a sibling `ISoftDeletable` adds `DeletedAt`.
-- [ ] `SaveChangesAsync` automatically populates `CreatedAt`/`UpdatedAt` (override on each DbContext or via a single `SaveChangesInterceptor` published from `Portfolio.Contracts`).
+- [ ] `SaveChangesAsync` automatically populates `CreatedAt`/`UpdatedAt` (override on each DbContext or via a single `SaveChangesInterceptor` published from `DevHub.Contracts`).
 
 **Files to Modify/Create:**
 - Modify: each module `.csproj` to add EF Core + Npgsql + EFCore.NamingConventions
-- Create: `src/Portfolio.Contracts/Persistence/BaseEntity.cs`
-- Create: `src/Portfolio.Contracts/Persistence/ISoftDeletable.cs`
-- Create: `src/Portfolio.Contracts/Persistence/TimestampingInterceptor.cs`
-- Create: `src/Portfolio.Modules.<Module>/<Module>DbContext.cs` (one per module — empty `DbSet`s, but `OnConfiguring`/`OnModelCreating` apply the naming convention)
+- Create: `src/DevHub.Contracts/Persistence/BaseEntity.cs`
+- Create: `src/DevHub.Contracts/Persistence/ISoftDeletable.cs`
+- Create: `src/DevHub.Contracts/Persistence/TimestampingInterceptor.cs`
+- Create: `src/DevHub.Modules.<Module>/<Module>DbContext.cs` (one per module — empty `DbSet`s, but `OnConfiguring`/`OnModelCreating` apply the naming convention)
 
 **Technical Notes:**
 Use `optionsBuilder.UseSnakeCaseNamingConvention()` in each DbContext. Inject `TimestampingInterceptor` via `DbContextOptionsBuilder.AddInterceptors(...)` in each `Add<Module>Module()` extension (T-004). PKs default to client-generated `Guid.NewGuid()` — never `Identity` columns.
@@ -90,7 +90,7 @@ Profile rule "Local development first": the app must build and run before any fe
 - Modify: `README.md` (Local development section)
 
 **Technical Notes:**
-Use `postgres:16-alpine`. Name the volume `portfolio-pgdata`. Healthcheck: `pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB`. Default `POSTGRES_USER=portfolio`, `POSTGRES_DB=portfolio`.
+Use `postgres:16-alpine`. Name the volume `devhub-pgdata`. Healthcheck: `pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB`. Default `POSTGRES_USER=devhub`, `POSTGRES_DB=devhub`.
 
 ---
 
@@ -99,23 +99,23 @@ Use `postgres:16-alpine`. Name the volume `portfolio-pgdata`. Healthcheck: `pg_i
 **Type:** Backend · **Workflow:** standard · **Complexity:** L · **Dependencies:** T-002, T-003
 
 **Description:**
-Wire `Portfolio.Api/Program.cs` as the composition root only: configuration binding, JWT bearer authentication, global RFC 7807 exception handling (`UseExceptionHandler` with a problem-details writer), CORS for the SPA origin, request logging, health-check endpoint registration, and the per-module `Add<Module>Module()` / `Use<Module>Module()` extensions. Each module gets a public `<Module>ModuleExtensions` class with both extensions.
+Wire `DevHub.Api/Program.cs` as the composition root only: configuration binding, JWT bearer authentication, global RFC 7807 exception handling (`UseExceptionHandler` with a problem-details writer), CORS for the SPA origin, request logging, health-check endpoint registration, and the per-module `Add<Module>Module()` / `Use<Module>Module()` extensions. Each module gets a public `<Module>ModuleExtensions` class with both extensions.
 
 **Rationale:**
-Profile rule "thin API host": no controllers, services, or business logic in `Portfolio.Api`. Centralized exception handler produces uniform problem-details across modules.
+Profile rule "thin API host": no controllers, services, or business logic in `DevHub.Api`. Centralized exception handler produces uniform problem-details across modules.
 
 **Acceptance Criteria:**
-- [ ] `Portfolio.Api/Program.cs` contains only DI registration and pipeline composition; no controllers, no services.
+- [ ] `DevHub.Api/Program.cs` contains only DI registration and pipeline composition; no controllers, no services.
 - [ ] An unhandled `DomainException`-typed exception thrown from any module is translated to RFC 7807 (`application/problem+json`) with the right status code.
 - [ ] `JwtBearerOptions` validates issuer, audience, signing key, and lifetime from configuration.
 - [ ] CORS allows the SPA origin (configurable via env var) only.
 
 **Files to Modify/Create:**
-- Modify: `src/Portfolio.Api/Program.cs`
-- Create: `src/Portfolio.Api/appsettings.json`, `appsettings.Development.json`
-- Create: `src/Portfolio.Contracts/ApplicationErrors/DomainException.cs`, `NotFoundException.cs`, `ForbiddenException.cs`, `ValidationException.cs`, `ConflictException.cs`, `ExecutorFailureException.cs`
-- Create: `src/Portfolio.Api/Middleware/ProblemDetailsHandler.cs`
-- Create: `src/Portfolio.Modules.<Module>/<Module>ModuleExtensions.cs` (×6) — initial empty `AddXModule(this IServiceCollection, IConfiguration)` and `UseXModule(this IApplicationBuilder)` extensions
+- Modify: `src/DevHub.Api/Program.cs`
+- Create: `src/DevHub.Api/appsettings.json`, `appsettings.Development.json`
+- Create: `src/DevHub.Contracts/ApplicationErrors/DomainException.cs`, `NotFoundException.cs`, `ForbiddenException.cs`, `ValidationException.cs`, `ConflictException.cs`, `ExecutorFailureException.cs`
+- Create: `src/DevHub.Api/Middleware/ProblemDetailsHandler.cs`
+- Create: `src/DevHub.Modules.<Module>/<Module>ModuleExtensions.cs` (×6) — initial empty `AddXModule(this IServiceCollection, IConfiguration)` and `UseXModule(this IApplicationBuilder)` extensions
 
 **Technical Notes:**
 Use the built-in `Microsoft.AspNetCore.Diagnostics.ProblemDetailsService` if it suffices, otherwise wire a custom `IExceptionHandler`. JWT options bound from `Jwt:Issuer`, `Jwt:Audience`, `Jwt:SigningKey`. Pipeline order: routing → CORS → authentication → authorization → exception handler → endpoints. Strongly-typed options validated on startup via `Services.AddOptions<T>().ValidateDataAnnotations().ValidateOnStart()`.
@@ -129,24 +129,24 @@ Use the built-in `Microsoft.AspNetCore.Diagnostics.ProblemDetailsService` if it 
 **Type:** Backend · **Workflow:** standard · **Complexity:** M · **Dependencies:** T-004
 
 **Description:**
-Create the `Member` and `Role` entities + EF mappings inside `Portfolio.Modules.Workspace`. Add an initial migration that creates `workspace.members`, `workspace.roles`, and minimal placeholder tables for `teams`, `projects`, `project_memberships`, `role_assignments` (full surface lands in FEAT-002 — for now just the columns required to compile the DbContext). Add a startup data seeder that idempotently inserts the system `operator` role and the seed operator member.
+Create the `Member` and `Role` entities + EF mappings inside `DevHub.Modules.Workspace`. Add an initial migration that creates `workspace.members`, `workspace.roles`, and minimal placeholder tables for `teams`, `projects`, `project_memberships`, `role_assignments` (full surface lands in FEAT-002 — for now just the columns required to compile the DbContext). Add a startup data seeder that idempotently inserts the system `operator` role and the seed operator member.
 
 **Rationale:**
 The seed operator is required for AC-3 (first login). `Member` is referenced by Identity's `IdentityCredential.member_id` in T-006.
 
 **Acceptance Criteria:**
-- [ ] `dotnet ef database update --project src/Portfolio.Modules.Workspace` applies cleanly on an empty database.
+- [ ] `dotnet ef database update --project src/DevHub.Modules.Workspace` applies cleanly on an empty database.
 - [ ] After startup, `workspace.roles` contains a row with `key = 'operator'`, `is_system = true`.
 - [ ] `workspace.members` contains a row matching `OPERATOR_SEED_EMAIL`.
 - [ ] Re-running the seeder is idempotent (no duplicate rows, no exception).
 
 **Files to Modify/Create:**
-- Create: `src/Portfolio.Modules.Workspace/Entities/Member.cs`, `Role.cs`, `Team.cs`, `Project.cs`, `ProjectMembership.cs`, `RoleAssignment.cs` (latter four as minimal scaffolds)
-- Create: `src/Portfolio.Modules.Workspace/Entities/Enums/MemberStatus.cs`
-- Modify: `src/Portfolio.Modules.Workspace/WorkspaceDbContext.cs`
-- Create: `src/Portfolio.Modules.Workspace/Migrations/*` (initial)
-- Create: `src/Portfolio.Modules.Workspace/Seeding/WorkspaceSeeder.cs` and register it inside `WorkspaceModuleExtensions.AddWorkspaceModule()`
-- Modify: `src/Portfolio.Modules.Workspace/WorkspaceModuleExtensions.cs`
+- Create: `src/DevHub.Modules.Workspace/Entities/Member.cs`, `Role.cs`, `Team.cs`, `Project.cs`, `ProjectMembership.cs`, `RoleAssignment.cs` (latter four as minimal scaffolds)
+- Create: `src/DevHub.Modules.Workspace/Entities/Enums/MemberStatus.cs`
+- Modify: `src/DevHub.Modules.Workspace/WorkspaceDbContext.cs`
+- Create: `src/DevHub.Modules.Workspace/Migrations/*` (initial)
+- Create: `src/DevHub.Modules.Workspace/Seeding/WorkspaceSeeder.cs` and register it inside `WorkspaceModuleExtensions.AddWorkspaceModule()`
+- Modify: `src/DevHub.Modules.Workspace/WorkspaceModuleExtensions.cs`
 
 **Technical Notes:**
 Tables live under the `workspace` schema (`modelBuilder.HasDefaultSchema("workspace")`). Apply soft-delete on Project/Team/Member/Membership via global query filter (`HasQueryFilter(e => e.DeletedAt == null)`). The seeder runs on `IHostedService.StartAsync` so it executes after migrations.
@@ -164,19 +164,19 @@ Create the `IdentityCredential` and `RefreshToken` entities + EF mappings under 
 Stores authentication material. Argon2id matches modern best practice and avoids shipping ASP.NET Core Identity (over-scoped for this seam).
 
 **Acceptance Criteria:**
-- [ ] `dotnet ef database update --project src/Portfolio.Modules.Identity` applies cleanly.
+- [ ] `dotnet ef database update --project src/DevHub.Modules.Identity` applies cleanly.
 - [ ] `IPasswordHasher.Hash("password")` produces an Argon2id-encoded string; `Verify` round-trips.
 - [ ] The seeded operator member has exactly one `Local` credential at startup; re-seeding is idempotent.
 - [ ] `RefreshToken` is unique by `token_hash`; the hash column stores SHA-256 of the token, never the literal.
 
 **Files to Modify/Create:**
-- Modify: `src/Portfolio.Modules.Identity/Portfolio.Modules.Identity.csproj` (add `Konscious.Security.Cryptography.Argon2`)
-- Create: `src/Portfolio.Modules.Identity/Entities/IdentityCredential.cs`, `RefreshToken.cs`, `Enums/CredentialProvider.cs`
-- Modify: `src/Portfolio.Modules.Identity/IdentityDbContext.cs`
-- Create: `src/Portfolio.Modules.Identity/Migrations/*` (initial)
-- Create: `src/Portfolio.Modules.Identity/Services/IPasswordHasher.cs`, `Argon2PasswordHasher.cs`
-- Create: `src/Portfolio.Modules.Identity/Seeding/IdentitySeeder.cs`
-- Modify: `src/Portfolio.Modules.Identity/IdentityModuleExtensions.cs`
+- Modify: `src/DevHub.Modules.Identity/DevHub.Modules.Identity.csproj` (add `Konscious.Security.Cryptography.Argon2`)
+- Create: `src/DevHub.Modules.Identity/Entities/IdentityCredential.cs`, `RefreshToken.cs`, `Enums/CredentialProvider.cs`
+- Modify: `src/DevHub.Modules.Identity/IdentityDbContext.cs`
+- Create: `src/DevHub.Modules.Identity/Migrations/*` (initial)
+- Create: `src/DevHub.Modules.Identity/Services/IPasswordHasher.cs`, `Argon2PasswordHasher.cs`
+- Create: `src/DevHub.Modules.Identity/Seeding/IdentitySeeder.cs`
+- Modify: `src/DevHub.Modules.Identity/IdentityModuleExtensions.cs`
 
 **Technical Notes:**
 Argon2id parameters: 64 MB memory, 4 iterations, 2 lanes (tune by benchmarking on target hardware later). The seeder must run *after* the Workspace seeder so the member exists.
@@ -202,17 +202,17 @@ Implements every Identity endpoint in `api-spec.md`. Satisfies AC-3 (login → a
 - [ ] Every endpoint runs against an integration test (Testcontainers Postgres).
 
 **Files to Modify/Create:**
-- Create: `src/Portfolio.Modules.Identity/Services/IAuthenticationService.cs`, `AuthenticationService.cs`
-- Create: `src/Portfolio.Modules.Identity/Services/IJwtTokenIssuer.cs`, `JwtTokenIssuer.cs`
-- Create: `src/Portfolio.Modules.Identity/Services/IRefreshTokenStore.cs`, `RefreshTokenStore.cs`
-- Create: `src/Portfolio.Modules.Identity/Services/ICurrentMemberAccessor.cs`, `CurrentMemberAccessor.cs` (resolves from `HttpContext.User` claims; published via `Portfolio.Contracts`)
-- Create: `src/Portfolio.Modules.Identity/Controllers/AuthController.cs`
-- Create: `src/Portfolio.Modules.Identity/DTOs/LoginRequest.cs`, `LoginResponse.cs`, `RefreshResponse.cs`, `MeResponse.cs`, `MemberDto.cs`, `MembershipDto.cs`
-- Modify: `src/Portfolio.Modules.Identity/IdentityModuleExtensions.cs` (register services)
-- Modify: `src/Portfolio.Contracts/Identity/ICurrentMember.cs` (interface)
+- Create: `src/DevHub.Modules.Identity/Services/IAuthenticationService.cs`, `AuthenticationService.cs`
+- Create: `src/DevHub.Modules.Identity/Services/IJwtTokenIssuer.cs`, `JwtTokenIssuer.cs`
+- Create: `src/DevHub.Modules.Identity/Services/IRefreshTokenStore.cs`, `RefreshTokenStore.cs`
+- Create: `src/DevHub.Modules.Identity/Services/ICurrentMemberAccessor.cs`, `CurrentMemberAccessor.cs` (resolves from `HttpContext.User` claims; published via `DevHub.Contracts`)
+- Create: `src/DevHub.Modules.Identity/Controllers/AuthController.cs`
+- Create: `src/DevHub.Modules.Identity/DTOs/LoginRequest.cs`, `LoginResponse.cs`, `RefreshResponse.cs`, `MeResponse.cs`, `MemberDto.cs`, `MembershipDto.cs`
+- Modify: `src/DevHub.Modules.Identity/IdentityModuleExtensions.cs` (register services)
+- Modify: `src/DevHub.Contracts/Identity/ICurrentMember.cs` (interface)
 
 **Technical Notes:**
-Controller is thin: `await _auth.LoginAsync(req); return Ok(new EnvelopeDto<LoginResponse>(...))`. `IJwtTokenIssuer` uses `System.IdentityModel.Tokens.Jwt`. Refresh cookie attributes: `HttpOnly; Secure; SameSite=Lax; Path=/api/auth`. The "memberships" list on `/me` reads from `IProjectMembershipQuery` (published in `Portfolio.Contracts`); for now, returns empty (Workspace stub provides an empty implementation until FEAT-002).
+Controller is thin: `await _auth.LoginAsync(req); return Ok(new EnvelopeDto<LoginResponse>(...))`. `IJwtTokenIssuer` uses `System.IdentityModel.Tokens.Jwt`. Refresh cookie attributes: `HttpOnly; Secure; SameSite=Lax; Path=/api/auth`. The "memberships" list on `/me` reads from `IProjectMembershipQuery` (published in `DevHub.Contracts`); for now, returns empty (Workspace stub provides an empty implementation until FEAT-002).
 
 ---
 
@@ -232,8 +232,8 @@ AC-1 of FEAT-001. Also serves as Docker Compose's `depends_on: service_healthy` 
 - [ ] Response writer produces the exact shape `{ status, checks: { db } }`, not the default ASP.NET Core health-check format.
 
 **Files to Modify/Create:**
-- Modify: `src/Portfolio.Api/Program.cs` (register `AddHealthChecks().AddDbContextCheck<WorkspaceDbContext>("db")`)
-- Create: `src/Portfolio.Api/HealthCheckResponseWriter.cs`
+- Modify: `src/DevHub.Api/Program.cs` (register `AddHealthChecks().AddDbContextCheck<WorkspaceDbContext>("db")`)
+- Create: `src/DevHub.Api/HealthCheckResponseWriter.cs`
 
 **Technical Notes:**
 Use `MapHealthChecks("/health", new HealthCheckOptions { ResponseWriter = HealthCheckResponseWriter.WriteAsync })`. Health endpoint must be `[AllowAnonymous]`.
@@ -251,15 +251,15 @@ For `ExecutorRegistry`, `WorkItems`, `Audit`, and `Notifications`: create a no-o
 AC-7 of FEAT-001 ("per-module `dotnet ef database update` works"). Catches DI/wiring drift before real entities are added.
 
 **Acceptance Criteria:**
-- [ ] `dotnet ef migrations list --project src/Portfolio.Modules.<Name>` lists exactly one migration per module.
-- [ ] `dotnet ef database update --project src/Portfolio.Modules.<Name>` applies cleanly against an empty database.
+- [ ] `dotnet ef migrations list --project src/DevHub.Modules.<Name>` lists exactly one migration per module.
+- [ ] `dotnet ef database update --project src/DevHub.Modules.<Name>` applies cleanly against an empty database.
 - [ ] Each module has its own schema (`executor_registry`, `work_items`, `audit`, `notifications`) created at migration time.
 
 **Files to Modify/Create:**
-- Create: `src/Portfolio.Modules.ExecutorRegistry/Migrations/*`
-- Create: `src/Portfolio.Modules.WorkItems/Migrations/*`
-- Create: `src/Portfolio.Modules.Audit/Migrations/*`
-- Create: `src/Portfolio.Modules.Notifications/Migrations/*`
+- Create: `src/DevHub.Modules.ExecutorRegistry/Migrations/*`
+- Create: `src/DevHub.Modules.WorkItems/Migrations/*`
+- Create: `src/DevHub.Modules.Audit/Migrations/*`
+- Create: `src/DevHub.Modules.Notifications/Migrations/*`
 - Modify: each module's `DbContext.OnModelCreating` to call `modelBuilder.HasDefaultSchema("...")`
 
 **Technical Notes:**
@@ -274,7 +274,7 @@ Generate empty migrations by setting `HasDefaultSchema` and running `dotnet ef m
 **Type:** Frontend · **Workflow:** standard · **Complexity:** M · **Dependencies:** None
 
 **Description:**
-Create the Angular workspace under `client/` using `ng new portfolio --standalone --routing --style=css --skip-tests=false` (Angular 20+). Add Tailwind CSS 4+, configure `tailwind.config.js` with the modern-minimal token palette (sky-500 primary, slate neutrals, semantic colors) and font extensions (Poppins headings, Inter body). Link Google Fonts in `index.html`. Add a `proxy.conf.json` proxying `/api` → `http://localhost:5000` for dev.
+Create the Angular workspace under `client/` using `ng new DevHub --standalone --routing --style=css --skip-tests=false` (Angular 20+). Add Tailwind CSS 4+, configure `tailwind.config.js` with the modern-minimal token palette (sky-500 primary, slate neutrals, semantic colors) and font extensions (Poppins headings, Inter body). Link Google Fonts in `index.html`. Add a `proxy.conf.json` proxying `/api` → `http://localhost:5000` for dev.
 
 **Rationale:**
 Foundational frontend; every later UI task lands here. Locks in the design system before any screen work begins.
@@ -473,13 +473,13 @@ Reads `displayName` from `AuthService.currentMember()` signal. No HTTP calls.
 **Type:** DevOps · **Workflow:** standard · **Complexity:** S · **Dependencies:** T-004
 
 **Description:**
-Author a root-level `Dockerfile` for the API with two stages: `mcr.microsoft.com/dotnet/sdk:10.0` for build/publish, and `mcr.microsoft.com/dotnet/aspnet:10.0` for the final image. Copy only what's needed (`.csproj` first for layer caching, then sources). Final image runs `dotnet Portfolio.Api.dll` on `:8080` and reads all config from env vars.
+Author a root-level `Dockerfile` for the API with two stages: `mcr.microsoft.com/dotnet/sdk:10.0` for build/publish, and `mcr.microsoft.com/dotnet/aspnet:10.0` for the final image. Copy only what's needed (`.csproj` first for layer caching, then sources). Final image runs `dotnet DevHub.Api.dll` on `:8080` and reads all config from env vars.
 
 **Rationale:**
 Profile rule: multi-stage builds, `dotnet/aspnet` final stage, env-agnostic image, secrets never baked in.
 
 **Acceptance Criteria:**
-- [ ] `docker build -t portfolio-api .` succeeds.
+- [ ] `docker build -t devhub-api .` succeeds.
 - [ ] Resulting image listens on `:8080` and serves `/health`.
 - [ ] Image has no `.env` files, no source code, no SDK — only published binaries.
 - [ ] `.dockerignore` excludes `bin/`, `obj/`, `client/`, `tests/`, `.git/`, `*.env*`.
@@ -489,7 +489,7 @@ Profile rule: multi-stage builds, `dotnet/aspnet` final stage, env-agnostic imag
 - Create: `.dockerignore`
 
 **Technical Notes:**
-Restore using `dotnet restore Portfolio.sln`; publish only `Portfolio.Api` (`dotnet publish src/Portfolio.Api -c Release -o /app/publish`). Set `ASPNETCORE_URLS=http://+:8080`, `ASPNETCORE_ENVIRONMENT=Production`. Run as non-root user (`USER 1000:1000`).
+Restore using `dotnet restore DevHub.sln`; publish only `DevHub.Api` (`dotnet publish src/DevHub.Api -c Release -o /app/publish`). Set `ASPNETCORE_URLS=http://+:8080`, `ASPNETCORE_ENVIRONMENT=Production`. Run as non-root user (`USER 1000:1000`).
 
 ---
 
@@ -501,10 +501,10 @@ Restore using `dotnet restore Portfolio.sln`; publish only `Portfolio.Api` (`dot
 Author `client/Dockerfile` with a Node build stage (`node:20-alpine` runs `npm ci && ng build`) and an nginx final stage (`nginx:1.27-alpine`) that copies the build output to `/usr/share/nginx/html`. Author `client/nginx.conf` to serve the SPA, fall back to `index.html` via `try_files` for client-side routing, and reverse-proxy `/api/` to `http://api:8080`.
 
 **Rationale:**
-Profile rule: nginx-spa-proxy + container-per-process. The portfolio is the single origin in production.
+Profile rule: nginx-spa-proxy + container-per-process. DevHub is the single origin in production.
 
 **Acceptance Criteria:**
-- [ ] `docker build -t portfolio-web client/` succeeds.
+- [ ] `docker build -t devhub-web client/` succeeds.
 - [ ] Resulting image serves `/` with the SPA index and a 200 status.
 - [ ] Deep-link `/projects/foo` returns the SPA (not 404), via `try_files`.
 - [ ] `/api/health` is reverse-proxied to the API container.
@@ -539,7 +539,7 @@ AC-6 of FEAT-001. Profile rule: prod compose on a shared infra network with heal
 - Create: `scripts/verify-docker.sh` (executable, `set -euo pipefail`, `trap "docker compose -f docker-compose.prod.yml down" EXIT`)
 
 **Technical Notes:**
-The `infra` external network is documented in README.md (`docker network create infra` is a prerequisite). Postgres lives on the `infra` network and is referenced by URL `postgresql://portfolio:...@infra-postgres:5432/portfolio` — the application is environment-agnostic.
+The `infra` external network is documented in README.md (`docker network create infra` is a prerequisite). Postgres lives on the `infra` network and is referenced by URL `postgresql://devhub:...@infra-postgres:5432/DevHub` — the application is environment-agnostic.
 
 ---
 
@@ -550,7 +550,7 @@ The `infra` external network is documented in README.md (`docker network create 
 **Type:** Testing · **Workflow:** standard · **Complexity:** M · **Dependencies:** T-005, T-006, T-009
 
 **Description:**
-Add xUnit, FluentAssertions, and Testcontainers (Postgres) to each `tests/Portfolio.Modules.<Module>.Tests/` project. Create a shared `PostgresFixture` (collection fixture) that spins up a Postgres container once per test run and applies the relevant module's migrations to a fresh database. Write one passing test per module (e.g. "DbContext can connect and apply migrations").
+Add xUnit, FluentAssertions, and Testcontainers (Postgres) to each `tests/DevHub.Modules.<Module>.Tests/` project. Create a shared `PostgresFixture` (collection fixture) that spins up a Postgres container once per test run and applies the relevant module's migrations to a fresh database. Write one passing test per module (e.g. "DbContext can connect and apply migrations").
 
 **Rationale:**
 AC-5 of FEAT-001 ("at least one test per module project"). Establishes the integration-test pattern (real Postgres via Testcontainers) for every subsequent backend feature.
@@ -561,8 +561,8 @@ AC-5 of FEAT-001 ("at least one test per module project"). Establishes the integ
 - [ ] No test depends on a host-installed Postgres.
 
 **Files to Modify/Create:**
-- Modify: each `tests/Portfolio.Modules.<Module>.Tests/*.csproj` (add `Testcontainers.PostgreSql`, `xunit`, `FluentAssertions`, `Microsoft.NET.Test.Sdk`)
-- Create: `tests/Portfolio.TestHarness/PostgresFixture.cs`, `PostgresCollection.cs`, `Portfolio.TestHarness.csproj` (referenced by all test projects)
+- Modify: each `tests/DevHub.Modules.<Module>.Tests/*.csproj` (add `Testcontainers.PostgreSql`, `xunit`, `FluentAssertions`, `Microsoft.NET.Test.Sdk`)
+- Create: `tests/DevHub.TestHarness/PostgresFixture.cs`, `PostgresCollection.cs`, `DevHub.TestHarness.csproj` (referenced by all test projects)
 - Create: one `*.Tests.cs` per module test project
 
 **Technical Notes:**

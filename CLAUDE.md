@@ -15,7 +15,7 @@ Before generating specs, tasks, mockups, or implementation plans, you MUST follo
 
 ## Project Overview
 
-Carestechs Dev Hub (working name: **Portfolio**) is the multi-project, multi-team workspace that sits *above* one or more headless lifecycle executors and serves as the single front door humans use to start, observe, approve, and complete work. Org context (projects, teams, members, roles, assignments, authorization) lives here; lifecycle mechanism lives downstream in the executors. See `docs/stakeholder-definition.md` for full scope.
+Carestechs Dev Hub (working name: **DevHub**) is the multi-project, multi-team workspace that sits *above* one or more headless lifecycle executors and serves as the single front door humans use to start, observe, approve, and complete work. Org context (projects, teams, members, roles, assignments, authorization) lives here; lifecycle mechanism lives downstream in the executors. See `docs/stakeholder-definition.md` for full scope.
 
 **Tech Stack:** .NET 10+ (ASP.NET Core, EF Core, PostgreSQL) backend as a **modular monolith**; Angular 20+ SPA with Tailwind CSS 4+ frontend; Docker Compose for orchestration. Profile: `dotnet-angular-modular-monolith-docker-compose` (see `docs/ARCHITECTURE.md`).
 **Repo Type:** Monorepo — single solution with backend modules under `src/`, Angular client under `client/`, single deployable.
@@ -31,15 +31,15 @@ Carestechs Dev Hub (working name: **Portfolio**) is the multi-project, multi-tea
 docker compose up -d
 
 # Backend (hot-reload)
-dotnet run --project src/Portfolio.Api
+dotnet run --project src/DevHub.Api
 
 # Backend migrations (per module)
-dotnet ef database update --project src/Portfolio.Modules.Workspace
-dotnet ef database update --project src/Portfolio.Modules.Identity
-dotnet ef database update --project src/Portfolio.Modules.ExecutorRegistry
-dotnet ef database update --project src/Portfolio.Modules.WorkItems
-dotnet ef database update --project src/Portfolio.Modules.Audit
-dotnet ef database update --project src/Portfolio.Modules.Notifications
+dotnet ef database update --project src/DevHub.Modules.Workspace
+dotnet ef database update --project src/DevHub.Modules.Identity
+dotnet ef database update --project src/DevHub.Modules.ExecutorRegistry
+dotnet ef database update --project src/DevHub.Modules.WorkItems
+dotnet ef database update --project src/DevHub.Modules.Audit
+dotnet ef database update --project src/DevHub.Modules.Notifications
 
 # Frontend
 cd client && ng serve --proxy-config proxy.conf.json
@@ -57,14 +57,14 @@ docker compose -f docker-compose.prod.yml up -d
 
 ```
 src/
-├── Portfolio.Api/                          # Thin API host (composition root). No controllers, services, or business logic here.
-├── Portfolio.Contracts/                    # Shared interfaces and DTOs for cross-module communication.
-├── Portfolio.Modules.Workspace/            # Projects, Teams, Members, Roles, ProjectMemberships.
-├── Portfolio.Modules.Identity/             # Authentication, JWT issuance, current-member resolution.
-├── Portfolio.Modules.ExecutorRegistry/     # Lifecycle executor registrations, project-type bindings, checkpoint contracts.
-├── Portfolio.Modules.WorkItems/            # Project-scoped work items, façade to executors (start, checkpoint, fetch state, stream).
-├── Portfolio.Modules.Audit/                # Append-only audit entries for every portfolio-mediated action.
-└── Portfolio.Modules.Notifications/        # Pending-action signal surface.
+├── DevHub.Api/                          # Thin API host (composition root). No controllers, services, or business logic here.
+├── DevHub.Contracts/                    # Shared interfaces and DTOs for cross-module communication.
+├── DevHub.Modules.Workspace/            # Projects, Teams, Members, Roles, ProjectMemberships.
+├── DevHub.Modules.Identity/             # Authentication, JWT issuance, current-member resolution.
+├── DevHub.Modules.ExecutorRegistry/     # Lifecycle executor registrations, project-type bindings, checkpoint contracts.
+├── DevHub.Modules.WorkItems/            # Project-scoped work items, façade to executors (start, checkpoint, fetch state, stream).
+├── DevHub.Modules.Audit/                # Append-only audit entries for every DevHub-mediated action.
+└── DevHub.Modules.Notifications/        # Pending-action signal surface.
 
 client/
 ├── src/app/core/                           # Singletons: auth, http interceptors, identity service.
@@ -76,15 +76,15 @@ client/
 
 ## Code Style & Conventions
 
-- **Modular monolith with hard boundaries.** Each `Portfolio.Modules.*` project owns its own `DbContext`, controllers, services, entities, and DTOs. Cross-module communication is **by ID + shared interface in `Portfolio.Contracts/` only** — no cross-module navigation properties, no shared DbContext.
-- **Thin API host.** `Portfolio.Api/Program.cs` is composition root only. Controllers live inside modules. No business logic in `Portfolio.Api`.
+- **Modular monolith with hard boundaries.** Each `DevHub.Modules.*` project owns its own `DbContext`, controllers, services, entities, and DTOs. Cross-module communication is **by ID + shared interface in `DevHub.Contracts/` only** — no cross-module navigation properties, no shared DbContext.
+- **Thin API host.** `DevHub.Api/Program.cs` is composition root only. Controllers live inside modules. No business logic in `DevHub.Api`.
 - **Service-layer logic.** Controllers are thin: parse → call service → return DTO. Business logic lives in service classes with `Async` suffix on async methods.
 - **DTO at boundary.** EF entities never leave the service layer. Mapping happens in services.
 - **Async all the way.** All I/O is `async/await`. No `.Result` / `.Wait()`.
 - **Angular standalone components.** No `NgModules`. Templates in separate `.html` files via `templateUrl`. Tailwind utility classes only — no component CSS files.
 - **Angular Signals for reactive state.** RxJS only for HTTP and async streams (e.g., SSE for live trace).
 - **Auth at the boundary.** Every controller action that wraps an executor call resolves `(member, role, project, target)` and calls the project authorization service **before** any forward. Denied by default.
-- **Streaming is hot path.** Endpoints that wrap executor streams (SSE/WebSocket) pass through — no buffering, batching, or transformation in the portfolio.
+- **Streaming is hot path.** Endpoints that wrap executor streams (SSE/WebSocket) pass through — no buffering, batching, or transformation in DevHub.
 
 ### Naming Conventions
 
@@ -115,9 +115,9 @@ client/
 - **UUIDs everywhere.** All primary keys are UUIDs generated in C#. Database stores `uuid`, JSON serializes as strings.
 - **`timestamptz` always.** Backend uses `DateTimeOffset`; database uses `timestamptz`; Angular converts to local time for display.
 - **Soft deletes on workspace primitives.** Projects, teams, members, memberships use a nullable `deleted_at` column. Audit entries are append-only and never deleted.
-- **Audit on the way out.** Every portfolio-mediated mutation writes an `AuditEntry` (member, project, target, action, outcome) inside the same transaction as the mutation.
+- **Audit on the way out.** Every DevHub-mediated mutation writes an `AuditEntry` (member, project, target, action, outcome) inside the same transaction as the mutation.
 - **Live state passes through.** Streaming endpoints proxy the executor stream (chunked HTTP / SSE) without buffering. Polling endpoints add no caching.
-- **Executor-agnostic façade.** Adding a second registered executor of a known shape is configuration only — bind it in the `ExecutorRegistry` and route by project type. No new code in `Portfolio.Api` for the routine case.
+- **Executor-agnostic façade.** Adding a second registered executor of a known shape is configuration only — bind it in the `ExecutorRegistry` and route by project type. No new code in `DevHub.Api` for the routine case.
 
 ### Design Patterns to Follow (UI — Modern Minimal)
 
@@ -132,11 +132,11 @@ client/
 
 ### Anti-Patterns to Avoid
 
-- **Do not let any end-user-facing flow bypass the portfolio.** No direct-to-executor links, no client-side executor credentials. If a user can reach it from a screen, it routes through the portfolio façade.
-- **Do not add org primitives (projects, teams, members, roles) to any lifecycle executor.** Org context lives only in the portfolio. If an executor "needs to know" who someone is, surface that as a feature on that executor's backlog, not as a private back-channel.
-- **Do not put authorization checks in the executor layer.** Auth happens at the portfolio boundary, before the forward. The executor is assumed to be unauthenticated relative to end users.
+- **Do not let any end-user-facing flow bypass DevHub.** No direct-to-executor links, no client-side executor credentials. If a user can reach it from a screen, it routes through DevHub façade.
+- **Do not add org primitives (projects, teams, members, roles) to any lifecycle executor.** Org context lives only in DevHub. If an executor "needs to know" who someone is, surface that as a feature on that executor's backlog, not as a private back-channel.
+- **Do not put authorization checks in the executor layer.** Auth happens at DevHub boundary, before the forward. The executor is assumed to be unauthenticated relative to end users.
 - **Do not buffer, batch, or transform streamed traces in the middle of a stream.** Live state must feel native.
-- **Do not introduce cross-module navigation properties or shared DbContexts.** Reference by ID; expose via `Portfolio.Contracts/` interfaces.
+- **Do not introduce cross-module navigation properties or shared DbContexts.** Reference by ID; expose via `DevHub.Contracts/` interfaces.
 - **Do not introduce cross-project work items or shared lifecycle state.** Every work item belongs to exactly one project.
 - **Do not put business logic in controllers or in `Program.cs`.** Services own logic; controllers parse and respond; `Program.cs` composes.
 - **Do not expose EF entities via the API.** Always map to DTOs in the service layer.
@@ -157,7 +157,7 @@ client/
 
 ## Testing Conventions
 
-- **Test location:** `tests/Portfolio.Modules.<Module>.Tests/` per module; Angular tests co-located as `*.spec.ts`.
+- **Test location:** `tests/DevHub.Modules.<Module>.Tests/` per module; Angular tests co-located as `*.spec.ts`.
 - **Naming:** `*Tests.cs` for .NET (xUnit), `*.spec.ts` for Angular (Jasmine/Karma; Playwright for e2e).
 - **Framework:** xUnit + FluentAssertions for backend; Testcontainers for integration tests against real PostgreSQL; Angular Testing Library / Jasmine for components; Playwright for end-to-end.
 - **Priority:**

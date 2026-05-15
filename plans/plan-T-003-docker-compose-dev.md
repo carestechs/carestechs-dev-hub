@@ -19,22 +19,22 @@ Stand up local PostgreSQL via Docker Compose, document every env var the app exp
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: portfolio-postgres-dev
+    container_name: devhub-postgres-dev
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-portfolio}
+      POSTGRES_USER: ${POSTGRES_USER:-devhub}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB:-portfolio}
+      POSTGRES_DB: ${POSTGRES_DB:-devhub}
     ports:
       - "5432:5432"
     volumes:
-      - portfolio-pgdata:/var/lib/postgresql/data
+      - devhub-pgdata:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 5s
       timeout: 3s
       retries: 10
 volumes:
-  portfolio-pgdata:
+  devhub-pgdata:
 ```
 
 ### Step 2: .env.example
@@ -42,18 +42,18 @@ volumes:
 **Action:** Create
 ```
 # PostgreSQL
-POSTGRES_USER=portfolio
+POSTGRES_USER=devhub
 POSTGRES_PASSWORD=change-me
-POSTGRES_DB=portfolio
-ConnectionStrings__Postgres=Host=localhost;Port=5432;Database=portfolio;Username=portfolio;Password=change-me
+POSTGRES_DB=devhub
+ConnectionStrings__Postgres=Host=localhost;Port=5432;Database=devhub;Username=devhub;Password=change-me
 
 # JWT
-Jwt__Issuer=https://portfolio.local
-Jwt__Audience=portfolio-spa
+Jwt__Issuer=https://devhub.local
+Jwt__Audience=devhub-spa
 Jwt__SigningKey=replace-me-with-at-least-32-byte-random-string
 
 # Seeded operator (created at first boot only)
-OPERATOR_SEED_EMAIL=operator@portfolio.local
+OPERATOR_SEED_EMAIL=operator@devhub.local
 OPERATOR_SEED_DISPLAY_NAME=Operator
 OPERATOR_SEED_PASSWORD=change-me
 
@@ -73,15 +73,15 @@ Add a "Local Development" section:
 ```
 1. cp .env.example .env  (edit values)
 2. docker compose up -d                                  # PostgreSQL
-3. dotnet ef database update --project src/Portfolio.Modules.Workspace  (repeat per module — see CLAUDE.md)
-4. dotnet run --project src/Portfolio.Api                # API on :5000
+3. dotnet ef database update --project src/DevHub.Modules.Workspace  (repeat per module — see CLAUDE.md)
+4. dotnet run --project src/DevHub.Api                # API on :5000
 5. cd client && npm install && ng serve                  # SPA on :4200, proxies /api → :5000
 6. open http://localhost:4200
 ```
 
 ### Step 5: Verify
 **Action:** Verify
-`docker compose up -d` → wait until `docker compose ps` shows `postgres` as `(healthy)`. `psql postgresql://portfolio:change-me@localhost:5432/portfolio -c '\l'` succeeds.
+`docker compose up -d` → wait until `docker compose ps` shows `postgres` as `(healthy)`. `psql postgresql://devhub:change-me@localhost:5432/DevHub -c '\l'` succeeds.
 
 ## Files Affected
 | File | Action | Summary |

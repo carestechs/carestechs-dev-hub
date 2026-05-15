@@ -16,7 +16,7 @@ Create the Angular 20+ workspace under `client/`, install and configure Tailwind
 **Action:** Generate
 ```
 cd <repo root>
-npx -p @angular/cli ng new portfolio \
+npx -p @angular/cli ng new DevHub \
   --directory client \
   --standalone --routing --style=css --skip-tests=false --strict --package-manager=npm
 ```
@@ -84,7 +84,7 @@ In `<head>`:
 ### Step 7: Wire proxy into ng serve
 **File:** `client/angular.json`
 **Action:** Modify
-Under `projects.portfolio.architect.serve.options`, add `"proxyConfig": "proxy.conf.json"`.
+Under `projects.dev-hub.architect.serve.options`, add `"proxyConfig": "proxy.conf.json"`.
 
 ### Step 8: Smoke component
 **File:** `client/src/app/app.component.html`
@@ -93,7 +93,7 @@ Replace generated template with:
 ```html
 <main class="min-h-screen flex items-center justify-center p-8">
   <div class="bg-white rounded-xl shadow-sm p-6 max-w-md text-center">
-    <h1 class="text-3xl font-heading mb-2">Portfolio</h1>
+    <h1 class="text-3xl font-heading mb-2">DevHub</h1>
     <p class="text-slate-500">Bootstrapping…</p>
   </div>
 </main>

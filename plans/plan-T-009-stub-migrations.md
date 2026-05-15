@@ -13,7 +13,7 @@ Generate empty initial migrations (schema-only) for ExecutorRegistry, WorkItems,
 ## Implementation Steps
 
 ### Step 1: Set default schemas
-**Files:** `src/Portfolio.Modules.<Module>/<Module>DbContext.cs` (×4)
+**Files:** `src/DevHub.Modules.<Module>/<Module>DbContext.cs` (×4)
 **Action:** Modify
 In each DbContext's `OnModelCreating`:
 - `ExecutorRegistry`: `modelBuilder.HasDefaultSchema("executor_registry");`
@@ -22,7 +22,7 @@ In each DbContext's `OnModelCreating`:
 - `Notifications`: `modelBuilder.HasDefaultSchema("notifications");`
 
 ### Step 2: Configure the migrations history table per schema
-**Files:** `src/Portfolio.Modules.<Module>/<Module>ModuleExtensions.cs` (×4)
+**Files:** `src/DevHub.Modules.<Module>/<Module>ModuleExtensions.cs` (×4)
 **Action:** Modify
 Inside `AddXModule`, extend the `UseNpgsql` call:
 ```csharp
@@ -34,17 +34,17 @@ opts.UseNpgsql(cfg.GetConnectionString("Postgres"),
 ### Step 3: Generate the empty migrations
 **Action:** Generate
 ```
-dotnet ef migrations add Initial --project src/Portfolio.Modules.ExecutorRegistry --startup-project src/Portfolio.Api
-dotnet ef migrations add Initial --project src/Portfolio.Modules.WorkItems     --startup-project src/Portfolio.Api
-dotnet ef migrations add Initial --project src/Portfolio.Modules.Audit         --startup-project src/Portfolio.Api
-dotnet ef migrations add Initial --project src/Portfolio.Modules.Notifications --startup-project src/Portfolio.Api
+dotnet ef migrations add Initial --project src/DevHub.Modules.ExecutorRegistry --startup-project src/DevHub.Api
+dotnet ef migrations add Initial --project src/DevHub.Modules.WorkItems     --startup-project src/DevHub.Api
+dotnet ef migrations add Initial --project src/DevHub.Modules.Audit         --startup-project src/DevHub.Api
+dotnet ef migrations add Initial --project src/DevHub.Modules.Notifications --startup-project src/DevHub.Api
 ```
 Each migration should contain only `migrationBuilder.EnsureSchema("...");` in `Up`.
 
 ### Step 4: Have each seeder migrate its module on startup
-**Files:** `src/Portfolio.Modules.<Module>/<Module>ModuleExtensions.cs` (×4)
+**Files:** `src/DevHub.Modules.<Module>/<Module>ModuleExtensions.cs` (×4)
 **Action:** Modify
-Add a tiny `MigrateOnStartup<TContext>` hosted service helper in Portfolio.Contracts (one for all modules), and register it for each module. On `StartAsync`: `await db.Database.MigrateAsync(ct)`.
+Add a tiny `MigrateOnStartup<TContext>` hosted service helper in DevHub.Contracts (one for all modules), and register it for each module. On `StartAsync`: `await db.Database.MigrateAsync(ct)`.
 
 ### Step 5: Apply locally
 **Action:** Verify
@@ -53,10 +53,10 @@ With local Postgres up, run the API once. Inspect: `\dn` shows `workspace`, `ide
 ## Files Affected
 | File | Action | Summary |
 |------|--------|---------|
-| `src/Portfolio.Modules.<Module>/<Module>DbContext.cs` (×4) | Modify | `HasDefaultSchema(...)` |
-| `src/Portfolio.Modules.<Module>/<Module>ModuleExtensions.cs` (×4) | Modify | Per-schema migrations history + `MigrateOnStartup` hosted service |
-| `src/Portfolio.Modules.<Module>/Migrations/*` (×4) | Create | Empty `Initial` migration per module |
-| `src/Portfolio.Contracts/Persistence/MigrateOnStartup.cs` | Create | Reusable hosted-service helper |
+| `src/DevHub.Modules.<Module>/<Module>DbContext.cs` (×4) | Modify | `HasDefaultSchema(...)` |
+| `src/DevHub.Modules.<Module>/<Module>ModuleExtensions.cs` (×4) | Modify | Per-schema migrations history + `MigrateOnStartup` hosted service |
+| `src/DevHub.Modules.<Module>/Migrations/*` (×4) | Create | Empty `Initial` migration per module |
+| `src/DevHub.Contracts/Persistence/MigrateOnStartup.cs` | Create | Reusable hosted-service helper |
 
 ## Edge Cases & Risks
 - **Boot-time migration race** — when multiple instances start at once, they may race on `MigrateAsync`. EF Core's migrator advisory-locks the migrations history table, so concurrent calls are safe; document this behavior.
@@ -64,6 +64,6 @@ With local Postgres up, run the API once. Inspect: `\dn` shows `workspace`, `ide
 - **Re-running an "empty" migration on a fresh DB** — `EnsureSchema` is idempotent, so re-applying is safe.
 
 ## Acceptance Verification
-- [ ] `dotnet ef migrations list --project src/Portfolio.Modules.<Module>` lists exactly one migration per module.
+- [ ] `dotnet ef migrations list --project src/DevHub.Modules.<Module>` lists exactly one migration per module.
 - [ ] After API boot against an empty DB, `\dn` shows all 6 schemas; each schema contains a `__ef_migrations_history` table with one row.
 - [ ] Re-running the API leaves migration counts and row counts unchanged.

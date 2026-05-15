@@ -14,7 +14,7 @@
 
 ## 2. User Story
 
-**As an** operator, **I want to** register one or more lifecycle executors with their checkpoint contracts and bind project types to them, **so that** any new project of a known type routes to the right executor with zero portfolio code changes.
+**As an** operator, **I want to** register one or more lifecycle executors with their checkpoint contracts and bind project types to them, **so that** any new project of a known type routes to the right executor with zero DevHub code changes.
 
 ## 3. Goal
 
@@ -26,7 +26,7 @@ Configuration-only onboarding of a second executor of a known shape (Success Cri
 
 - Entities: ExecutorRegistration, ExecutorBinding, CheckpointContract.
 - Endpoints under `/api/admin/executors/*` and `/api/admin/executor-bindings/*`.
-- `IExecutorRouter.ResolveAsync(projectId): ExecutorRegistration` published via `Portfolio.Contracts`.
+- `IExecutorRouter.ResolveAsync(projectId): ExecutorRegistration` published via `DevHub.Contracts`.
 - Operator UI: Executors admin, Executor bindings admin (see `ui-specification.md` §12–13).
 - `credentialsRef` indirection — secrets read from env vars at request time; never stored, never returned.
 
@@ -78,7 +78,7 @@ All `/api/admin/executors/*` and `/api/admin/executor-bindings/*` endpoints. See
 
 ## 11. Motivation and Priority Justification
 
-**Motivation:** The portfolio's value proposition is being executor-agnostic by construction. The registry is what makes that claim true.
+**Motivation:** DevHub's value proposition is being executor-agnostic by construction. The registry is what makes that claim true.
 **Impact if delayed:** Cannot onboard a real executor; FEAT-004 cannot route.
 **Dependencies on this feature:** FEAT-004, FEAT-005.
 

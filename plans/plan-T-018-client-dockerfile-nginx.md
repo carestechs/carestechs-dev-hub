@@ -5,7 +5,7 @@
 - **Type:** DevOps
 - **Workflow:** standard
 - **Complexity:** S
-- **Rationale:** Profile rule: nginx-spa-proxy + container-per-process. The portfolio is the single origin in production.
+- **Rationale:** Profile rule: nginx-spa-proxy + container-per-process. DevHub is the single origin in production.
 
 ## Overview
 Two-stage Dockerfile inside `client/`: Node 20 builds the SPA, nginx 1.27 serves the build output with `try_files` SPA fallback and a `/api/` reverse proxy to the API container. `proxy_buffering off` to keep SSE streams pass-through.
@@ -26,7 +26,7 @@ RUN npm run build -- --configuration production
 
 FROM nginx:1.27-alpine AS runtime
 RUN rm -rf /usr/share/nginx/html/*
-COPY --from=build /app/dist/portfolio/browser /usr/share/nginx/html
+COPY --from=build /app/dist/dev-hub/browser /usr/share/nginx/html
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 EXPOSE 80
 HEALTHCHECK --interval=10s --timeout=3s --retries=3 \
@@ -70,13 +70,13 @@ server {
 
 ### Step 3: Adjust Angular build output check
 **Action:** Verify
-Angular 20 outputs to `dist/<project-name>/browser/`. The Dockerfile copies from `dist/portfolio/browser`. Confirm the project name is `portfolio` (set in T-010); if different, update the COPY path.
+Angular 20 outputs to `dist/<project-name>/browser/`. The Dockerfile copies from `dist/dev-hub/browser`. Confirm the project name is `DevHub` (set in T-010); if different, update the COPY path.
 
 ### Step 4: Smoke
 **Action:** Verify
-- `docker build -t portfolio-web client/` succeeds.
-- `docker network create test-net && docker run --rm --network test-net --name api portfolio-api &`
-- `docker run --rm --network test-net -p 8080:80 portfolio-web`
+- `docker build -t devhub-web client/` succeeds.
+- `docker network create test-net && docker run --rm --network test-net --name api devhub-api &`
+- `docker run --rm --network test-net -p 8080:80 devhub-web`
 - `curl http://localhost:8080/` returns the SPA index.
 - `curl http://localhost:8080/projects/foo` also returns the SPA index (try_files fallback).
 - `curl http://localhost:8080/api/health` reaches the API and returns its JSON.
@@ -94,7 +94,7 @@ Angular 20 outputs to `dist/<project-name>/browser/`. The Dockerfile copies from
 - **HTTPS termination** — nginx in this image serves HTTP only. TLS termination is expected at the platform edge (load balancer / ingress) in production.
 
 ## Acceptance Verification
-- [ ] `docker build -t portfolio-web client/` succeeds.
+- [ ] `docker build -t devhub-web client/` succeeds.
 - [ ] Image serves `/` with the SPA index and 200.
 - [ ] Deep-link `/projects/foo` returns SPA (try_files fallback).
 - [ ] `/api/health` is reverse-proxied to the API container on the same Docker network.

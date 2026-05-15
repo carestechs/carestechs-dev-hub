@@ -13,7 +13,7 @@ Expose `GET /health` with the contracted JSON shape, backed by ASP.NET Core's he
 ## Implementation Steps
 
 ### Step 1: Register a DB health check
-**File:** `src/Portfolio.Api/Program.cs`
+**File:** `src/DevHub.Api/Program.cs`
 **Action:** Modify
 Inside `builder.Services`:
 ```csharp
@@ -23,7 +23,7 @@ builder.Services.AddHealthChecks()
 (Workspace's DbContext is guaranteed to exist after T-005.)
 
 ### Step 2: Custom response writer
-**File:** `src/Portfolio.Api/HealthCheckResponseWriter.cs`
+**File:** `src/DevHub.Api/HealthCheckResponseWriter.cs`
 **Action:** Create
 ```csharp
 public static class HealthCheckResponseWriter
@@ -44,7 +44,7 @@ public static class HealthCheckResponseWriter
 ```
 
 ### Step 3: Map the endpoint
-**File:** `src/Portfolio.Api/Program.cs`
+**File:** `src/DevHub.Api/Program.cs`
 **Action:** Modify
 After `app.MapControllers()`:
 ```csharp
@@ -67,8 +67,8 @@ Start API. `curl http://localhost:5000/health` → 200 + `{"status":"ok","checks
 ## Files Affected
 | File | Action | Summary |
 |------|--------|---------|
-| `src/Portfolio.Api/HealthCheckResponseWriter.cs` | Create | Custom JSON shape |
-| `src/Portfolio.Api/Program.cs` | Modify | Register check + map endpoint |
+| `src/DevHub.Api/HealthCheckResponseWriter.cs` | Create | Custom JSON shape |
+| `src/DevHub.Api/Program.cs` | Modify | Register check + map endpoint |
 
 ## Edge Cases & Risks
 - **`AddDbContextCheck` opens a real connection** — fast in normal operation but can hang on a network partition. Default timeout is acceptable for the dev/healthcheck use case; production tuning is a later concern.

@@ -17,20 +17,20 @@ Production-flavored compose describing the API + frontend services on a shared `
 **Action:** Create
 ```
 # Postgres (on the infra network — not in this compose file)
-ConnectionStrings__Postgres=Host=infra-postgres;Port=5432;Database=portfolio;Username=portfolio;Password=<change-me>
+ConnectionStrings__Postgres=Host=infra-postgres;Port=5432;Database=devhub;Username=devhub;Password=<change-me>
 
 # JWT
-Jwt__Issuer=https://portfolio.example.com
-Jwt__Audience=portfolio-spa
+Jwt__Issuer=https://devhub.example.com
+Jwt__Audience=devhub-spa
 Jwt__SigningKey=<replace-with-strong-32+ byte secret>
 
 # Seed (used only on first boot when DB is empty)
-OperatorSeed__Email=operator@portfolio.example.com
+OperatorSeed__Email=operator@devhub.example.com
 OperatorSeed__DisplayName=Operator
 OperatorSeed__Password=<change-me>
 
 # CORS — production SPA origin
-Cors__SpaOrigin=https://portfolio.example.com
+Cors__SpaOrigin=https://devhub.example.com
 
 # Public-facing ports
 WEB_HOST_PORT=80
@@ -42,10 +42,10 @@ WEB_HOST_PORT=80
 ```yaml
 services:
   api:
-    image: portfolio-api:latest
+    image: devhub-api:latest
     build:
       context: .
-    container_name: portfolio-api
+    container_name: devhub-api
     environment:
       ConnectionStrings__Postgres: ${ConnectionStrings__Postgres}
       Jwt__Issuer:     ${Jwt__Issuer}
@@ -66,10 +66,10 @@ services:
     restart: unless-stopped
 
   web:
-    image: portfolio-web:latest
+    image: devhub-web:latest
     build:
       context: ./client
-    container_name: portfolio-web
+    container_name: devhub-web
     depends_on:
       api:
         condition: service_healthy
@@ -111,7 +111,7 @@ $COMPOSE up -d
 
 echo "==> wait for api /health (via internal docker exec, not host port)"
 deadline=$(( $(date +%s) + 120 ))
-until docker exec portfolio-api wget -qO- http://127.0.0.1:8080/health > /dev/null 2>&1; do
+until docker exec devhub-api wget -qO- http://127.0.0.1:8080/health > /dev/null 2>&1; do
   if [ "$(date +%s)" -ge "$deadline" ]; then
     echo "api /health did not become healthy in 120s" >&2
     $COMPOSE logs api >&2 || true
@@ -172,4 +172,4 @@ Add a "Production smoke test" section:
 - [ ] `docker compose -f docker-compose.prod.yml build` succeeds.
 - [ ] `scripts/verify-docker.sh` exits 0 on a clean machine with a reachable Postgres on the `infra` network.
 - [ ] The script tears the stack down whether it succeeds or fails (`docker ps` empty after).
-- [ ] No image bakes in `.env*` files (`docker run --rm portfolio-api find / -name ".env*"` returns empty paths outside `/proc`).
+- [ ] No image bakes in `.env*` files (`docker run --rm devhub-api find / -name ".env*"` returns empty paths outside `/proc`).
