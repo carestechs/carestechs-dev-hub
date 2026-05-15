@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, EventEmitter, input, Output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, EventEmitter, HostBinding, input, Output } from '@angular/core';
 import { AppSpinner } from '../app-spinner/app-spinner';
 
 export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger';
@@ -18,6 +18,7 @@ export class AppButton {
   readonly type = input<ButtonType>('button');
   readonly disabled = input<boolean>(false);
   readonly loading = input<boolean>(false);
+  readonly fullWidth = input<boolean>(false);
   readonly ariaLabel = input<string | null>(null);
 
   @Output() readonly clicked = new EventEmitter<MouseEvent>();
@@ -42,10 +43,17 @@ export class AppButton {
       lg: 'text-lg h-12 px-5',
     };
 
-    return `${base} ${variant[this.variant()]} ${size[this.size()]}`;
+    const width = this.fullWidth() ? 'w-full' : '';
+    return `${base} ${variant[this.variant()]} ${size[this.size()]} ${width}`.trim();
   });
 
   protected readonly isInteractive = computed(() => !this.disabled() && !this.loading());
+
+  @HostBinding('class.block')
+  protected get hostBlock(): boolean { return this.fullWidth(); }
+
+  @HostBinding('class.w-full')
+  protected get hostFullWidth(): boolean { return this.fullWidth(); }
 
   protected onClick(event: MouseEvent): void {
     if (this.isInteractive()) {

@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>DevHub — Login mockup</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    html, body { font-family: 'Inter', system-ui, sans-serif; background: #F8FAFC; color: #334155; }
+    h1, h2 { font-family: 'Poppins', system-ui, sans-serif; color: #0F172A; }
+  </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-6">
+  <div class="w-full max-w-md">
+    <div class="flex justify-center mb-6">
+      <span class="text-2xl font-bold">DevHub</span>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm p-6">
+      <h1 class="text-2xl font-bold mb-1">Sign in</h1>
+      <p class="text-sm text-slate-500 mb-6">Sign in to your workspace.</p>
+
+      <!-- Error banner state (default hidden; shown here for review) -->
+      <div role="alert" class="bg-red-50 border border-red-200 text-red-700 rounded-lg p-4 flex items-start gap-3 mb-4">
+        <svg class="h-5 w-5 mt-0.5 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM10 5a1 1 0 011 1v4a1 1 0 11-2 0V6a1 1 0 011-1zm0 8a1 1 0 100 2 1 1 0 000-2z" clip-rule="evenodd"/></svg>
+        <div class="flex-1">
+          <p class="font-semibold">Unauthorized</p>
+          <p class="text-sm mt-1">Invalid email or password.</p>
+        </div>
+      </div>
+
+      <form class="space-y-4">
+        <label class="block">
+          <span class="block text-sm font-medium text-slate-700 mb-1">Email <span class="text-red-500">*</span></span>
+          <input type="email" value="op@devhub.local" autocomplete="email"
+                 class="block w-full border border-slate-300 focus:border-sky-500 focus:ring-2 focus:ring-sky-100 rounded-lg px-3 h-10 outline-none">
+        </label>
+        <label class="block">
+          <span class="block text-sm font-medium text-slate-700 mb-1">Password <span class="text-red-500">*</span></span>
+          <input type="password" value="••••••••" autocomplete="current-password"
+                 class="block w-full border border-slate-300 focus:border-sky-500 focus:ring-2 focus:ring-sky-100 rounded-lg px-3 h-10 outline-none">
+        </label>
+        <button type="submit"
+                class="w-full inline-flex items-center justify-center gap-2 rounded-lg font-medium h-10 px-4 bg-sky-500 hover:bg-sky-600 text-white">
+          Sign in →
+        </button>
+      </form>
+
+      <!-- Loading state preview (same button, with spinner) -->
+      <div class="mt-6">
+        <p class="text-xs uppercase tracking-wide text-slate-500 mb-2">Loading state (for reference)</p>
+        <button disabled
+                class="w-full inline-flex items-center justify-center gap-2 rounded-lg font-medium h-10 px-4 bg-sky-500 text-white opacity-90">
+          <svg class="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"/></svg>
+          Signing in…
+        </button>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
