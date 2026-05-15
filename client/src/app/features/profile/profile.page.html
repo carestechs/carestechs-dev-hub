@@ -1,0 +1,39 @@
+<header class="mb-8">
+  <h1 class="text-3xl font-bold">Profile</h1>
+  <p class="text-slate-500 mt-2">Your account in this workspace.</p>
+</header>
+
+<app-card>
+  @if (member(); as m) {
+    <dl class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div>
+        <dt class="text-xs font-medium uppercase tracking-wide text-slate-500">Display name</dt>
+        <dd class="mt-1 text-base text-slate-900">{{ m.displayName }}</dd>
+      </div>
+      <div>
+        <dt class="text-xs font-medium uppercase tracking-wide text-slate-500">Email</dt>
+        <dd class="mt-1 text-base text-slate-900">{{ m.email }}</dd>
+      </div>
+      <div class="sm:col-span-2">
+        <dt class="text-xs font-medium uppercase tracking-wide text-slate-500">Memberships</dt>
+        <dd class="mt-1 text-base text-slate-700">
+          @if (memberships().length === 0) {
+            <span class="text-slate-500">No project memberships yet.</span>
+          } @else {
+            <ul class="space-y-1">
+              @for (m of memberships(); track m.projectId) {
+                <li>
+                  <span class="font-medium">{{ m.projectSlug }}</span>
+                  <span class="text-slate-500"> — roles: {{ m.roles.join(', ') }}</span>
+                </li>
+              }
+            </ul>
+          }
+        </dd>
+      </div>
+    </dl>
+  }
+  <div class="mt-6 pt-6 border-t border-slate-200">
+    <app-button variant="secondary" (clicked)="signOut()">Sign out</app-button>
+  </div>
+</app-card>
