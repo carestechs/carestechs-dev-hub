@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>DevHub — Public layout mockup</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    html, body { font-family: 'Inter', system-ui, sans-serif; background: #F8FAFC; color: #334155; }
+    h1, h2 { font-family: 'Poppins', system-ui, sans-serif; color: #0F172A; }
+  </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-6">
+  <div class="w-full max-w-md">
+    <div class="flex justify-center mb-6">
+      <span class="text-2xl font-bold">DevHub</span>
+    </div>
+    <!-- router-outlet renders the actual screen card here -->
+    <div class="bg-white rounded-xl shadow-sm p-6 text-center text-slate-500 text-sm">
+      (router-outlet — Login or other public screens render in this card slot)
+    </div>
+  </div>
+</body>
+</html>
