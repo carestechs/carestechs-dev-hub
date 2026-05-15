@@ -1,0 +1,28 @@
+<header class="mb-8">
+  <h1 class="text-3xl font-bold">
+    @if (displayName()) {
+      Welcome back, {{ displayName() }}
+    } @else {
+      Welcome
+    }
+  </h1>
+  <p class="text-slate-500 mt-2">Today's overview.</p>
+</header>
+
+<section class="mb-12">
+  <h2 class="text-xl font-semibold mb-4">Pending on you</h2>
+  <app-card>
+    <empty-state
+      title="You're all caught up."
+      description="When a checkpoint waits on your role in any project, it shows up here." />
+  </app-card>
+</section>
+
+<section>
+  <h2 class="text-xl font-semibold mb-4">Your projects</h2>
+  <app-card>
+    <empty-state
+      title="No projects yet."
+      description="An operator hasn't added you to any project yet." />
+  </app-card>
+</section>

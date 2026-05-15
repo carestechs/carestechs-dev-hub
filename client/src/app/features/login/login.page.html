@@ -1,0 +1,65 @@
+<app-card>
+  <h1 class="text-2xl font-bold mb-1">Sign in</h1>
+  <p class="text-sm text-slate-500 mb-6">Sign in to your workspace.</p>
+
+  @if (serverError()) {
+    <app-error-banner [error]="serverError()" class="block mb-4" />
+  }
+
+  <form [formGroup]="form" (ngSubmit)="submit()" class="space-y-4" novalidate>
+    <app-form-field
+      label="Email"
+      [required]="true"
+      [error]="emailError()"
+    >
+      <input
+        #input
+        type="email"
+        formControlName="email"
+        autocomplete="email"
+        autofocus
+        class="block w-full border focus:ring-2 rounded-lg px-3 h-10 outline-none"
+        [class.border-slate-300]="!emailError()"
+        [class.focus:border-sky-500]="!emailError()"
+        [class.focus:ring-sky-100]="!emailError()"
+        [class.border-red-500]="!!emailError()"
+        [class.focus:border-red-500]="!!emailError()"
+        [class.focus:ring-red-100]="!!emailError()"
+      />
+    </app-form-field>
+
+    <app-form-field
+      label="Password"
+      [required]="true"
+      [error]="passwordError()"
+    >
+      <input
+        #input
+        type="password"
+        formControlName="password"
+        autocomplete="current-password"
+        class="block w-full border focus:ring-2 rounded-lg px-3 h-10 outline-none"
+        [class.border-slate-300]="!passwordError()"
+        [class.focus:border-sky-500]="!passwordError()"
+        [class.focus:ring-sky-100]="!passwordError()"
+        [class.border-red-500]="!!passwordError()"
+        [class.focus:border-red-500]="!!passwordError()"
+        [class.focus:ring-red-100]="!!passwordError()"
+      />
+    </app-form-field>
+
+    <app-button
+      variant="primary"
+      type="submit"
+      [loading]="submitting()"
+      [disabled]="submitting()"
+      [fullWidth]="true"
+    >
+      @if (submitting()) {
+        Signing in…
+      } @else {
+        Sign in →
+      }
+    </app-button>
+  </form>
+</app-card>
