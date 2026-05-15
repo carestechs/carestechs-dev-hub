@@ -33,6 +33,10 @@ RUN dotnet publish src/DevHub.Api/DevHub.Api.csproj \
 # -----------------------------------------------------------------------------
 FROM ${RUNTIME_IMAGE} AS runtime
 WORKDIR /app
+# wget for the container HEALTHCHECK (mcr aspnet image ships neither wget nor curl by default).
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends wget \
+ && rm -rf /var/lib/apt/lists/*
 COPY --from=publish /app/publish ./
 ENV ASPNETCORE_URLS=http://+:8080 \
     ASPNETCORE_ENVIRONMENT=Production \
