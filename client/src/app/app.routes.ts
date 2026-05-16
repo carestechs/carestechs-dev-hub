@@ -51,6 +51,11 @@ export const routes: Routes = [
         loadComponent: () => import('./features/admin/members/members.page').then(m => m.MembersPage),
       },
       {
+        path: 'admin/executors',
+        canActivate: [operatorGuard],
+        loadComponent: () => import('./features/admin/executors/executors.page').then(m => m.ExecutorsPage),
+      },
+      {
         path: 'me',
         loadComponent: () => import('./features/profile/profile.page').then(m => m.ProfilePage),
       },

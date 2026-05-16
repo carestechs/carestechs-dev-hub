@@ -1,0 +1,90 @@
+<app-modal
+  [open]="open()"
+  [title]="title"
+  [dismissOnOverlayClick]="!working()"
+  (closed)="onCancel()"
+>
+  @if (serverError()) {
+    <app-error-banner [error]="serverError()" class="block mb-4" />
+  }
+
+  <form [formGroup]="form" (ngSubmit)="onSubmit()" class="space-y-4" novalidate>
+    @if (isEdit) {
+      <div>
+        <span class="block text-sm font-medium text-slate-700 mb-1">Key</span>
+        <p class="text-sm text-slate-500 font-mono">{{ editing()!.key }}</p>
+        <p class="mt-1 text-xs text-slate-500">Key is immutable. Register a new executor if you need to evolve the shape.</p>
+      </div>
+    } @else {
+      <app-form-field label="Key" [required]="true" [error]="keyError()" helperText="Stable identifier, e.g. feature-delivery-v1. Immutable after creation.">
+        <input type="text" formControlName="key" autocomplete="off"
+               class="block w-full border border-slate-300 focus:border-sky-500 focus:ring-2 focus:ring-sky-100 rounded-lg px-3 h-10 outline-none font-mono text-sm" />
+      </app-form-field>
+    }
+
+    <app-form-field label="Display name" [required]="true" [error]="displayNameError()">
+      <input type="text" formControlName="displayName"
+             class="block w-full border border-slate-300 focus:border-sky-500 focus:ring-2 focus:ring-sky-100 rounded-lg px-3 h-10 outline-none" />
+    </app-form-field>
+
+    <app-form-field label="Base URL" [required]="true" [error]="baseUrlError()">
+      <input type="url" formControlName="baseUrl"
+             class="block w-full border border-slate-300 focus:border-sky-500 focus:ring-2 focus:ring-sky-100 rounded-lg px-3 h-10 outline-none font-mono text-sm" />
+    </app-form-field>
+
+    <app-form-field
+      label="Credentials ref"
+      [required]="true"
+      [error]="credentialsRefError()"
+      helperText="Env-var name on the API host. The actual secret value never leaves the server."
+    >
+      <input type="text" formControlName="credentialsRef"
+             class="block w-full border border-slate-300 focus:border-sky-500 focus:ring-2 focus:ring-sky-100 rounded-lg px-3 h-10 outline-none font-mono text-sm" />
+    </app-form-field>
+
+    @if (isEdit) {
+      <app-form-field label="Status">
+        <select formControlName="status"
+                class="block w-full border border-slate-300 focus:border-sky-500 focus:ring-2 focus:ring-sky-100 rounded-lg px-3 h-10 outline-none">
+          <option value="Active">Active</option>
+          <option value="Paused">Paused</option>
+          <option value="Retired">Retired</option>
+        </select>
+      </app-form-field>
+    } @else {
+      <fieldset class="border border-slate-200 rounded-lg p-4">
+        <legend class="px-2 text-sm font-medium text-slate-700">Checkpoint contracts</legend>
+        <div formArrayName="contracts" class="space-y-3 mt-2">
+          @for (g of contractsArray.controls; let i = $index; track i) {
+            <div [formGroupName]="i" class="grid grid-cols-12 gap-2 items-start">
+              <input formControlName="checkpointKey" placeholder="Checkpoint key"
+                     class="col-span-3 border border-slate-300 rounded-lg px-3 h-10 font-mono text-sm" />
+              <input formControlName="displayName" placeholder="Display name"
+                     class="col-span-3 border border-slate-300 rounded-lg px-3 h-10 text-sm" />
+              <select formControlName="requiredRoleKey"
+                      class="col-span-2 border border-slate-300 rounded-lg px-2 h-10 text-sm">
+                <option value="" disabled>Role…</option>
+                @for (r of availableRoles(); track r.id) {
+                  <option [value]="r.key">{{ r.key }}</option>
+                }
+              </select>
+              <input formControlName="allowedOutcomes" placeholder="Outcomes (comma sep.)"
+                     class="col-span-3 border border-slate-300 rounded-lg px-3 h-10 text-sm" />
+              <button type="button" class="col-span-1 text-red-600 hover:underline text-sm h-10"
+                      [disabled]="contractsArray.length <= 1"
+                      (click)="removeContract(i)">Remove</button>
+            </div>
+          }
+          <button type="button" class="text-sky-600 hover:underline text-sm" (click)="addContract()">+ Add contract</button>
+        </div>
+      </fieldset>
+    }
+  </form>
+
+  <ng-container modal-footer>
+    <app-button variant="secondary" [disabled]="working()" (clicked)="onCancel()">Cancel</app-button>
+    <app-button variant="primary" [loading]="working()" [disabled]="working()" (clicked)="onSubmit()">
+      {{ submitLabel }}
+    </app-button>
+  </ng-container>
+</app-modal>

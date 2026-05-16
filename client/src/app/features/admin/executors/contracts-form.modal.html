@@ -1,0 +1,45 @@
+<app-modal
+  [open]="open()"
+  title="Replace checkpoint contracts"
+  [dismissOnOverlayClick]="!working()"
+  (closed)="onCancel()"
+>
+  @if (serverError()) {
+    <app-error-banner [error]="serverError()" class="block mb-4" />
+  }
+
+  <div role="alert" class="bg-amber-50 border border-amber-200 text-amber-800 rounded-lg p-3 text-sm mb-4">
+    Replacing contracts is atomic. In-flight signals for contracts you remove will start returning 404.
+  </div>
+
+  <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate>
+    <div formArrayName="contracts" class="space-y-3">
+      @for (g of contractsArray.controls; let i = $index; track i) {
+        <div [formGroupName]="i" class="grid grid-cols-12 gap-2 items-start">
+          <input formControlName="checkpointKey" placeholder="Checkpoint key"
+                 class="col-span-3 border border-slate-300 rounded-lg px-3 h-10 font-mono text-sm" />
+          <input formControlName="displayName" placeholder="Display name"
+                 class="col-span-3 border border-slate-300 rounded-lg px-3 h-10 text-sm" />
+          <select formControlName="requiredRoleKey"
+                  class="col-span-2 border border-slate-300 rounded-lg px-2 h-10 text-sm">
+            <option value="" disabled>Role…</option>
+            @for (r of availableRoles(); track r.id) {
+              <option [value]="r.key">{{ r.key }}</option>
+            }
+          </select>
+          <input formControlName="allowedOutcomes" placeholder="Outcomes (comma sep.)"
+                 class="col-span-3 border border-slate-300 rounded-lg px-3 h-10 text-sm" />
+          <button type="button" class="col-span-1 text-red-600 hover:underline text-sm h-10"
+                  [disabled]="contractsArray.length <= 1"
+                  (click)="removeContract(i)">Remove</button>
+        </div>
+      }
+      <button type="button" class="text-sky-600 hover:underline text-sm mt-2" (click)="addContract()">+ Add contract</button>
+    </div>
+  </form>
+
+  <ng-container modal-footer>
+    <app-button variant="secondary" [disabled]="working()" (clicked)="onCancel()">Cancel</app-button>
+    <app-button variant="primary" [loading]="working()" [disabled]="working()" (clicked)="onSubmit()">Replace</app-button>
+  </ng-container>
+</app-modal>
