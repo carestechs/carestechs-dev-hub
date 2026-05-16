@@ -1,4 +1,6 @@
+using DevHub.Contracts.Notifications;
 using DevHub.Contracts.Persistence;
+using DevHub.Modules.Notifications.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -18,6 +20,11 @@ public static class NotificationsModuleExtensions
                 .AddInterceptors(sp.GetRequiredService<TimestampingInterceptor>());
         });
         services.AddHostedService<MigrateOnStartup<NotificationsDbContext>>();
+
+        // Singleton: process-wide in-memory channel registry. v1 single-host only.
+        services.AddSingleton<PendingActionStreamRegistry>();
+        services.AddScoped<IPendingActionReconciler, PendingActionReconciler>();
+
         return services;
     }
 }

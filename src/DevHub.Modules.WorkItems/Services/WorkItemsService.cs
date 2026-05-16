@@ -4,6 +4,7 @@ using DevHub.Contracts.Audit;
 using DevHub.Contracts.Authorization;
 using DevHub.Contracts.Executors;
 using DevHub.Contracts.Identity;
+using DevHub.Contracts.Notifications;
 using DevHub.Contracts.Pagination;
 using DevHub.Contracts.Workspace;
 using DevHub.Modules.WorkItems.DTOs;
@@ -19,7 +20,8 @@ internal sealed class WorkItemsService(
     IExecutorHttpClient executorClient,
     IMemberLookup members,
     IProjectLookup projects,
-    IAuditWriter audit) : IWorkItemsService
+    IAuditWriter audit,
+    IPendingActionReconciler reconciler) : IWorkItemsService
 {
     private const string StartCheckpointKey = "start";
     private const string CancelCheckpointKey = "cancel";
@@ -175,6 +177,11 @@ internal sealed class WorkItemsService(
         await db.SaveChangesAsync(ct);
         await tx.CommitAsync(ct);
 
+        // Post-commit reconciliation: the new work item row needs to be visible to the lookup,
+        // which only happens after the tx commits. Failure here doesn't roll back the start —
+        // the next transition will recompute (the reconciler is idempotent).
+        await reconciler.RecomputeForWorkItemAsync(workItem.Id, ct);
+
         var actor = await members.FindByIdAsync(actingMemberId, ct);
         return new WorkItemDto(
             workItem.Id, projectId, workItem.Title, workItem.CurrentStatus, workItem.CurrentCheckpointKey,
@@ -232,6 +239,8 @@ internal sealed class WorkItemsService(
 
         await db.SaveChangesAsync(ct);
         await tx.CommitAsync(ct);
+
+        await reconciler.RecomputeForWorkItemAsync(wi.Id, ct);
     }
 
     private async Task<Dictionary<Guid, MemberRefDto>> ResolveMembersAsync(

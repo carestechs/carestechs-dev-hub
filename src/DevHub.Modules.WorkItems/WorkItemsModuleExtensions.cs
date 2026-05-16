@@ -1,5 +1,6 @@
 using DevHub.Contracts.Executors;
 using DevHub.Contracts.Persistence;
+using DevHub.Contracts.WorkItems;
 using DevHub.Modules.WorkItems.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -31,6 +32,7 @@ public static class WorkItemsModuleExtensions
         services.AddScoped<IWorkItemsService, WorkItemsService>();
         services.AddScoped<ICheckpointSignalsService, CheckpointSignalsService>();
         services.AddScoped<WorkItemStreamForwarder>();
+        services.AddScoped<IWorkItemLookup, WorkItemLookup>();
 
         return services;
     }
