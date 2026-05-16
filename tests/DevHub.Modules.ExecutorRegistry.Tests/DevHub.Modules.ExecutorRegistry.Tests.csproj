@@ -23,6 +23,9 @@
     <ProjectReference Include="..\..\src\DevHub.Modules.ExecutorRegistry\DevHub.Modules.ExecutorRegistry.csproj" />
     <ProjectReference Include="..\..\src\DevHub.Contracts\DevHub.Contracts.csproj" />
     <ProjectReference Include="..\DevHub.TestHarness\DevHub.TestHarness.csproj" />
+    <ProjectReference Include="..\..\src\DevHub.Modules.Audit\DevHub.Modules.Audit.csproj" />
+    <ProjectReference Include="..\..\src\DevHub.Modules.Identity\DevHub.Modules.Identity.csproj" />
+    <ProjectReference Include="..\..\src\DevHub.Modules.Workspace\DevHub.Modules.Workspace.csproj" />
   </ItemGroup>
 
 </Project>
