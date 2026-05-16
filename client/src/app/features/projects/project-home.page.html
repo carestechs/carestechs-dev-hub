@@ -43,6 +43,7 @@
         <span class="inline-flex items-center rounded-full bg-sky-100 text-sky-700 text-xs font-medium px-2 py-0.5">
           {{ p.projectType }}
         </span>
+        <app-button variant="primary" (clicked)="openStart()">Start work →</app-button>
       </div>
     </div>
     <div class="mt-4 flex flex-wrap gap-x-6 gap-y-2 text-sm text-slate-500">
@@ -59,11 +60,97 @@
     </div>
   </nav>
 
-  <section class="mt-6">
-    <app-card>
-      <empty-state
-        title="Work items land in FEAT-004."
-        description="The work-item table, lifecycle review, and live stream all come online once the WorkItems façade ships." />
-    </app-card>
+  <section class="mt-6 flex flex-wrap items-center gap-2">
+    <span class="text-sm text-slate-500 mr-1">Status:</span>
+    @for (f of statusFilters; track f) {
+      <button
+        type="button"
+        class="px-3 py-1 rounded-full text-xs font-medium border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
+        [class.bg-sky-500]="statusFilter() === f"
+        [class.text-white]="statusFilter() === f"
+        [class.border-sky-500]="statusFilter() === f"
+        [class.bg-white]="statusFilter() !== f"
+        [class.text-slate-600]="statusFilter() !== f"
+        [class.border-slate-200]="statusFilter() !== f"
+        [class.hover:bg-slate-50]="statusFilter() !== f"
+        (click)="setStatusFilter(f)"
+      >{{ f }}</button>
+    }
+    <label class="ml-auto flex items-center gap-2 text-sm">
+      <input type="checkbox" class="rounded border-slate-300 text-sky-500 focus:ring-sky-300"
+             [checked]="waitingOnMe()" (change)="toggleWaitingOnMe()">
+      <span>Waiting on me</span>
+    </label>
   </section>
+
+  @if (itemsLoading()) {
+    <div class="mt-4 bg-white rounded-xl shadow-sm p-6 text-sm text-slate-500" aria-busy="true">Loading work items…</div>
+  } @else if (itemsError()) {
+    <div class="mt-4 bg-white rounded-xl shadow-sm p-6 text-sm">
+      <p class="font-medium text-red-700">{{ itemsError()!.title }}</p>
+      <p class="text-slate-500 mt-1">{{ itemsError()!.detail }}</p>
+    </div>
+  } @else if (items().length === 0) {
+    <div class="mt-4 bg-white rounded-xl shadow-sm p-12 text-center">
+      <p class="text-lg font-medium text-slate-700">No work items yet.</p>
+      <p class="mt-2 text-slate-500">Start your first one to kick off the lifecycle.</p>
+      <div class="mt-4 inline-block">
+        <app-button variant="primary" (clicked)="openStart()">Start work →</app-button>
+      </div>
+    </div>
+  } @else {
+    <div class="mt-4 bg-white rounded-xl shadow-sm overflow-hidden">
+      <table class="min-w-full">
+        <thead class="bg-slate-50 text-xs font-medium text-slate-500 uppercase tracking-wide">
+          <tr>
+            <th class="px-6 py-3 text-left">Title</th>
+            <th class="px-6 py-3 text-left">Status</th>
+            <th class="px-6 py-3 text-left">Waiting on</th>
+            <th class="px-6 py-3 text-left">Updated</th>
+          </tr>
+        </thead>
+        <tbody class="text-sm text-slate-700">
+          @for (item of items(); track item.id) {
+            <tr class="border-t border-slate-200 hover:bg-slate-50 cursor-pointer"
+                (click)="onRowClick(item)">
+              <td class="px-6 py-3 font-medium text-sky-700">{{ item.title }}</td>
+              <td class="px-6 py-3">
+                <span class="inline-flex items-center rounded-full text-xs font-medium px-2 py-0.5" [class]="statusPillClass(item.currentStatus)">
+                  {{ item.currentStatus }}
+                </span>
+              </td>
+              <td class="px-6 py-3 text-slate-500">
+                @if (item.currentCheckpointKey) {
+                  <span class="font-mono text-xs bg-slate-100 rounded px-1.5 py-0.5">{{ item.currentCheckpointKey }}</span>
+                } @else {
+                  <span>—</span>
+                }
+              </td>
+              <td class="px-6 py-3 text-slate-500">{{ item.createdAt.slice(0, 10) }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+      @if (itemsMeta(); as meta) {
+        <div class="px-6 py-3 border-t border-slate-200 flex items-center justify-between text-sm text-slate-500">
+          <span>Showing {{ items().length }} of {{ meta.totalCount }}</span>
+          <div class="flex items-center gap-2">
+            <button type="button" class="px-3 py-1 rounded-lg border border-slate-300 disabled:opacity-50 hover:bg-slate-50"
+                    [disabled]="meta.page <= 1" (click)="onPrevPage()">← Prev</button>
+            <span>Page {{ meta.page }} of {{ totalPages() }}</span>
+            <button type="button" class="px-3 py-1 rounded-lg border border-slate-300 disabled:opacity-50 hover:bg-slate-50"
+                    [disabled]="meta.page >= totalPages()" (click)="onNextPage()">Next →</button>
+          </div>
+        </div>
+      }
+    </div>
+  }
 }
+
+<start-work-modal
+  [open]="modalOpen()"
+  [working]="modalWorking()"
+  [serverError]="modalError()"
+  (submitted)="onStartSubmitted($event)"
+  (cancelled)="onStartCancelled()"
+/>
