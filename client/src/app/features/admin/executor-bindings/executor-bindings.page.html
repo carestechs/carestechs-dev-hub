@@ -1,0 +1,58 @@
+<header class="mb-8 flex items-start justify-between gap-4">
+  <div>
+    <h1 class="text-3xl font-bold">Executor bindings</h1>
+    <p class="text-slate-500 mt-2">One active binding per project type routes new projects to a registered executor — operators only.</p>
+  </div>
+  <app-button variant="primary" (clicked)="openNew()">+ New binding</app-button>
+</header>
+
+<p class="mb-4 text-xs text-slate-500 italic">To change a binding, delete it and create a new one.</p>
+
+<app-table
+  [columns]="columns"
+  [rows]="bindings()"
+  [meta]="meta()"
+  [loading]="loading()"
+  [error]="error()"
+  emptyTitle="No bindings yet."
+  emptyDescription="Register an executor first, then bind a project type to it."
+  (pageChanged)="onPage($event)"
+>
+  <ng-container empty-action>
+    <a routerLink="/admin/executors" class="text-sky-600 hover:underline text-sm">Register an executor →</a>
+  </ng-container>
+</app-table>
+
+@if (bindings().length > 0 && !loading()) {
+  <ul class="mt-4 text-sm text-slate-500 grid gap-1">
+    @for (b of bindings(); track b.id) {
+      <li class="flex items-center gap-3 px-1">
+        <span class="font-mono text-slate-700">{{ b.projectType }}</span>
+        <span class="ml-auto">
+          <button type="button" class="text-red-600 hover:underline" (click)="askDelete(b)">Delete</button>
+        </span>
+      </li>
+    }
+  </ul>
+}
+
+<binding-form-modal
+  [open]="modalOpen()"
+  [executors]="executors()"
+  [working]="modalWorking()"
+  [serverError]="modalError()"
+  (submitted)="onModalSubmit($event)"
+  (cancelled)="onModalCancelled()"
+/>
+
+<confirm-dialog
+  [open]="toDelete() !== null"
+  [title]="'Delete binding?'"
+  [message]="toDelete() ? 'Existing projects of type \'' + toDelete()!.projectType + '\' can still read state, but you cannot create new projects of this type until a new binding is registered.' : ''"
+  confirmLabel="Delete"
+  variant="danger"
+  [working]="deleting()"
+  [error]="deleteError()"
+  (confirmed)="onDeleteConfirm()"
+  (cancelled)="onDeleteCancel()"
+/>

@@ -56,6 +56,11 @@ export const routes: Routes = [
         loadComponent: () => import('./features/admin/executors/executors.page').then(m => m.ExecutorsPage),
       },
       {
+        path: 'admin/executor-bindings',
+        canActivate: [operatorGuard],
+        loadComponent: () => import('./features/admin/executor-bindings/executor-bindings.page').then(m => m.ExecutorBindingsPage),
+      },
+      {
         path: 'me',
         loadComponent: () => import('./features/profile/profile.page').then(m => m.ProfilePage),
       },
