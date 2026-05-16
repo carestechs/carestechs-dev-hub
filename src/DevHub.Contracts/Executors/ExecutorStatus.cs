@@ -1,4 +1,4 @@
-namespace DevHub.Modules.ExecutorRegistry.Enums;
+namespace DevHub.Contracts.Executors;
 
 public enum ExecutorStatus
 {

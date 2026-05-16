@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace DevHub.TestHarness;
 
@@ -14,6 +15,11 @@ public sealed class DevHubApiFactory : WebApplicationFactory<Program>
     public required string ConnectionString { get; init; }
     public string OperatorPassword { get; init; } = "OperatorTest123!";
     public string OperatorEmail { get; init; } = "op@test.local";
+
+    /// When true (default), seeds a feature-delivery executor + binding before tests run so
+    /// existing project-creation paths keep working. Tests covering binding-validation edge
+    /// cases should set this to false and seed explicitly.
+    public bool SeedFeatureDeliveryBinding { get; init; } = true;
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -32,5 +38,12 @@ public sealed class DevHubApiFactory : WebApplicationFactory<Program>
                 ["OperatorSeed:Password"]    = OperatorPassword,
             });
         });
+        if (SeedFeatureDeliveryBinding)
+        {
+            builder.ConfigureServices(services =>
+            {
+                services.AddHostedService<TestRegistrySeeder>();
+            });
+        }
     }
 }
