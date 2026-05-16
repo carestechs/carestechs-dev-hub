@@ -1,5 +1,5 @@
+using DevHub.Contracts.Executors;
 using DevHub.Contracts.Persistence;
-using DevHub.Modules.ExecutorRegistry.Enums;
 
 namespace DevHub.Modules.ExecutorRegistry.Entities;
 

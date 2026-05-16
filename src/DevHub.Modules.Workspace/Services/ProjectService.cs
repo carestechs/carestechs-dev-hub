@@ -1,11 +1,11 @@
 using DevHub.Contracts.ApplicationErrors;
 using DevHub.Contracts.Audit;
 using DevHub.Contracts.Authorization;
+using DevHub.Contracts.Executors;
 using DevHub.Contracts.Pagination;
 using DevHub.Modules.Workspace.DTOs;
 using DevHub.Modules.Workspace.Entities;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
 
 namespace DevHub.Modules.Workspace.Services;
 
@@ -23,8 +23,8 @@ internal sealed class ProjectService(
     WorkspaceDbContext db,
     IProjectAuthorizationService authz,
     IProjectMembershipQuery memberships,
-    IAuditWriter audit,
-    ILogger<ProjectService> logger) : IProjectService
+    IExecutorRouter router,
+    IAuditWriter audit) : IProjectService
 {
     public async Task<PagedEnvelopeDto<ProjectDto>> ListAsync(
         PageRequest page, Guid? teamId, string? projectType, Guid callerMemberId, CancellationToken ct)
@@ -101,8 +101,8 @@ internal sealed class ProjectService(
         if (await db.Projects.AnyAsync(p => p.Name == req.Name, ct))
             throw new ConflictException($"A project with name '{req.Name}' already exists.");
 
-        // TODO(FEAT-003): validate projectType against ExecutorBinding once the registry lands.
-        logger.LogInformation("Creating project of type {ProjectType} (FEAT-003 will validate against ExecutorBinding)", req.ProjectType);
+        if (!await router.IsProjectTypeBoundAsync(req.ProjectType, ct))
+            throw new ConflictException($"No executor bound for project type '{req.ProjectType}'.");
 
         var project = new Project
         {

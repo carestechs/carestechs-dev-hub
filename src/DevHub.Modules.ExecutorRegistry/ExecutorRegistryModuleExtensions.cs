@@ -1,4 +1,6 @@
+using DevHub.Contracts.Executors;
 using DevHub.Contracts.Persistence;
+using DevHub.Modules.ExecutorRegistry.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -18,6 +20,12 @@ public static class ExecutorRegistryModuleExtensions
                 .AddInterceptors(sp.GetRequiredService<TimestampingInterceptor>());
         });
         services.AddHostedService<MigrateOnStartup<ExecutorRegistryDbContext>>();
+
+        services.AddScoped<IExecutorRouter, ExecutorRouter>();
+        services.AddScoped<IExecutorCredentialResolver, ExecutorCredentialResolver>();
+        services.AddScoped<IExecutorRegistrationService, ExecutorRegistrationService>();
+        services.AddScoped<IExecutorBindingService, ExecutorBindingService>();
+
         return services;
     }
 }

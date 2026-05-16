@@ -18,6 +18,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\DevHub.Api\DevHub.Api.csproj" />
     <ProjectReference Include="..\..\src\DevHub.Contracts\DevHub.Contracts.csproj" />
+    <ProjectReference Include="..\..\src\DevHub.Modules.ExecutorRegistry\DevHub.Modules.ExecutorRegistry.csproj" />
   </ItemGroup>
 
 </Project>

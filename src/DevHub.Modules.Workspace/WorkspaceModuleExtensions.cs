@@ -1,6 +1,7 @@
 using DevHub.Contracts.Authorization;
 using DevHub.Contracts.Identity;
 using DevHub.Contracts.Persistence;
+using DevHub.Contracts.Workspace;
 using DevHub.Modules.Workspace.Seeding;
 using DevHub.Modules.Workspace.Services;
 using Microsoft.EntityFrameworkCore;
@@ -25,6 +26,8 @@ public static class WorkspaceModuleExtensions
         services.AddScoped<IMemberLookup, MemberLookup>();
         services.AddScoped<IProjectMembershipQuery, ProjectMembershipQuery>();
         services.AddScoped<IProjectAuthorizationService, ProjectAuthorizationService>();
+        services.AddScoped<IProjectLookup, ProjectLookup>();
+        services.AddScoped<IRoleLookup, RoleLookup>();
 
         services.AddScoped<ITeamService, TeamService>();
         services.AddScoped<IMemberService, MemberService>();
