@@ -1,4 +1,6 @@
+using DevHub.Contracts.Audit;
 using DevHub.Contracts.Persistence;
+using DevHub.Modules.Audit.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -17,6 +19,7 @@ public static class AuditModuleExtensions
                 .UseSnakeCaseNamingConvention()
                 .AddInterceptors(sp.GetRequiredService<TimestampingInterceptor>());
         });
+        services.AddScoped<IAuditWriter, AuditWriter>();
         services.AddHostedService<MigrateOnStartup<AuditDbContext>>();
         return services;
     }
