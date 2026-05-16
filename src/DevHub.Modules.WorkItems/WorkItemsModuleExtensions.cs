@@ -1,4 +1,6 @@
+using DevHub.Contracts.Executors;
 using DevHub.Contracts.Persistence;
+using DevHub.Modules.WorkItems.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -18,6 +20,14 @@ public static class WorkItemsModuleExtensions
                 .AddInterceptors(sp.GetRequiredService<TimestampingInterceptor>());
         });
         services.AddHostedService<MigrateOnStartup<WorkItemsDbContext>>();
+
+        // Typed HttpClient. Timeout applies to non-streaming calls; OpenStreamAsync uses
+        // HttpCompletionOption.ResponseHeadersRead so the body stream is independent.
+        services.AddHttpClient<IExecutorHttpClient, ExecutorHttpClient>(c =>
+        {
+            c.Timeout = TimeSpan.FromSeconds(30);
+        });
+
         return services;
     }
 }
