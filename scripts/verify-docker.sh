@@ -1,14 +1,20 @@
 #!/usr/bin/env bash
 #
-# scripts/verify-docker.sh — full prod-stack smoke test.
+# scripts/verify-docker.sh — legacy STANDALONE prod-stack smoke test.
 #
-# Builds devhub-api and devhub-web images, brings up the prod compose
-# (postgres + api + web), waits for /health, then exercises:
-#   - GET  /            (SPA index)
-#   - GET  /api/health  (proxied through nginx)  *NOTE: API exposes /health, not /api/health*
-#   - POST /api/auth/login + GET /api/auth/me
+# *** DO NOT run against the umbrella ***
+#   This script was written for the pre-FEAT-007 standalone prod compose
+#   (which shipped its own postgres). The current docker-compose.prod.yml
+#   joins the umbrella's shared `devtools-infra` network and shared
+#   `postgres` container — running this script against it will fail at
+#   the postgres-healthcheck wait (no such service) and `down -v` would
+#   tear down devhub-api/web mid-session if the umbrella is up.
 #
-# Tears the stack down on exit (success or failure).
+# For the umbrella smoke test (no teardown), use scripts/verify-umbrella.sh
+# (lands in T-054).
+#
+# Kept here for historical regression / fallback to a hypothetical
+# standalone branch; new work should target verify-umbrella.sh.
 
 set -euo pipefail
 

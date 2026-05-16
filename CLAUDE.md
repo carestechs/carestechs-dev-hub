@@ -48,10 +48,26 @@ cd client && ng serve --proxy-config proxy.conf.json
 dotnet test
 cd client && ng test
 
-# Production
-docker compose -f docker-compose.prod.yml build
-docker compose -f docker-compose.prod.yml up -d
+# Production (umbrella mode — shared postgres + devtools-infra network)
+docker compose -f docker-compose.prod.yml --env-file .env.production up -d --build
+# or from the umbrella root:
+./start.sh
 ```
+
+### Umbrella mode (shared DevTools infra)
+
+DevHub joins the umbrella alongside `carestechs-agent-orchestrator`,
+`carestechs-flow-engine`, and `carestechs-agent-orchestrator-ui` against
+a shared `postgres` container on the external `devtools-infra` network.
+Loopback host ports: SPA at `127.0.0.1:4300`, API ops curl at
+`127.0.0.1:8090`. Peers on the network reach DevHub as `devhub-web:80`
+/ `devhub-api:8080`.
+
+See `docs/umbrella-adaptation.md` for the deployment contract and
+`../devtools-umbrella.md` for the cross-project convention. The
+solo-dev `docker-compose.yml` flow stays unchanged in shape; its
+Postgres host port is `127.0.0.1:5434` (shifted to coexist with the
+umbrella's `127.0.0.1:5433`).
 
 ### Key Directories
 
