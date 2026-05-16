@@ -41,4 +41,29 @@ internal sealed class ProjectMembershipQuery(WorkspaceDbContext db) : IProjectMe
             select w.Id)
             .AnyAsync(cancellationToken);
     }
+
+    public async Task<IReadOnlyList<Guid>> GetMembersWithRoleAsync(
+        Guid projectId, string roleKey, CancellationToken cancellationToken = default)
+    {
+        return await (
+            from pm in db.ProjectMemberships
+            where pm.ProjectId == projectId
+            join ra in db.RoleAssignments on pm.Id equals ra.ProjectMembershipId
+            join r in db.Roles on ra.RoleId equals r.Id
+            where r.Key == roleKey
+            select pm.MemberId)
+            .Distinct()
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<Guid>> GetWorkspaceOperatorsAsync(CancellationToken cancellationToken = default)
+    {
+        return await (
+            from w in db.WorkspaceRoleAssignments
+            join r in db.Roles on w.RoleId equals r.Id
+            where r.Key == OperatorRoleKey
+            select w.MemberId)
+            .Distinct()
+            .ToListAsync(cancellationToken);
+    }
 }

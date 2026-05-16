@@ -2,6 +2,7 @@ using DevHub.Contracts.ApplicationErrors;
 using DevHub.Contracts.Audit;
 using DevHub.Contracts.Authorization;
 using DevHub.Contracts.Identity;
+using DevHub.Contracts.Notifications;
 using DevHub.Modules.Workspace.DTOs;
 using DevHub.Modules.Workspace.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -19,7 +20,8 @@ public interface IMembershipService
 internal sealed class MembershipService(
     WorkspaceDbContext db,
     IProjectAuthorizationService authz,
-    IAuditWriter audit) : IMembershipService
+    IAuditWriter audit,
+    IPendingActionReconciler reconciler) : IMembershipService
 {
     public async Task<IReadOnlyList<ProjectMembershipDto>> ListAsync(Guid projectId, Guid callerMemberId, CancellationToken ct)
     {
@@ -109,6 +111,9 @@ internal sealed class MembershipService(
         await db.SaveChangesAsync(ct);
         await tx.CommitAsync(ct);
 
+        // Backfill: the new member may now be responsible for already-pending checkpoints.
+        await reconciler.RecomputeForMemberInProjectAsync(req.MemberId, projectId, ct);
+
         return new ProjectMembershipDto(
             membership.Id,
             new MemberRefDto(member.Id, member.DisplayName, member.Email),
@@ -161,6 +166,9 @@ internal sealed class MembershipService(
         await db.SaveChangesAsync(ct);
         await tx.CommitAsync(ct);
 
+        // Role change may now match (or no longer match) a pending checkpoint.
+        await reconciler.RecomputeForMemberInProjectAsync(membership.MemberId, projectId, ct);
+
         var member = await db.Members.AsNoTracking().FirstAsync(m => m.Id == membership.MemberId, ct);
         return new ProjectMembershipDto(
             membership.Id,
@@ -193,5 +201,8 @@ internal sealed class MembershipService(
 
         await db.SaveChangesAsync(ct);
         await tx.CommitAsync(ct);
+
+        // Member removed from project — dismiss any pending rows for them in this project.
+        await reconciler.RecomputeForMemberInProjectAsync(membership.MemberId, projectId, ct);
     }
 }

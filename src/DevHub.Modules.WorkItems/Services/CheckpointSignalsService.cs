@@ -4,6 +4,7 @@ using DevHub.Contracts.Audit;
 using DevHub.Contracts.Authorization;
 using DevHub.Contracts.Executors;
 using DevHub.Contracts.Identity;
+using DevHub.Contracts.Notifications;
 using DevHub.Contracts.Pagination;
 using DevHub.Modules.WorkItems.DTOs;
 using DevHub.Modules.WorkItems.Entities;
@@ -18,7 +19,8 @@ internal sealed class CheckpointSignalsService(
     IExecutorHttpClient executorClient,
     IMemberLookup members,
     IAuditWriter audit,
-    IWorkItemsService workItemsService) : ICheckpointSignalsService
+    IWorkItemsService workItemsService,
+    IPendingActionReconciler reconciler) : ICheckpointSignalsService
 {
     public async Task<WorkItemDto> SignalAsync(
         Guid projectId, Guid workItemId, string checkpointKey, SignalRequest request,
@@ -123,6 +125,9 @@ internal sealed class CheckpointSignalsService(
 
         await db.SaveChangesAsync(ct);
         await tx.CommitAsync(ct);
+
+        // Post-commit: status moved (terminal or different checkpoint) — recompute.
+        await reconciler.RecomputeForWorkItemAsync(workItemId, ct);
 
         var createdBy = await members.FindByIdAsync(wi.CreatedByMemberId, ct);
         return new WorkItemDto(
