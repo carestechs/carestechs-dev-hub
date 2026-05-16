@@ -79,13 +79,48 @@ npm run test:ci  # single run + coverage (writes coverage/dev-hub/lcov.info)
 ### Smoke-testing the prod stack
 
 ```bash
-cp .env.production.example .env.production  # edit at minimum POSTGRES_PASSWORD and Jwt__SigningKey
-WEB_HOST_PORT=8081 ./scripts/verify-docker.sh
+cp .env.production.example .env.production  # edit at minimum Jwt__SigningKey and OperatorSeed__Password
+./scripts/verify-umbrella.sh
 ```
 
-Builds the API + web images, brings up `docker-compose.prod.yml`
-(postgres + api + web), waits for healthchecks, then exercises `/`,
-`/api/auth/login`, and `/api/auth/me`. Tears the stack down on exit.
+Brings up `docker-compose.prod.yml` (api + web) against the umbrella's
+shared `postgres` container, waits for healthchecks, then exercises `/`,
+`/api/auth/login`, and `/api/auth/me`. **Leaves the stack running** —
+the umbrella is shared infrastructure; teardown is your call.
+
+The legacy `scripts/verify-docker.sh` assumes the pre-FEAT-007
+standalone shape (with its own postgres container) and runs
+`down -v` at the end; it is retained for historical regression but
+should not be run against the current `docker-compose.prod.yml`.
+
+### Umbrella mode
+
+DevHub runs alongside the other DevTools projects (orchestrator,
+flow-engine, ao-ui) under a shared `postgres` + `devtools-infra`
+network — see `docs/umbrella-adaptation.md` for the deployment
+contract and `../devtools-umbrella.md` for the cross-project
+convention.
+
+Bootstrap, from a clean host:
+
+1. `cd ../infra && docker compose up -d` — shared `postgres` healthy.
+2. On a host where the infra volume pre-dates DevHub being listed in
+   `init-databases.sql`, run the one-shot:
+   `docker exec -i postgres psql -U devtools -d postgres -c 'CREATE DATABASE devhub;'`.
+3. From this repo:
+   `cp .env.production.example .env.production` (edit `Jwt__SigningKey`,
+   `OperatorSeed__Password`).
+4. `docker compose -f docker-compose.prod.yml --env-file .env.production up -d --build`.
+5. SPA: <http://127.0.0.1:4300>. API ops curl: <http://127.0.0.1:8090/health>.
+
+Or, from the DevTools umbrella root: `./start.sh` (requires this repo
+to be listed in `PROJECTS=( ... )`).
+
+Smoke test: `./scripts/verify-umbrella.sh`.
+
+> **One-time hygiene** if you previously ran the pre-FEAT-007 standalone
+> prod compose: `docker volume rm devhub-pgdata` removes the no-longer-
+> referenced project-owned volume.
 
 ---
 

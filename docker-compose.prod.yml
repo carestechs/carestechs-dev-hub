@@ -1,44 +1,43 @@
-services:
-  postgres:
-    image: postgres:16-alpine
-    container_name: devhub-postgres
-    environment:
-      POSTGRES_USER: ${POSTGRES_USER:-devhub}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB:-devhub}
-    volumes:
-      - devhub-pgdata:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-devhub} -d $${POSTGRES_DB:-devhub}"]
-      interval: 5s
-      timeout: 3s
-      retries: 12
-    restart: unless-stopped
+# Production deployment under the DevTools umbrella.
+#
+# Assumes the shared `devtools-infra` network and the shared `postgres`
+# container already exist (`cd ../infra && docker compose up -d`). The
+# `devhub` database must exist on that cluster; see docs/umbrella-adaptation.md
+# for the one-shot CREATE DATABASE if your infra volume pre-dates this repo's
+# inclusion in init-databases.sql.
+#
+# Lifecycle: bring up everything umbrella-wide via `../start.sh`, or run this
+# file directly with `--env-file .env.production`. The sibling
+# `docker-compose.yml` is the solo-dev flow (its own postgres on 127.0.0.1:5434).
 
+services:
   api:
     image: devhub-api:latest
     container_name: devhub-api
     build:
       context: .
     environment:
-      ConnectionStrings__Postgres: "Host=postgres;Port=5432;Database=${POSTGRES_DB:-devhub};Username=${POSTGRES_USER:-devhub};Password=${POSTGRES_PASSWORD}"
+      ConnectionStrings__Postgres: "Host=postgres;Port=5432;Database=${POSTGRES_DB:-devhub};Username=${POSTGRES_USER:-devtools};Password=${POSTGRES_PASSWORD:-devtools}"
       Jwt__Issuer:     "${Jwt__Issuer}"
       Jwt__Audience:   "${Jwt__Audience}"
       Jwt__SigningKey: "${Jwt__SigningKey}"
       Cors__SpaOrigin: "${Cors__SpaOrigin}"
-      OperatorSeed__Email:        "${OperatorSeed__Email}"
-      OperatorSeed__DisplayName:  "${OperatorSeed__DisplayName}"
-      OperatorSeed__Password:     "${OperatorSeed__Password}"
+      OperatorSeed__Email:       "${OperatorSeed__Email}"
+      OperatorSeed__DisplayName: "${OperatorSeed__DisplayName}"
+      OperatorSeed__Password:    "${OperatorSeed__Password}"
       ASPNETCORE_URLS: "http://+:8080"
       ASPNETCORE_ENVIRONMENT: "Production"
-    depends_on:
-      postgres:
-        condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8080/health > /dev/null 2>&1 || exit 1"]
       interval: 10s
       timeout: 3s
       retries: 12
+    networks: [infra]
+    ports:
+      # Optional loopback-only publication — peers on the infra network reach
+      # this via `devhub-api:8080`. Loopback bind matches orchestrator-api's
+      # ops ergonomic; strip this block if you want internal-only.
+      - "127.0.0.1:${API_HOST_PORT:-8090}:8080"
     restart: unless-stopped
 
   web:
@@ -49,8 +48,9 @@ services:
     depends_on:
       api:
         condition: service_healthy
+    networks: [infra]
     ports:
-      - "${WEB_HOST_PORT:-8080}:80"
+      - "127.0.0.1:${WEB_HOST_PORT:-4300}:80"
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://127.0.0.1/health > /dev/null 2>&1 || exit 1"]
       interval: 10s
@@ -58,5 +58,7 @@ services:
       retries: 6
     restart: unless-stopped
 
-volumes:
-  devhub-pgdata:
+networks:
+  infra:
+    external: true
+    name: devtools-infra
