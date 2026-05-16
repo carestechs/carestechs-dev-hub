@@ -24,6 +24,7 @@ public static class NotificationsModuleExtensions
         // Singleton: process-wide in-memory channel registry. v1 single-host only.
         services.AddSingleton<PendingActionStreamRegistry>();
         services.AddScoped<IPendingActionReconciler, PendingActionReconciler>();
+        services.AddScoped<INotificationsQueryService, NotificationsQueryService>();
 
         return services;
     }
