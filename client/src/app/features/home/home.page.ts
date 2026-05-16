@@ -5,11 +5,12 @@ import type { ProjectDto } from '../../core/api/workspace.types';
 import { AuthService } from '../../core/auth/auth.service';
 import { AppCard, EmptyState } from '../../shared';
 import { ProjectCard } from '../projects/project-card';
+import { PendingActionList } from './pending-action-list';
 
 @Component({
   selector: 'home-page',
   standalone: true,
-  imports: [RouterLink, AppCard, EmptyState, ProjectCard],
+  imports: [RouterLink, AppCard, EmptyState, ProjectCard, PendingActionList],
   templateUrl: './home.page.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

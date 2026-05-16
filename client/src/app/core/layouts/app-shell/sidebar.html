@@ -25,7 +25,27 @@
         </span>
       }
     </div>
-    <p class="px-3 text-xs text-slate-500">Live list lands in FEAT-005.</p>
+    @if (groupedTopN().length === 0) {
+      <p class="px-3 text-xs text-slate-500">Nothing waiting on you.</p>
+    } @else {
+      <ul class="space-y-3 text-sm">
+        @for (g of groupedTopN(); track g.slug) {
+          <li class="px-3">
+            <div class="font-mono text-xs text-sky-700 mb-1">{{ g.slug }}</div>
+            <ul class="space-y-1">
+              @for (a of g.actions; track a.workItemId + ':' + a.checkpointKey) {
+                <li>
+                  <a [routerLink]="['/projects', a.projectSlug, 'work-items', a.workItemId, 'review']"
+                     class="block text-slate-700 hover:text-sky-700 truncate pl-3 border-l border-slate-200"
+                     (click)="onLinkClick()">{{ a.workItemTitle }}</a>
+                </li>
+              }
+            </ul>
+          </li>
+        }
+      </ul>
+      <a routerLink="/" class="block px-3 mt-3 text-xs text-sky-600 hover:underline" (click)="onLinkClick()">See all →</a>
+    }
   </div>
 
   @if (isOperator()) {

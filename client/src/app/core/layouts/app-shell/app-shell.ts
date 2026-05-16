@@ -4,17 +4,20 @@ import {
   computed,
   HostListener,
   inject,
+  OnDestroy,
+  OnInit,
   signal,
 } from '@angular/core';
 import { Router, RouterOutlet } from '@angular/router';
 import { AuthService } from '../../auth/auth.service';
+import { PendingActionsStore } from '../../notifications/pending-actions.store';
 import { AppHeader } from './header';
 import { AppSidebar } from './sidebar';
 
 /**
  * Authenticated app shell — persistent header + collapsible sidebar + content outlet.
- * Reads AuthService signals directly so child routes don't have to plumb member state.
- * pendingCount is 0 in v1 (FEAT-005 will wire the live notification stream).
+ * Boots the PendingActionsStore on mount so the live "Pending on you" surfaces are
+ * available everywhere in the authed app; shuts it down on logout / destroy.
  */
 @Component({
   selector: 'app-shell',
@@ -23,21 +26,32 @@ import { AppSidebar } from './sidebar';
   templateUrl: './app-shell.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class AppShell {
+export class AppShell implements OnInit, OnDestroy {
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
+  protected readonly pending = inject(PendingActionsStore);
 
   protected readonly memberName = computed(() => this.auth.currentMember()?.displayName ?? '');
   protected readonly isOperator = this.auth.isOperator;
-  protected readonly pendingCount = signal(0); // FEAT-005 wires this to the live stream
+  protected readonly pendingCount = this.pending.count;
+  protected readonly pendingBadge = this.pending.badgeText;
 
   protected readonly drawerOpen = signal(false);
   protected readonly drawerVisible = computed(() => this.drawerOpen());
+
+  ngOnInit(): void {
+    void this.pending.start();
+  }
+
+  ngOnDestroy(): void {
+    this.pending.shutdown();
+  }
 
   protected toggleDrawer(): void { this.drawerOpen.update(o => !o); }
   protected closeDrawer(): void { this.drawerOpen.set(false); }
 
   protected async onLogout(): Promise<void> {
+    this.pending.shutdown();
     await this.auth.logout();
     await this.router.navigateByUrl('/login');
   }
