@@ -56,7 +56,8 @@
     <div class="flex gap-6">
       <span class="pb-3 -mb-px border-b-2 border-sky-500 text-sky-700 font-medium text-sm" aria-current="page">Work items</span>
       <span class="pb-3 -mb-px text-slate-400 text-sm" aria-disabled="true" title="Members admin lives on the admin route in v1.">Members</span>
-      <span class="pb-3 -mb-px text-slate-400 text-sm" aria-disabled="true" title="Per-project audit log lands in FEAT-006.">Audit</span>
+      <a [routerLink]="['/projects', p.slug, 'audit']"
+         class="pb-3 -mb-px text-slate-500 hover:text-slate-700 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300 rounded">Audit</a>
     </div>
   </nav>
 

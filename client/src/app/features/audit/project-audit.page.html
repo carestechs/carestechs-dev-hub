@@ -1,0 +1,40 @@
+@if (project(); as p) {
+  <a [routerLink]="['/projects', p.slug]"
+     class="text-sm text-sky-600 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300 rounded">
+    ← {{ p.name }}
+  </a>
+} @else {
+  <a routerLink="/projects" class="text-sm text-sky-600 hover:underline">← Projects</a>
+}
+
+@if (errorKind() === 'not-found') {
+  <div class="mt-6 bg-white rounded-xl shadow-sm">
+    <div class="text-center py-12">
+      <h1 class="text-2xl font-bold">Project not found.</h1>
+      <a routerLink="/projects" class="inline-block mt-6 text-sm text-sky-600 hover:underline">Back to projects →</a>
+    </div>
+  </div>
+} @else if (errorKind() === 'forbidden') {
+  <div class="mt-6 bg-white rounded-xl shadow-sm">
+    <div class="text-center py-12">
+      <h1 class="text-2xl font-bold">You don't have access to this audit log.</h1>
+      <p class="mt-2 text-sm text-slate-500">Ask an operator to add you to the project membership.</p>
+      <a routerLink="/projects" class="inline-block mt-6 text-sm text-sky-600 hover:underline">Back to projects →</a>
+    </div>
+  </div>
+} @else {
+  <header class="mt-6 mb-6">
+    <h1 class="text-2xl font-bold">Audit log</h1>
+    @if (project(); as p) {
+      <p class="text-slate-500 text-sm mt-1">Every authorization decision and DevHub-mediated mutation for <span class="font-mono">{{ p.slug }}</span>.</p>
+    }
+  </header>
+
+  <audit-table
+    [rows]="rows()"
+    [loading]="loading()"
+    [meta]="meta()"
+    [filter]="filter()"
+    (filterChanged)="onFilterChanged($event)"
+    (pageChanged)="onPageChanged($event)" />
+}
