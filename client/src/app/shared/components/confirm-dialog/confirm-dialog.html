@@ -1,0 +1,21 @@
+<app-modal
+  [open]="open()"
+  [title]="title()"
+  width="sm"
+  [dismissOnOverlayClick]="!working()"
+  (closed)="onCancel()"
+>
+  @if (error()) {
+    <app-error-banner [error]="error()" class="block mb-4" />
+  }
+  <p class="text-sm text-slate-700">{{ message() }}</p>
+
+  <ng-container modal-footer>
+    <app-button variant="secondary" [disabled]="working()" (clicked)="onCancel()">
+      {{ cancelLabel() }}
+    </app-button>
+    <app-button [variant]="variant()" [loading]="working()" [disabled]="working()" (clicked)="onConfirm()">
+      {{ confirmLabel() }}
+    </app-button>
+  </ng-container>
+</app-modal>

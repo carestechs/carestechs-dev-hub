@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>DevHub — AppTable mockup</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    html, body { font-family: 'Inter', system-ui, sans-serif; background: #F8FAFC; color: #334155; }
+    h1, h2, h3 { font-family: 'Poppins', system-ui, sans-serif; color: #0F172A; }
+  </style>
+</head>
+<body class="min-h-screen py-8 px-4 md:px-6">
+  <main class="mx-auto max-w-5xl space-y-12">
+    <header>
+      <h1 class="text-3xl font-bold">AppTable</h1>
+      <p class="text-slate-500 mt-2">Five visual states used across every admin and list screen.</p>
+    </header>
+
+    <!-- Default + paginated -->
+    <section>
+      <h2 class="text-xl font-semibold mb-4">Default + paginated</h2>
+      <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+        <table class="min-w-full">
+          <thead class="bg-slate-50 text-xs font-medium text-slate-500 uppercase tracking-wide">
+            <tr>
+              <th class="px-6 py-3 text-left cursor-pointer hover:text-slate-700">Name <span class="text-sky-500">↓</span></th>
+              <th class="px-6 py-3 text-left">Description</th>
+              <th class="px-6 py-3 text-right">Projects</th>
+              <th class="px-6 py-3 text-left">Created</th>
+              <th class="px-6 py-3"></th>
+            </tr>
+          </thead>
+          <tbody class="text-sm text-slate-700">
+            <tr class="border-t border-slate-200 hover:bg-slate-50">
+              <td class="px-6 py-3 font-medium">Engineering</td>
+              <td class="px-6 py-3">Core platform team</td>
+              <td class="px-6 py-3 text-right">3</td>
+              <td class="px-6 py-3">2026-05-12</td>
+              <td class="px-6 py-3 text-right space-x-2">
+                <button class="text-sky-600 hover:underline">Edit</button>
+                <button class="text-red-600 hover:underline">Delete</button>
+              </td>
+            </tr>
+            <tr class="border-t border-slate-200 hover:bg-slate-50">
+              <td class="px-6 py-3 font-medium">Design</td>
+              <td class="px-6 py-3 text-slate-500">—</td>
+              <td class="px-6 py-3 text-right">1</td>
+              <td class="px-6 py-3">2026-05-10</td>
+              <td class="px-6 py-3 text-right space-x-2">
+                <button class="text-sky-600 hover:underline">Edit</button>
+                <button class="text-red-600 hover:underline">Delete</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="px-6 py-3 border-t border-slate-200 flex items-center justify-between text-sm text-slate-500">
+          <span>Showing 1–10 of 42</span>
+          <div class="flex items-center gap-2">
+            <button class="px-3 py-1 rounded-lg border border-slate-300 hover:bg-slate-50 disabled:opacity-50" disabled>← Prev</button>
+            <span>Page 1 of 5</span>
+            <button class="px-3 py-1 rounded-lg border border-slate-300 hover:bg-slate-50">Next →</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Loading (skeleton) -->
+    <section>
+      <h2 class="text-xl font-semibold mb-4">Loading (skeleton rows)</h2>
+      <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+        <table class="min-w-full">
+          <thead class="bg-slate-50 text-xs font-medium text-slate-500 uppercase tracking-wide">
+            <tr>
+              <th class="px-6 py-3 text-left">Name</th>
+              <th class="px-6 py-3 text-left">Description</th>
+              <th class="px-6 py-3 text-right">Projects</th>
+              <th class="px-6 py-3"></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="border-t border-slate-200"><td class="px-6 py-4" colspan="4"><div class="h-3 w-1/3 bg-slate-200 rounded animate-pulse"></div></td></tr>
+            <tr class="border-t border-slate-200"><td class="px-6 py-4" colspan="4"><div class="h-3 w-1/2 bg-slate-200 rounded animate-pulse"></div></td></tr>
+            <tr class="border-t border-slate-200"><td class="px-6 py-4" colspan="4"><div class="h-3 w-2/5 bg-slate-200 rounded animate-pulse"></div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Empty -->
+    <section>
+      <h2 class="text-xl font-semibold mb-4">Empty</h2>
+      <div class="bg-white rounded-xl shadow-sm">
+        <div class="text-center py-16">
+          <svg class="mx-auto h-12 w-12 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 7h18M3 12h18M3 17h18"/></svg>
+          <h3 class="mt-4 text-lg font-semibold">No teams yet.</h3>
+          <p class="mt-2 text-sm text-slate-500 max-w-sm mx-auto">Create your first team to start grouping projects.</p>
+          <button class="mt-6 inline-flex items-center justify-center gap-2 rounded-lg font-medium h-10 px-4 bg-sky-500 text-white hover:bg-sky-600">+ New team</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Error -->
+    <section>
+      <h2 class="text-xl font-semibold mb-4">Error</h2>
+      <div class="bg-white rounded-xl shadow-sm p-6">
+        <div role="alert" class="bg-red-50 border border-red-200 text-red-700 rounded-lg p-4 flex items-start gap-3">
+          <svg class="h-5 w-5 mt-0.5 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM10 5a1 1 0 011 1v4a1 1 0 11-2 0V6a1 1 0 011-1zm0 8a1 1 0 100 2 1 1 0 000-2z" clip-rule="evenodd"/></svg>
+          <div class="flex-1">
+            <p class="font-semibold">Request failed (502)</p>
+            <p class="text-sm mt-1">The server returned an unexpected response. Try again in a moment.</p>
+            <p class="text-xs mt-2 font-mono text-red-500">correlationId: 00-abc123-456def</p>
+          </div>
+          <button class="text-xs font-medium underline hover:no-underline">Retry</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Sortable header states -->
+    <section>
+      <h2 class="text-xl font-semibold mb-4">Sortable header (asc / desc / inert)</h2>
+      <div class="bg-white rounded-xl shadow-sm p-6 flex gap-8 text-xs font-medium text-slate-500 uppercase">
+        <span class="cursor-pointer text-slate-700">Name <span class="text-sky-500">↑</span></span>
+        <span class="cursor-pointer text-slate-700">Name <span class="text-sky-500">↓</span></span>
+        <span class="cursor-pointer hover:text-slate-700">Name</span>
+        <span class="opacity-60">Description (not sortable)</span>
+      </div>
+    </section>
+
+  </main>
+</body>
+</html>

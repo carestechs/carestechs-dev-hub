@@ -1,0 +1,93 @@
+<div class="bg-white rounded-xl shadow-sm overflow-hidden">
+  @if (hasError()) {
+    <div class="p-6">
+      <app-error-banner [error]="error()" />
+    </div>
+  } @else {
+    <table class="min-w-full">
+      <thead class="bg-slate-50 text-xs font-medium text-slate-500 uppercase tracking-wide">
+        <tr>
+          @for (col of columns(); track col.id) {
+            <th
+              class="px-6 py-3"
+              [class]="alignClass(col.align) + ' ' + (col.widthClass ?? '')"
+              [class.cursor-pointer]="col.sortable"
+              [class.hover:text-slate-700]="col.sortable"
+              (click)="onHeaderClick(col)"
+              [attr.aria-sort]="col.sortable ? ((meta()?.sortBy === col.id ? (meta()?.sortDir === 'asc' ? 'ascending' : 'descending') : 'none')) : null"
+            >
+              {{ col.header }}
+              @if (sortIndicator(col); as ind) {
+                <span class="ml-1 text-sky-500">{{ ind }}</span>
+              }
+            </th>
+          }
+        </tr>
+      </thead>
+      <tbody class="text-sm text-slate-700">
+        @if (loading()) {
+          @for (i of [1,2,3,4,5]; track i) {
+            <tr class="border-t border-slate-200">
+              <td class="px-6 py-4" [attr.colspan]="columns().length">
+                <div class="h-3 bg-slate-200 rounded animate-pulse" [style.width.%]="40 + (i * 10) % 50"></div>
+              </td>
+            </tr>
+          }
+        } @else if (isEmpty()) {
+          <tr>
+            <td class="px-6" [attr.colspan]="columns().length">
+              <div class="text-center py-16">
+                <h3 class="text-lg font-semibold">{{ emptyTitle() }}</h3>
+                @if (emptyDescription()) {
+                  <p class="mt-2 text-sm text-slate-500 max-w-sm mx-auto">{{ emptyDescription() }}</p>
+                }
+                <div class="mt-6"><ng-content select="[empty-action]" /></div>
+              </div>
+            </td>
+          </tr>
+        } @else if (hasRows()) {
+          @for (row of rows(); track trackByFn($index, row)) {
+            <tr
+              class="border-t border-slate-200 hover:bg-slate-50"
+              (click)="rowClicked.emit(row)"
+            >
+              @for (col of columns(); track col.id) {
+                <td
+                  class="px-6 py-3"
+                  [class]="alignClass(col.align) + ' ' + (col.widthClass ?? '')"
+                >
+                  @if (isTemplate(col.cell)) {
+                    <ng-container *ngTemplateOutlet="templateOf(col.cell)!; context: { $implicit: row }" />
+                  } @else {
+                    {{ renderCell(col.cell, row) }}
+                  }
+                </td>
+              }
+            </tr>
+          }
+        }
+      </tbody>
+    </table>
+
+    @if (meta() && meta()!.totalCount > 0) {
+      <div class="px-6 py-3 border-t border-slate-200 flex items-center justify-between text-sm text-slate-500">
+        <span>Showing {{ rangeLabel() }}</span>
+        <div class="flex items-center gap-2">
+          <button
+            type="button"
+            class="px-3 py-1 rounded-lg border border-slate-300 hover:bg-slate-50 disabled:opacity-50 disabled:hover:bg-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
+            [disabled]="!hasPrev()"
+            (click)="onPrev()"
+          >← Prev</button>
+          <span>Page {{ currentPage() }} of {{ totalPages() }}</span>
+          <button
+            type="button"
+            class="px-3 py-1 rounded-lg border border-slate-300 hover:bg-slate-50 disabled:opacity-50 disabled:hover:bg-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
+            [disabled]="!hasNext()"
+            (click)="onNext()"
+          >Next →</button>
+        </div>
+      </div>
+    }
+  }
+</div>
