@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>DevHub — Work item detail mockup</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    html, body { font-family: 'Inter', system-ui, sans-serif; background: #F8FAFC; color: #334155; }
+    h1, h2, h3 { font-family: 'Poppins', system-ui, sans-serif; color: #0F172A; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+  </style>
+</head>
+<body class="min-h-screen py-8 px-4 md:px-6">
+  <main class="mx-auto max-w-5xl space-y-8">
+    <a href="#" class="text-sm text-sky-600 hover:underline">← Customer Onboarding API</a>
+
+    <header class="bg-white rounded-xl shadow-sm p-6">
+      <div class="flex items-start justify-between gap-4">
+        <div>
+          <h1 class="text-3xl font-bold">Add CSV export endpoint</h1>
+          <p class="text-sm text-slate-500 mt-1 mono">marker: 4f8c2a91d3e7</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="inline-flex items-center rounded-full bg-amber-50 text-amber-700 text-xs font-medium px-2 py-0.5">WaitingOnCheckpoint</span>
+          <span class="inline-flex items-center rounded-full bg-slate-100 text-slate-600 text-xs font-medium px-2 py-0.5">feature-delivery-v1</span>
+        </div>
+      </div>
+      <div class="mt-4 flex flex-wrap gap-x-6 gap-y-2 text-sm text-slate-500">
+        <div><span class="font-medium text-slate-700">Created by:</span> Operator</div>
+        <div><span class="font-medium text-slate-700">Created:</span> 2026-05-14</div>
+        <div><span class="font-medium text-slate-700">Waiting on:</span>
+          <span class="mono bg-slate-100 rounded px-1.5 py-0.5">approve</span>
+        </div>
+      </div>
+      <div class="mt-6 flex items-center gap-3">
+        <a href="#" class="rounded-lg font-medium h-10 px-4 inline-flex items-center bg-sky-500 hover:bg-sky-600 text-white">Open review →</a>
+        <button class="rounded-lg font-medium h-10 px-4 bg-white border border-slate-300 text-slate-700 hover:bg-slate-50">Cancel</button>
+      </div>
+    </header>
+
+    <!-- Executor state -->
+    <section class="bg-white rounded-xl shadow-sm p-6">
+      <h2 class="text-lg font-semibold mb-3">Executor state</h2>
+      <dl class="grid grid-cols-3 gap-y-2 text-sm">
+        <dt class="text-slate-500">step</dt>
+        <dd class="col-span-2 mono">approve</dd>
+        <dt class="text-slate-500">currentReviewer</dt>
+        <dd class="col-span-2">ana@carestechs.com</dd>
+        <dt class="text-slate-500">artefacts</dt>
+        <dd class="col-span-2">
+          <button class="text-sky-600 hover:underline text-xs">show {2}</button>
+        </dd>
+      </dl>
+    </section>
+
+    <!-- Live trace -->
+    <section class="bg-white rounded-xl shadow-sm p-6">
+      <div class="flex items-center justify-between mb-3">
+        <h2 class="text-lg font-semibold">Live trace</h2>
+        <span class="inline-flex items-center gap-1.5 text-xs text-emerald-700">
+          <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+          connected
+        </span>
+      </div>
+      <div class="bg-slate-900 rounded-lg p-4 mono text-xs text-emerald-300 max-h-64 overflow-auto" aria-live="polite">
+        <div>data: brief-approved by ana</div>
+        <div>data: tasks-approved by ana</div>
+        <div>data: plan-submitted</div>
+        <div>data: plan-approved by beto</div>
+        <div>data: implementation-step-completed</div>
+        <div>data: awaiting-implementation-review</div>
+      </div>
+    </section>
+
+    <!-- Signal history -->
+    <section class="bg-white rounded-xl shadow-sm p-6">
+      <h2 class="text-lg font-semibold mb-3">Signal history</h2>
+      <ul class="divide-y divide-slate-200 text-sm">
+        <li class="py-3 flex items-start justify-between gap-3">
+          <div>
+            <div class="font-medium">Beto · <span class="text-emerald-700">approve</span> on <span class="mono text-xs bg-slate-100 rounded px-1.5 py-0.5">plan-review</span></div>
+            <div class="text-xs text-slate-500 mt-0.5">5h ago · response 200</div>
+          </div>
+        </li>
+        <li class="py-3 flex items-start justify-between gap-3">
+          <div>
+            <div class="font-medium">Ana · <span class="text-emerald-700">approve</span> on <span class="mono text-xs bg-slate-100 rounded px-1.5 py-0.5">tasks-review</span></div>
+            <div class="text-xs text-slate-500 mt-0.5">1d ago · response 200</div>
+          </div>
+        </li>
+      </ul>
+      <button class="mt-4 text-sky-600 hover:underline text-sm">Load more</button>
+    </section>
+
+    <!-- Forbidden -->
+    <section>
+      <h2 class="text-base font-semibold text-slate-500 uppercase tracking-wide mb-2">403 forbidden state</h2>
+      <div class="bg-white rounded-xl shadow-sm p-12 text-center">
+        <p class="text-lg font-medium text-slate-700">You don't have access to this work item.</p>
+        <p class="mt-2 text-slate-500">Ask an operator to add you to the project membership.</p>
+        <a href="#" class="mt-4 inline-block text-sky-600 hover:underline text-sm">← Back to project</a>
+      </div>
+    </section>
+
+    <!-- Stream error -->
+    <section>
+      <h2 class="text-base font-semibold text-slate-500 uppercase tracking-wide mb-2">Stream error state</h2>
+      <section class="bg-white rounded-xl shadow-sm p-6">
+        <div class="flex items-center justify-between mb-3">
+          <h2 class="text-lg font-semibold">Live trace</h2>
+          <button class="text-sky-600 hover:underline text-xs">Reconnect</button>
+        </div>
+        <div role="alert" class="bg-red-50 border border-red-200 text-red-700 rounded-lg p-3 text-sm">
+          Stream disconnected.
+        </div>
+      </section>
+    </section>
+  </main>
+</body>
+</html>

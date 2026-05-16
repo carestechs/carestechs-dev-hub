@@ -1,0 +1,29 @@
+<div class="flex items-center justify-between mb-3">
+  <h2 class="text-lg font-semibold">Live trace</h2>
+  @if (connected()) {
+    <span class="inline-flex items-center gap-1.5 text-xs text-emerald-700">
+      <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+      connected
+    </span>
+  } @else if (errored()) {
+    <button type="button" class="text-sky-600 hover:underline text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300 rounded"
+            (click)="reconnect()">Reconnect</button>
+  } @else {
+    <span class="text-xs text-slate-500">connecting…</span>
+  }
+</div>
+
+@if (errored() && events().length === 0) {
+  <div role="alert" class="bg-red-50 border border-red-200 text-red-700 rounded-lg p-3 text-sm">
+    Stream disconnected.
+  </div>
+} @else {
+  <div class="bg-slate-900 rounded-lg p-4 font-mono text-xs text-emerald-300 max-h-64 overflow-auto"
+       aria-live="polite">
+    @for (e of events(); track e.id) {
+      <div>{{ e.raw }}</div>
+    } @empty {
+      <div class="text-slate-500">Waiting for events…</div>
+    }
+  </div>
+}

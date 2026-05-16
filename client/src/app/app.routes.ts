@@ -35,6 +35,11 @@ export const routes: Routes = [
         loadComponent: () => import('./features/projects/project-home.page').then(m => m.ProjectHomePage),
       },
       {
+        path: 'projects/:slug/work-items/:id',
+        loadComponent: () =>
+          import('./features/projects/work-items/work-item-detail.page').then(m => m.WorkItemDetailPage),
+      },
+      {
         path: 'projects/:slug/admin/memberships',
         canActivate: [operatorGuard],
         loadComponent: () =>
