@@ -28,6 +28,9 @@ public static class WorkItemsModuleExtensions
             c.Timeout = TimeSpan.FromSeconds(30);
         });
 
+        services.AddScoped<IWorkItemsService, WorkItemsService>();
+        services.AddScoped<ICheckpointSignalsService, CheckpointSignalsService>();
+
         return services;
     }
 }
