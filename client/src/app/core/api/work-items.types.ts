@@ -36,3 +36,11 @@ export interface CheckpointSignalDto {
 
 export interface StartWorkItemRequest { title: string; input: unknown; }
 export interface SignalRequest { outcome: string; payload?: unknown; }
+
+export interface CheckpointContractView {
+  checkpointKey: string;
+  displayName: string;
+  requiredRoleKey: string;
+  allowedOutcomes: string[];
+  state: 'active' | 'not-active';
+}

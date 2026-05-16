@@ -1,0 +1,25 @@
+@if (steps().length === 0) {
+  <p class="text-sm text-slate-500">No timeline available — this lifecycle has no <code class="font-mono text-xs bg-slate-100 rounded px-1">steps</code> on its <code class="font-mono text-xs bg-slate-100 rounded px-1">executorState</code>.</p>
+} @else {
+  <ol class="space-y-2 text-sm">
+    @for (step of steps(); track step.key) {
+      <li>
+        <button type="button"
+                class="w-full flex items-center gap-3 px-2 py-1 rounded-lg hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300 text-left"
+                (click)="onClick(step)">
+          <span class="w-6 h-6 rounded-full flex items-center justify-center text-xs flex-shrink-0" [class]="badgeClass(step.state)">
+            {{ badgeIcon(step.state) }}
+          </span>
+          <span class="font-medium" [class.text-sky-700]="step.state === 'active'">{{ step.label }}</span>
+          @if (step.state === 'active') {
+            <span class="text-sky-600 text-xs">active</span>
+          } @else if (step.signal) {
+            <span class="text-slate-500 text-xs">{{ step.signal.outcome }} · {{ step.signal.signaledBy }} · {{ step.signal.signaledAt.slice(0, 10) }}</span>
+          } @else if (step.state === 'pending') {
+            <span class="text-slate-400 text-xs">pending</span>
+          }
+        </button>
+      </li>
+    }
+  </ol>
+}

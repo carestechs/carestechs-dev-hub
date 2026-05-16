@@ -1,0 +1,20 @@
+<div class="prose prose-sm max-w-none">
+  @for (b of blocks(); track $index) {
+    @switch (b.kind) {
+      @case ('h1') { <h1 class="text-2xl font-bold mt-4 mb-2">{{ b.text }}</h1> }
+      @case ('h2') { <h2 class="text-xl font-semibold mt-3 mb-2">{{ b.text }}</h2> }
+      @case ('h3') { <h3 class="text-base font-semibold mt-2 mb-1">{{ b.text }}</h3> }
+      @case ('p')  { <p class="text-sm text-slate-700 my-2">{{ b.text }}</p> }
+      @case ('ul') {
+        <ul class="list-disc pl-5 text-sm text-slate-700 my-2">
+          @for (item of b.items; track $index) {
+            <li>{{ item }}</li>
+          }
+        </ul>
+      }
+      @case ('code') {
+        <pre class="bg-slate-900 text-emerald-300 rounded-lg p-3 my-2 text-xs font-mono overflow-auto"><code>{{ b.text }}</code></pre>
+      }
+    }
+  }
+</div>
