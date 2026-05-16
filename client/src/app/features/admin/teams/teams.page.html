@@ -1,0 +1,60 @@
+<header class="mb-8 flex items-start justify-between gap-4">
+  <div>
+    <h1 class="text-3xl font-bold">Teams</h1>
+    <p class="text-slate-500 mt-2">Workspace teams — operators only.</p>
+  </div>
+  <app-button variant="primary" (clicked)="openCreate()">+ New team</app-button>
+</header>
+
+<app-table
+  [columns]="columns"
+  [rows]="teams()"
+  [meta]="meta()"
+  [loading]="loading()"
+  [error]="error()"
+  emptyTitle="No teams yet."
+  emptyDescription="Create your first team to start grouping projects."
+  (sortChanged)="onSort($event)"
+  (pageChanged)="onPage($event)"
+>
+  <ng-container empty-action>
+    <app-button variant="primary" (clicked)="openCreate()">+ New team</app-button>
+  </ng-container>
+</app-table>
+
+@if (teams().length > 0 && !loading()) {
+  <ul class="mt-4 text-sm text-slate-500 grid gap-1">
+    @for (t of teams(); track t.id) {
+      <li class="flex items-center gap-3 px-1">
+        <span class="font-medium text-slate-700">{{ t.name }}</span>
+        <span class="ml-auto space-x-3">
+          <button type="button" class="text-sky-600 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300 rounded"
+                  (click)="openEdit(t)">Edit</button>
+          <button type="button" class="text-red-600 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-300 rounded"
+                  (click)="askDelete(t)">Delete</button>
+        </span>
+      </li>
+    }
+  </ul>
+}
+
+<team-form-modal
+  [open]="modalOpen()"
+  [editing]="editing()"
+  [working]="modalWorking()"
+  [serverError]="modalError()"
+  (submitted)="onModalSubmit($event)"
+  (cancelled)="onModalCancelled()"
+/>
+
+<confirm-dialog
+  [open]="toDelete() !== null"
+  [title]="'Delete team?'"
+  [message]="toDelete() ? 'Delete team \'' + toDelete()!.name + '\'? This is a soft delete and cannot be undone.' : ''"
+  confirmLabel="Delete"
+  variant="danger"
+  [working]="deleting()"
+  [error]="deleteError()"
+  (confirmed)="onDeleteConfirm()"
+  (cancelled)="onDeleteCancel()"
+/>

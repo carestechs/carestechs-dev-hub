@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { anonGuard, authGuard } from './core/auth/auth.guard';
+import { operatorGuard } from './core/auth/operator.guard';
 
 export const routes: Routes = [
   {
@@ -32,6 +33,22 @@ export const routes: Routes = [
       {
         path: 'projects/:slug',
         loadComponent: () => import('./features/projects/project-home.page').then(m => m.ProjectHomePage),
+      },
+      {
+        path: 'projects/:slug/admin/memberships',
+        canActivate: [operatorGuard],
+        loadComponent: () =>
+          import('./features/projects/memberships/memberships.page').then(m => m.MembershipsPage),
+      },
+      {
+        path: 'admin/teams',
+        canActivate: [operatorGuard],
+        loadComponent: () => import('./features/admin/teams/teams.page').then(m => m.TeamsPage),
+      },
+      {
+        path: 'admin/members',
+        canActivate: [operatorGuard],
+        loadComponent: () => import('./features/admin/members/members.page').then(m => m.MembersPage),
       },
       {
         path: 'me',

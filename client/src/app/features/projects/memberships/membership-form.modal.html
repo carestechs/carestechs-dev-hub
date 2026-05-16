@@ -1,0 +1,75 @@
+<app-modal
+  [open]="open()"
+  [title]="title"
+  [dismissOnOverlayClick]="!working()"
+  (closed)="onCancel()"
+>
+  @if (serverError()) {
+    <app-error-banner [error]="serverError()" class="block mb-4" />
+  }
+
+  <form [formGroup]="form" (ngSubmit)="onSubmit()" class="space-y-4" novalidate>
+    @if (editing()) {
+      <div>
+        <span class="block text-sm font-medium text-slate-700 mb-1">Member</span>
+        <p class="text-sm text-slate-700">
+          <span class="font-medium">{{ memberDisplay() }}</span>
+          <span class="text-slate-500"> &middot; {{ memberEmail() }}</span>
+        </p>
+        <p class="mt-1 text-xs text-slate-500">Membership is keyed to one member; pick a different person by adding a new membership.</p>
+      </div>
+    } @else {
+      <app-form-field
+        label="Member"
+        [required]="true"
+        [error]="memberError()"
+        helperText="Only Active members not already on this project are listed."
+      >
+        <select
+          formControlName="memberId"
+          class="block w-full border border-slate-300 focus:border-sky-500 focus:ring-2 focus:ring-sky-100 rounded-lg px-3 h-10 outline-none"
+        >
+          <option value="" disabled>Select a member…</option>
+          @for (m of assignableMembers(); track m.id) {
+            <option [value]="m.id">{{ m.displayName }} &mdash; {{ m.email }}</option>
+          }
+        </select>
+      </app-form-field>
+    }
+
+    <fieldset class="block">
+      <legend class="block text-sm font-medium text-slate-700 mb-2">
+        Roles <span class="text-red-500">*</span>
+      </legend>
+      @if (form.controls.roleKeys.length === availableRoles().length && availableRoles().length > 0) {
+        <div class="space-y-2">
+          @for (role of availableRoles(); track role.id; let i = $index) {
+            <label class="flex items-start gap-2 text-sm">
+              <input
+                type="checkbox"
+                [formControl]="$any(form.controls.roleKeys.at(i))"
+                class="mt-1 rounded border-slate-300 text-sky-500 focus:ring-sky-300"
+              />
+              <span>
+                <span class="font-medium text-slate-700">{{ role.key }}</span>
+                @if (role.description) {
+                  <span class="text-xs text-slate-500"> &mdash; {{ role.description }}</span>
+                }
+              </span>
+            </label>
+          }
+        </div>
+      }
+      @if (rolesError()) {
+        <p class="mt-2 text-sm text-red-600">{{ rolesError() }}</p>
+      }
+    </fieldset>
+  </form>
+
+  <ng-container modal-footer>
+    <app-button variant="secondary" [disabled]="working()" (clicked)="onCancel()">Cancel</app-button>
+    <app-button variant="primary" [loading]="working()" [disabled]="working()" (clicked)="onSubmit()">
+      {{ submitLabel }}
+    </app-button>
+  </ng-container>
+</app-modal>

@@ -1,0 +1,47 @@
+<app-modal
+  [open]="open()"
+  [title]="title"
+  [dismissOnOverlayClick]="!working()"
+  (closed)="onCancel()"
+>
+  @if (serverError()) {
+    <app-error-banner [error]="serverError()" class="block mb-4" />
+  }
+
+  <form [formGroup]="form" (ngSubmit)="onSubmit()" class="space-y-4" novalidate>
+    <app-form-field
+      label="Name"
+      [required]="true"
+      [error]="nameError()"
+    >
+      <input
+        #input
+        type="text"
+        formControlName="name"
+        autocomplete="off"
+        class="block w-full border focus:ring-2 rounded-lg px-3 h-10 outline-none"
+        [class.border-slate-300]="!nameError()"
+        [class.focus:border-sky-500]="!nameError()"
+        [class.focus:ring-sky-100]="!nameError()"
+        [class.border-red-500]="!!nameError()"
+        [class.focus:border-red-500]="!!nameError()"
+        [class.focus:ring-red-100]="!!nameError()"
+      />
+    </app-form-field>
+
+    <app-form-field label="Description">
+      <textarea
+        formControlName="description"
+        rows="3"
+        class="block w-full border border-slate-300 focus:border-sky-500 focus:ring-2 focus:ring-sky-100 rounded-lg px-3 py-2 outline-none"
+      ></textarea>
+    </app-form-field>
+  </form>
+
+  <ng-container modal-footer>
+    <app-button variant="secondary" [disabled]="working()" (clicked)="onCancel()">Cancel</app-button>
+    <app-button variant="primary" [loading]="working()" [disabled]="working()" (clicked)="onSubmit()">
+      {{ submitLabel }}
+    </app-button>
+  </ng-container>
+</app-modal>

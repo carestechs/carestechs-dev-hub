@@ -1,0 +1,68 @@
+<app-modal
+  [open]="open()"
+  [title]="title"
+  [dismissOnOverlayClick]="!working()"
+  (closed)="onCancel()"
+>
+  @if (serverError()) {
+    <app-error-banner [error]="serverError()" class="block mb-4" />
+  }
+
+  <form [formGroup]="form" (ngSubmit)="onSubmit()" class="space-y-4" novalidate>
+    <app-form-field label="Display name" [required]="true" [error]="displayNameError()">
+      <input
+        #input
+        type="text"
+        formControlName="displayName"
+        autocomplete="name"
+        class="block w-full border focus:ring-2 rounded-lg px-3 h-10 outline-none"
+        [class.border-slate-300]="!displayNameError()"
+        [class.focus:border-sky-500]="!displayNameError()"
+        [class.focus:ring-sky-100]="!displayNameError()"
+        [class.border-red-500]="!!displayNameError()"
+        [class.focus:border-red-500]="!!displayNameError()"
+        [class.focus:ring-red-100]="!!displayNameError()"
+      />
+    </app-form-field>
+
+    <app-form-field
+      label="Email"
+      [required]="true"
+      [error]="emailError()"
+      [helperText]="editing() ? 'Email is the natural key and cannot be changed.' : 'The member is created with status Invited; activate them once onboarded.'"
+    >
+      <input
+        type="email"
+        formControlName="email"
+        autocomplete="email"
+        class="block w-full border focus:ring-2 rounded-lg px-3 h-10 outline-none disabled:bg-slate-50 disabled:text-slate-500"
+        [class.border-slate-300]="!emailError()"
+        [class.focus:border-sky-500]="!emailError()"
+        [class.focus:ring-sky-100]="!emailError()"
+        [class.border-red-500]="!!emailError()"
+        [class.focus:border-red-500]="!!emailError()"
+        [class.focus:ring-red-100]="!!emailError()"
+      />
+    </app-form-field>
+
+    @if (editing()) {
+      <app-form-field label="Status">
+        <select
+          formControlName="status"
+          class="block w-full border border-slate-300 focus:border-sky-500 focus:ring-2 focus:ring-sky-100 rounded-lg px-3 h-10 outline-none"
+        >
+          @for (s of statusOptions; track s) {
+            <option [value]="s">{{ s }}</option>
+          }
+        </select>
+      </app-form-field>
+    }
+  </form>
+
+  <ng-container modal-footer>
+    <app-button variant="secondary" [disabled]="working()" (clicked)="onCancel()">Cancel</app-button>
+    <app-button variant="primary" [loading]="working()" [disabled]="working()" (clicked)="onSubmit()">
+      {{ submitLabel }}
+    </app-button>
+  </ng-container>
+</app-modal>
