@@ -1,0 +1,36 @@
+@if (!canAct()) {
+  <div class="border border-slate-200 bg-slate-50 rounded-lg p-4 text-center text-sm text-slate-700">
+    This step is waiting on role:
+    <span class="font-mono bg-slate-100 rounded px-1.5 py-0.5">{{ requiredRoleKey() }}</span>.
+  </div>
+} @else {
+  <div class="border border-slate-200 rounded-lg p-4">
+    <div class="flex flex-wrap gap-2 mb-3">
+      @for (o of allowedOutcomes(); track o) {
+        <button
+          type="button"
+          class="rounded-lg font-medium h-10 px-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-sky-300 disabled:opacity-50"
+          [class]="variant(o)"
+          [disabled]="working()"
+          (click)="onClick(o)"
+        >
+          @if (submittingOutcome() === o) {
+            {{ o }}…
+          } @else {
+            {{ o }} {{ icon(o) }}
+          }
+        </button>
+      }
+    </div>
+    <label class="block">
+      <span class="block text-xs font-medium text-slate-700 mb-1">Notes (optional)</span>
+      <textarea
+        rows="2"
+        class="block w-full border border-slate-300 rounded-lg px-3 py-2 outline-none text-sm focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
+        placeholder="Add a short note for the audit trail…"
+        [disabled]="working()"
+        (input)="onNotesInput($event)"
+      ></textarea>
+    </label>
+  </div>
+}

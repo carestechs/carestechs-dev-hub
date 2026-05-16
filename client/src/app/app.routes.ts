@@ -40,6 +40,11 @@ export const routes: Routes = [
           import('./features/projects/work-items/work-item-detail.page').then(m => m.WorkItemDetailPage),
       },
       {
+        path: 'projects/:slug/work-items/:id/review',
+        loadComponent: () =>
+          import('./features/projects/work-items/review.page').then(m => m.ReviewPage),
+      },
+      {
         path: 'projects/:slug/admin/memberships',
         canActivate: [operatorGuard],
         loadComponent: () =>

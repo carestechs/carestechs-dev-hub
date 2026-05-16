@@ -3,6 +3,7 @@ import { inject, Injectable } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import type { Envelope, PagedEnvelope, PageRequest } from './workspace.types';
 import type {
+  CheckpointContractView,
   CheckpointSignalDto,
   SignalRequest,
   StartWorkItemRequest,
@@ -25,6 +26,10 @@ export class WorkItemsService {
   }
   start(projectId: string, body: StartWorkItemRequest): Promise<WorkItemDto> {
     return this.unwrapPost(`/api/projects/${projectId}/work-items`, body);
+  }
+  getCheckpoint(projectId: string, workItemId: string, key: string): Promise<CheckpointContractView> {
+    return this.unwrapGet<CheckpointContractView>(
+      `/api/projects/${projectId}/work-items/${workItemId}/checkpoints/${encodeURIComponent(key)}`);
   }
   signal(projectId: string, workItemId: string, key: string, body: SignalRequest, idempotencyKey: string): Promise<WorkItemDto> {
     return firstValueFrom(this.http.post<Envelope<WorkItemDto>>(

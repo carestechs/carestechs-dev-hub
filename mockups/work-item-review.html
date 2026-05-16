@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>DevHub — Lifecycle review mockup (feature-delivery)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    html, body { font-family: 'Inter', system-ui, sans-serif; background: #F8FAFC; color: #334155; }
+    h1, h2, h3 { font-family: 'Poppins', system-ui, sans-serif; color: #0F172A; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+  </style>
+</head>
+<body class="min-h-screen py-8 px-4 md:px-6">
+  <main class="mx-auto max-w-5xl space-y-8">
+    <a href="#" class="text-sm text-sky-600 hover:underline">← Add CSV export endpoint</a>
+
+    <!-- Default: caller has the required role for the active step -->
+    <section>
+      <h2 class="text-base font-semibold text-slate-500 uppercase tracking-wide mb-2">Default — caller has reviewer role</h2>
+      <div class="bg-white rounded-xl shadow-sm p-6">
+        <header class="flex items-start justify-between gap-4">
+          <div>
+            <h1 class="text-2xl font-bold">Add CSV export endpoint</h1>
+            <p class="text-sm text-slate-500 mt-1">
+              Status:
+              <span class="inline-flex items-center rounded-full bg-amber-50 text-amber-700 text-xs font-medium px-2 py-0.5">WaitingOnCheckpoint</span>
+              ·
+              <span class="mono bg-slate-100 rounded px-1.5 py-0.5">implementation-review</span>
+            </p>
+          </div>
+          <span class="inline-flex items-center rounded-full bg-slate-100 text-slate-600 text-xs font-medium px-2 py-0.5">feature-delivery-v1</span>
+        </header>
+
+        <h3 class="text-base font-semibold mt-6 mb-3">Timeline</h3>
+        <ol class="space-y-2 text-sm">
+          <li class="flex items-center gap-3">
+            <span class="w-6 h-6 rounded-full bg-emerald-500 text-white flex items-center justify-center text-xs">✓</span>
+            <span class="font-medium">Brief</span>
+            <span class="text-slate-500 text-xs">approved 2d ago by Ana</span>
+          </li>
+          <li class="flex items-center gap-3">
+            <span class="w-6 h-6 rounded-full bg-emerald-500 text-white flex items-center justify-center text-xs">✓</span>
+            <span class="font-medium">Tasks</span>
+            <span class="text-slate-500 text-xs">approved 1d ago by Ana</span>
+          </li>
+          <li class="flex items-center gap-3">
+            <span class="w-6 h-6 rounded-full bg-emerald-500 text-white flex items-center justify-center text-xs">✓</span>
+            <span class="font-medium">Plan</span>
+            <span class="text-slate-500 text-xs">approved 5h ago by Beto</span>
+          </li>
+          <li class="flex items-center gap-3">
+            <span class="w-6 h-6 rounded-full bg-sky-500 text-white flex items-center justify-center text-xs">●</span>
+            <span class="font-semibold text-sky-700">Implementation review</span>
+            <span class="text-sky-600 text-xs">active — you</span>
+          </li>
+        </ol>
+
+        <h3 class="text-base font-semibold mt-6 mb-3">Artefact (active step)</h3>
+        <div class="border border-slate-200 rounded-lg p-3 mono text-xs">
+          <div class="bg-emerald-50 text-emerald-800 px-2 py-1">+  return data.map(r =&gt; toRow(r));</div>
+          <div class="bg-red-50 text-red-700 px-2 py-1">-  return null;</div>
+          <div class="text-slate-500 px-2 py-1">   const data = await fetch();</div>
+        </div>
+
+        <h3 class="text-base font-semibold mt-6 mb-3">Decision history</h3>
+        <ul class="divide-y divide-slate-200 text-sm">
+          <li class="py-2">Beto · <span class="text-emerald-700">approve</span> on plan-review · 5h ago · "Looks right"</li>
+          <li class="py-2">Ana · <span class="text-emerald-700">approve</span> on tasks-review · 1d ago</li>
+        </ul>
+
+        <h3 class="text-base font-semibold mt-6 mb-3">Your action (role: reviewer)</h3>
+        <div class="border border-slate-200 rounded-lg p-4">
+          <div class="flex flex-wrap gap-2 mb-3">
+            <button class="rounded-lg font-medium h-10 px-4 bg-emerald-500 text-white hover:bg-emerald-600">Approve ✓</button>
+            <button class="rounded-lg font-medium h-10 px-4 bg-red-500 text-white hover:bg-red-600">Reject ✗</button>
+            <button class="rounded-lg font-medium h-10 px-4 bg-amber-500 text-white hover:bg-amber-600">Revise ↺</button>
+          </div>
+          <label class="block">
+            <span class="block text-xs font-medium text-slate-700 mb-1">Notes (optional)</span>
+            <textarea rows="2" class="block w-full border border-slate-300 rounded-lg px-3 py-2 outline-none text-sm" placeholder="Add a short note for the audit trail…"></textarea>
+          </label>
+        </div>
+      </div>
+    </section>
+
+    <!-- Read-only: caller lacks the required role -->
+    <section>
+      <h2 class="text-base font-semibold text-slate-500 uppercase tracking-wide mb-2">Read-only — caller lacks role</h2>
+      <div class="bg-white rounded-xl shadow-sm p-6">
+        <div class="border border-slate-200 bg-slate-50 rounded-lg p-4 text-center">
+          <p class="text-sm text-slate-700">This step is waiting on role: <span class="mono bg-slate-100 rounded px-1.5 py-0.5">approver</span>.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- No active checkpoint -->
+    <section>
+      <h2 class="text-base font-semibold text-slate-500 uppercase tracking-wide mb-2">No active checkpoint</h2>
+      <div class="bg-white rounded-xl shadow-sm p-6">
+        <div role="status" class="bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-lg p-3 text-sm">
+          This work item is <span class="font-semibold">Completed</span>. No active checkpoint.
+        </div>
+      </div>
+    </section>
+
+    <!-- Submitting -->
+    <section>
+      <h2 class="text-base font-semibold text-slate-500 uppercase tracking-wide mb-2">Submitting</h2>
+      <div class="bg-white rounded-xl shadow-sm p-6">
+        <div class="flex flex-wrap gap-2">
+          <button class="rounded-lg font-medium h-10 px-4 bg-emerald-500 text-white opacity-60 cursor-wait" disabled>Approve…</button>
+          <button class="rounded-lg font-medium h-10 px-4 bg-red-500 text-white opacity-40" disabled>Reject ✗</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Submit failure -->
+    <section>
+      <h2 class="text-base font-semibold text-slate-500 uppercase tracking-wide mb-2">Submit failure — executor 502</h2>
+      <div class="bg-white rounded-xl shadow-sm p-6">
+        <div role="alert" class="bg-red-50 border border-red-200 text-red-700 rounded-lg p-4 text-sm mb-3">
+          <strong>Executor failure.</strong> The lifecycle executor refused this action.
+          <p class="mt-1 text-xs mono">executorKey: feature-delivery-v1 · correlationId: 4f8c2a91d3e7
+            <button class="ml-2 text-sky-600 hover:underline">Copy</button>
+          </p>
+        </div>
+        <div class="flex flex-wrap gap-2">
+          <button class="rounded-lg font-medium h-10 px-4 bg-emerald-500 text-white hover:bg-emerald-600">Approve ✓</button>
+        </div>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

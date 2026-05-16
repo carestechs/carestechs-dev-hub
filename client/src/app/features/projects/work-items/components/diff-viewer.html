@@ -1,0 +1,9 @@
+@if (resolved().length === 0) {
+  <p class="text-sm text-slate-500">No diff lines available.</p>
+} @else {
+  <div class="border border-slate-200 rounded-lg font-mono text-xs overflow-auto">
+    @for (l of resolved(); track $index) {
+      <div class="px-3 py-0.5 whitespace-pre" [class]="classFor(l.kind)">{{ prefixFor(l.kind) }} {{ l.text }}</div>
+    }
+  </div>
+}
