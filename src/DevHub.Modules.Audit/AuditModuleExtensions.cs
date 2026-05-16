@@ -20,6 +20,7 @@ public static class AuditModuleExtensions
                 .AddInterceptors(sp.GetRequiredService<TimestampingInterceptor>());
         });
         services.AddScoped<IAuditWriter, AuditWriter>();
+        services.AddScoped<IAuditQueryService, AuditQueryService>();
         services.AddHostedService<MigrateOnStartup<AuditDbContext>>();
         return services;
     }
