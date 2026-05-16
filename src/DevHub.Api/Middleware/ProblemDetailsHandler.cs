@@ -50,7 +50,14 @@ public sealed class ProblemDetailsHandler(
         };
         problem.Extensions["correlationId"] = correlationId;
         if (dx.Errors is not null) problem.Extensions["errors"] = dx.Errors;
-        if (dx is ExecutorFailureException ef) problem.Extensions["executorKey"] = ef.ExecutorKey;
+        if (dx is ExecutorFailureException ef)
+        {
+            problem.Extensions["executorKey"] = ef.ExecutorKey;
+            problem.Extensions["executorId"] = ef.ExecutorId;
+            problem.Extensions["executorCorrelationId"] = ef.CorrelationId;
+            if (ef.UpstreamStatus is { } us) problem.Extensions["upstreamStatus"] = us;
+            if (ef.UpstreamBody is { Length: > 0 } body) problem.Extensions["details"] = body;
+        }
         return problem;
     }
 

@@ -1,3 +1,4 @@
+using DevHub.TestHarness.FakeExecutor;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.Configuration;
@@ -21,9 +22,24 @@ public sealed class DevHubApiFactory : WebApplicationFactory<Program>
     /// cases should set this to false and seed explicitly.
     public bool SeedFeatureDeliveryBinding { get; init; } = true;
 
+    /// When true, starts a <see cref="FakeExecutorHost"/> on a random local port and seeds
+    /// the feature-delivery binding's <c>BaseUrl</c> to point at it. Required by every
+    /// FEAT-004 façade test.
+    public bool UseFakeExecutor { get; init; } = false;
+
+    private FakeExecutorHost? _fake;
+    public FakeExecutorHost Fake => _fake
+        ?? throw new InvalidOperationException("UseFakeExecutor must be true on the factory.");
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment("Production");
+
+        if (UseFakeExecutor)
+        {
+            _fake = FakeExecutorHost.StartAsync().GetAwaiter().GetResult();
+        }
+
         builder.ConfigureAppConfiguration((_, cfg) =>
         {
             cfg.AddInMemoryCollection(new Dictionary<string, string?>
@@ -40,10 +56,23 @@ public sealed class DevHubApiFactory : WebApplicationFactory<Program>
         });
         if (SeedFeatureDeliveryBinding)
         {
+            var baseUrlOverride = _fake?.BaseUrl;
             builder.ConfigureServices(services =>
             {
-                services.AddHostedService<TestRegistrySeeder>();
+                services.AddHostedService(sp => new TestRegistrySeeder(
+                    sp.GetRequiredService<IServiceScopeFactory>(),
+                    baseUrlOverride));
             });
         }
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing && _fake is not null)
+        {
+            _fake.DisposeAsync().AsTask().GetAwaiter().GetResult();
+            _fake = null;
+        }
+        base.Dispose(disposing);
     }
 }

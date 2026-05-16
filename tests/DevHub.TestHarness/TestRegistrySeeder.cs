@@ -12,10 +12,11 @@ namespace DevHub.TestHarness;
 /// exists. Most workspace/identity tests create projects of type <c>feature-delivery</c>; without
 /// this seed those tests would 409 since FEAT-003's ProjectService now validates the binding.
 /// </summary>
-public sealed class TestRegistrySeeder(IServiceScopeFactory scopes) : IHostedService
+public sealed class TestRegistrySeeder(IServiceScopeFactory scopes, string? baseUrlOverride = null) : IHostedService
 {
     public const string ExecutorKey = "feature-delivery-v1";
     public const string ProjectType = "feature-delivery";
+    private const string DefaultBaseUrl = "http://localhost:9999";
 
     public async Task StartAsync(CancellationToken cancellationToken)
     {
@@ -32,7 +33,7 @@ public sealed class TestRegistrySeeder(IServiceScopeFactory scopes) : IHostedSer
             {
                 Key = ExecutorKey,
                 DisplayName = "Feature Delivery v1",
-                BaseUrl = "http://localhost:9999",
+                BaseUrl = baseUrlOverride ?? DefaultBaseUrl,
                 CredentialsRef = "TEST_EXEC_TOKEN",
                 Status = ExecutorStatus.Active,
             };
