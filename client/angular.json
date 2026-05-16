@@ -81,6 +81,7 @@
               "zone.js/testing"
             ],
             "tsConfig": "tsconfig.spec.json",
+            "karmaConfig": "karma.conf.cjs",
             "assets": [
               {
                 "glob": "**/*",

@@ -10,6 +10,7 @@ using DevHub.Modules.Notifications;
 using DevHub.Modules.WorkItems;
 using DevHub.Modules.Workspace;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Cors.Infrastructure;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.IdentityModel.Tokens;
@@ -26,8 +27,8 @@ builder.Services
     .ValidateOnStart();
 
 builder.Services
-    .AddOptions<CorsOptions>()
-    .Bind(builder.Configuration.GetSection(CorsOptions.SectionName))
+    .AddOptions<DevHub.Api.Options.CorsOptions>()
+    .Bind(builder.Configuration.GetSection(DevHub.Api.Options.CorsOptions.SectionName))
     .ValidateDataAnnotations()
     .ValidateOnStart();
 
@@ -44,15 +45,21 @@ builder.Services
 builder.Services.AddSingleton<TimestampingInterceptor>();
 
 // ----------------------------------------------------------------------------
-// AuthN — JWT bearer. AuthZ — default scheme; per-endpoint policies land later.
+// AuthN — JWT bearer. JwtBearerOptions are configured lazily via IConfiguration
+// so the values resolve AFTER every config source has landed (env vars,
+// in-memory dictionaries from WebApplicationFactory, etc.). Reading
+// builder.Configuration synchronously here would miss test-time overrides.
 // ----------------------------------------------------------------------------
-var jwt = builder.Configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>()
-          ?? throw new InvalidOperationException("Jwt configuration section is missing.");
-
 builder.Services
     .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddJwtBearer(o =>
+    .AddJwtBearer();
+
+builder.Services
+    .AddOptions<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme)
+    .Configure<IConfiguration>((o, cfg) =>
     {
+        var jwt = cfg.GetSection(JwtOptions.SectionName).Get<JwtOptions>()
+                  ?? throw new InvalidOperationException("Jwt configuration section is missing.");
         o.MapInboundClaims = false;
         o.TokenValidationParameters = new TokenValidationParameters
         {
@@ -66,18 +73,27 @@ builder.Services
             ClockSkew = TimeSpan.FromSeconds(30),
         };
     });
+
 builder.Services.AddAuthorization();
 
 // ----------------------------------------------------------------------------
 // CORS — single SPA origin, with credentials (for the refresh cookie).
+// Same late-binding pattern as JWT.
 // ----------------------------------------------------------------------------
-var corsOpts = builder.Configuration.GetSection(CorsOptions.SectionName).Get<CorsOptions>()
-               ?? throw new InvalidOperationException("Cors configuration section is missing.");
-builder.Services.AddCors(o => o.AddDefaultPolicy(p =>
-    p.WithOrigins(corsOpts.SpaOrigin)
-     .AllowAnyHeader()
-     .AllowAnyMethod()
-     .AllowCredentials()));
+builder.Services.AddCors();
+builder.Services
+    .AddOptions<Microsoft.AspNetCore.Cors.Infrastructure.CorsOptions>()
+    .Configure<IConfiguration>((o, cfg) =>
+    {
+        var corsOpts = cfg.GetSection(DevHub.Api.Options.CorsOptions.SectionName)
+                          .Get<DevHub.Api.Options.CorsOptions>()
+                       ?? throw new InvalidOperationException("Cors configuration section is missing.");
+        o.AddDefaultPolicy(p => p
+            .WithOrigins(corsOpts.SpaOrigin)
+            .AllowAnyHeader()
+            .AllowAnyMethod()
+            .AllowCredentials());
+    });
 
 // ----------------------------------------------------------------------------
 // RFC 7807 problem details — uniform error contract across modules.
@@ -86,6 +102,7 @@ builder.Services.AddProblemDetails();
 builder.Services.AddExceptionHandler<ProblemDetailsHandler>();
 
 builder.Services.AddHttpContextAccessor();
+
 // Controllers live in feature modules. Each module's assembly is registered as
 // an application part so MVC discovers its [ApiController] types. Host owns
 // no controllers itself.
