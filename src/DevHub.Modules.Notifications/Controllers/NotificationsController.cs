@@ -37,6 +37,13 @@ public sealed class NotificationsController(
         Response.Headers["X-Accel-Buffering"] = "no";
         await Response.StartAsync(ct);
 
+        // Heartbeat comment: pushes the headers down the in-memory transport (relevant under
+        // ASP.NET TestServer) and gives clients an early "stream is alive" marker. SSE clients
+        // ignore lines starting with `:`.
+        var heartbeat = Encoding.UTF8.GetBytes(": ready\n\n");
+        await Response.Body.WriteAsync(heartbeat, ct);
+        await Response.Body.FlushAsync(ct);
+
         await using var subscription = registry.Subscribe(me.MemberId, out var reader);
 
         try
