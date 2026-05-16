@@ -7,7 +7,10 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB:-devhub}
     ports:
-      - "5432:5432"
+      # Loopback-only and shifted to 5434 so this dev compose can coexist
+      # with the DevTools umbrella's shared postgres on 127.0.0.1:5433.
+      # Upstream defaults at 5432 are intentionally avoided.
+      - "127.0.0.1:5434:5432"
     volumes:
       - devhub-pgdata:/var/lib/postgresql/data
     healthcheck:

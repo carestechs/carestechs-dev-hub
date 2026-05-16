@@ -38,9 +38,14 @@ Prerequisites: .NET 10 SDK, Docker (Engine + Compose v2), Node 20+, `dotnet ef` 
 # 1. Copy and edit your local env
 cp .env.example .env  # edit at minimum POSTGRES_PASSWORD, ConnectionStrings__Postgres, Jwt__SigningKey
 
-# 2. Bring up Postgres
+# 2. Bring up Postgres (loopback on 127.0.0.1:5434 — coexists with the
+#    DevTools umbrella's shared postgres on :5433; see umbrella-adaptation.md)
 docker compose up -d
 docker compose ps      # wait for postgres to be (healthy)
+
+# If you have an existing .env from before the umbrella migration, update
+# its ConnectionStrings__Postgres `Port=5432` to `Port=5434`. DB clients
+# (TablePlus / DBeaver) need the same one-time update.
 
 # 3. Build the backend
 dotnet build DevHub.slnx
