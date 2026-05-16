@@ -26,6 +26,12 @@ public static class WorkspaceModuleExtensions
         services.AddScoped<IProjectMembershipQuery, ProjectMembershipQuery>();
         services.AddScoped<IProjectAuthorizationService, ProjectAuthorizationService>();
 
+        services.AddScoped<ITeamService, TeamService>();
+        services.AddScoped<IMemberService, MemberService>();
+        services.AddScoped<IProjectService, ProjectService>();
+        services.AddScoped<IMembershipService, MembershipService>();
+        services.AddScoped<IRoleService, RoleService>();
+
         services.AddOptions<WorkspaceSeedOptions>()
             .Bind(configuration.GetSection(WorkspaceSeedOptions.SectionName));
 

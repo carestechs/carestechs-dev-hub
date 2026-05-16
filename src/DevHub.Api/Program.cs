@@ -107,6 +107,11 @@ builder.Services.AddHttpContextAccessor();
 // an application part so MVC discovers its [ApiController] types. Host owns
 // no controllers itself.
 builder.Services.AddControllers()
+    .AddJsonOptions(o =>
+    {
+        // Enums serialize as their string names everywhere ("Active" not 0).
+        o.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
+    })
     .AddApplicationPart(typeof(DevHub.Modules.Workspace.WorkspaceDbContext).Assembly)
     .AddApplicationPart(typeof(DevHub.Modules.Identity.IdentityDbContext).Assembly)
     .AddApplicationPart(typeof(DevHub.Modules.ExecutorRegistry.ExecutorRegistryDbContext).Assembly)

@@ -1,0 +1,213 @@
+using DevHub.Contracts.ApplicationErrors;
+using DevHub.Contracts.Audit;
+using DevHub.Contracts.Authorization;
+using DevHub.Contracts.Pagination;
+using DevHub.Modules.Workspace.DTOs;
+using DevHub.Modules.Workspace.Entities;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+
+namespace DevHub.Modules.Workspace.Services;
+
+public interface IProjectService
+{
+    Task<PagedEnvelopeDto<ProjectDto>> ListAsync(PageRequest page, Guid? teamId, string? projectType, Guid callerMemberId, CancellationToken ct);
+    Task<ProjectDto> GetAsync(Guid id, Guid callerMemberId, CancellationToken ct);
+    Task<ProjectDto> GetBySlugAsync(string slug, Guid callerMemberId, CancellationToken ct);
+    Task<ProjectDto> CreateAsync(CreateProjectRequest req, Guid actingMemberId, CancellationToken ct);
+    Task<ProjectDto> UpdateAsync(Guid id, UpdateProjectRequest req, Guid actingMemberId, CancellationToken ct);
+    Task DeleteAsync(Guid id, Guid actingMemberId, CancellationToken ct);
+}
+
+internal sealed class ProjectService(
+    WorkspaceDbContext db,
+    IProjectAuthorizationService authz,
+    IProjectMembershipQuery memberships,
+    IAuditWriter audit,
+    ILogger<ProjectService> logger) : IProjectService
+{
+    public async Task<PagedEnvelopeDto<ProjectDto>> ListAsync(
+        PageRequest page, Guid? teamId, string? projectType, Guid callerMemberId, CancellationToken ct)
+    {
+        IQueryable<Project> query = db.Projects.AsNoTracking();
+
+        // Operators see all; others see only the projects they have a ProjectMembership on.
+        if (!await memberships.IsOperatorAsync(callerMemberId, ct))
+        {
+            query = from p in query
+                    join pm in db.ProjectMemberships on p.Id equals pm.ProjectId
+                    where pm.MemberId == callerMemberId
+                    select p;
+        }
+        if (teamId is { } t) query = query.Where(p => p.OwningTeamId == t);
+        if (!string.IsNullOrWhiteSpace(projectType)) query = query.Where(p => p.ProjectType == projectType);
+
+        var totalCount = await query.CountAsync(ct);
+        query = (page.SortBy?.ToLowerInvariant(), page.SortDir) switch
+        {
+            ("name", "asc")    => query.OrderBy(p => p.Name),
+            ("name", _)        => query.OrderByDescending(p => p.Name),
+            ("updatedat", "asc") => query.OrderBy(p => p.UpdatedAt),
+            ("updatedat", _)   => query.OrderByDescending(p => p.UpdatedAt),
+            (_, "asc")         => query.OrderBy(p => p.CreatedAt),
+            _                  => query.OrderByDescending(p => p.CreatedAt),
+        };
+
+        var rows = await query
+            .Skip((page.Page - 1) * page.PageSize)
+            .Take(page.PageSize)
+            .Select(p => new
+            {
+                p.Id, p.Name, p.Slug, p.ProjectType, p.Description, p.CreatedAt, p.OwningTeamId,
+                Team = db.Teams.Where(t => t.Id == p.OwningTeamId).Select(t => new { t.Id, t.Name }).FirstOrDefault(),
+            })
+            .ToListAsync(ct);
+
+        var dtos = rows.Select(r => new ProjectDto(
+            r.Id, r.Name, r.Slug, r.ProjectType,
+            new TeamRefDto(r.Team?.Id ?? r.OwningTeamId, r.Team?.Name ?? string.Empty),
+            r.Description, InFlightWorkItems: 0, r.CreatedAt)).ToList();
+
+        return new PagedEnvelopeDto<ProjectDto>(dtos, new PageMeta(totalCount, page.Page, page.PageSize, page.SortBy, page.SortDir));
+    }
+
+    public async Task<ProjectDto> GetAsync(Guid id, Guid callerMemberId, CancellationToken ct)
+    {
+        await authz.EnsureAuthorizedAsync(callerMemberId, id, "project:read", requiredRoleKey: null, ct);
+        return await LoadAsync(p => p.Id == id, ct);
+    }
+
+    public async Task<ProjectDto> GetBySlugAsync(string slug, Guid callerMemberId, CancellationToken ct)
+    {
+        var projectId = await db.Projects.AsNoTracking()
+            .Where(p => p.Slug == slug)
+            .Select(p => (Guid?)p.Id)
+            .FirstOrDefaultAsync(ct)
+            ?? throw new NotFoundException("Project not found.");
+        await authz.EnsureAuthorizedAsync(callerMemberId, projectId, "project:read", requiredRoleKey: null, ct);
+        return await LoadAsync(p => p.Id == projectId, ct);
+    }
+
+    public async Task<ProjectDto> CreateAsync(CreateProjectRequest req, Guid actingMemberId, CancellationToken ct)
+    {
+        await authz.EnsureOperatorAsync(actingMemberId, "project:create", ct);
+
+        await using var tx = await db.Database.BeginTransactionAsync(ct);
+
+        if (!await db.Teams.AnyAsync(t => t.Id == req.OwningTeamId, ct))
+            throw new ConflictException($"Owning team '{req.OwningTeamId}' does not exist.");
+        if (await db.Projects.AnyAsync(p => p.Slug == req.Slug, ct))
+            throw new ConflictException($"A project with slug '{req.Slug}' already exists.");
+        if (await db.Projects.AnyAsync(p => p.Name == req.Name, ct))
+            throw new ConflictException($"A project with name '{req.Name}' already exists.");
+
+        // TODO(FEAT-003): validate projectType against ExecutorBinding once the registry lands.
+        logger.LogInformation("Creating project of type {ProjectType} (FEAT-003 will validate against ExecutorBinding)", req.ProjectType);
+
+        var project = new Project
+        {
+            Name = req.Name,
+            Slug = req.Slug,
+            ProjectType = req.ProjectType,
+            OwningTeamId = req.OwningTeamId,
+            Description = req.Description,
+        };
+        db.Projects.Add(project);
+
+        await audit.WriteAsync(new AuditWriteRequest("Project", project.Id, "project:create", AuditOutcome.Granted)
+        {
+            ActingMemberId = actingMemberId,
+            ProjectId = project.Id,
+            Details = new Dictionary<string, object?> { ["slug"] = req.Slug, ["projectType"] = req.ProjectType },
+        }, ct);
+
+        await db.SaveChangesAsync(ct);
+        await tx.CommitAsync(ct);
+
+        return await LoadAsync(p => p.Id == project.Id, ct);
+    }
+
+    public async Task<ProjectDto> UpdateAsync(Guid id, UpdateProjectRequest req, Guid actingMemberId, CancellationToken ct)
+    {
+        await authz.EnsureOperatorAsync(actingMemberId, "project:update", ct);
+
+        await using var tx = await db.Database.BeginTransactionAsync(ct);
+
+        var project = await db.Projects.FirstOrDefaultAsync(p => p.Id == id, ct)
+            ?? throw new NotFoundException("Project not found.");
+
+        if (req.Name is not null && req.Name != project.Name)
+        {
+            if (await db.Projects.AnyAsync(p => p.Name == req.Name && p.Id != id, ct))
+                throw new ConflictException($"A project with name '{req.Name}' already exists.");
+            project.Name = req.Name;
+        }
+        if (req.Description is not null) project.Description = req.Description;
+        if (req.ProjectType is not null) project.ProjectType = req.ProjectType;
+
+        await audit.WriteAsync(new AuditWriteRequest("Project", project.Id, "project:update", AuditOutcome.Granted)
+        {
+            ActingMemberId = actingMemberId,
+            ProjectId = project.Id,
+        }, ct);
+
+        await db.SaveChangesAsync(ct);
+        await tx.CommitAsync(ct);
+
+        return await LoadAsync(p => p.Id == project.Id, ct);
+    }
+
+    public async Task DeleteAsync(Guid id, Guid actingMemberId, CancellationToken ct)
+    {
+        await authz.EnsureOperatorAsync(actingMemberId, "project:delete", ct);
+
+        await using var tx = await db.Database.BeginTransactionAsync(ct);
+
+        var project = await db.Projects.FirstOrDefaultAsync(p => p.Id == id, ct)
+            ?? throw new NotFoundException("Project not found.");
+
+        var now = DateTimeOffset.UtcNow;
+        project.DeletedAt = now;
+
+        // Soft-cascade memberships + role assignments.
+        var membershipIds = await db.ProjectMemberships
+            .Where(pm => pm.ProjectId == id)
+            .Select(pm => pm.Id)
+            .ToListAsync(ct);
+        if (membershipIds.Count > 0)
+        {
+            await db.RoleAssignments
+                .Where(ra => membershipIds.Contains(ra.ProjectMembershipId))
+                .ExecuteUpdateAsync(s => s.SetProperty(ra => ra.DeletedAt, now), ct);
+            await db.ProjectMemberships
+                .Where(pm => pm.ProjectId == id)
+                .ExecuteUpdateAsync(s => s.SetProperty(pm => pm.DeletedAt, now), ct);
+        }
+
+        await audit.WriteAsync(new AuditWriteRequest("Project", project.Id, "project:delete", AuditOutcome.Granted)
+        {
+            ActingMemberId = actingMemberId,
+            ProjectId = project.Id,
+        }, ct);
+
+        await db.SaveChangesAsync(ct);
+        await tx.CommitAsync(ct);
+    }
+
+    private async Task<ProjectDto> LoadAsync(System.Linq.Expressions.Expression<Func<Project, bool>> predicate, CancellationToken ct)
+    {
+        var row = await db.Projects.AsNoTracking()
+            .Where(predicate)
+            .Select(p => new
+            {
+                p.Id, p.Name, p.Slug, p.ProjectType, p.Description, p.CreatedAt, p.OwningTeamId,
+                Team = db.Teams.Where(t => t.Id == p.OwningTeamId).Select(t => new { t.Id, t.Name }).FirstOrDefault(),
+            })
+            .FirstOrDefaultAsync(ct)
+            ?? throw new NotFoundException("Project not found.");
+        return new ProjectDto(
+            row.Id, row.Name, row.Slug, row.ProjectType,
+            new TeamRefDto(row.Team?.Id ?? row.OwningTeamId, row.Team?.Name ?? string.Empty),
+            row.Description, InFlightWorkItems: 0, row.CreatedAt);
+    }
+}

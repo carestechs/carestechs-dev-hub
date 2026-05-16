@@ -1,4 +1,5 @@
 using DevHub.Contracts.ApplicationErrors;
+using DevHub.Contracts.Authorization;
 using DevHub.Contracts.Identity;
 using DevHub.Modules.Identity.DTOs;
 using DevHub.Modules.Identity.Entities.Enums;
@@ -20,6 +21,7 @@ public sealed record RefreshOutcome(string AccessToken, DateTimeOffset AccessExp
 internal sealed class AuthenticationService(
     IdentityDbContext db,
     IMemberLookup members,
+    IProjectMembershipQuery memberships,
     IPasswordHasher hasher,
     IJwtTokenIssuer jwt,
     IRefreshTokenStore refreshStore) : IAuthenticationService
@@ -68,22 +70,34 @@ internal sealed class AuthenticationService(
     {
         var member = await members.FindByIdAsync(memberId, ct)
                      ?? throw new NotFoundException("Member not found.");
-        // Memberships land in FEAT-002 — return empty for the v1 skeleton.
+
+        var projectMemberships = await memberships.GetMembershipsAsync(memberId, ct);
+        var dtos = projectMemberships
+            .Select(m => new MembershipDto(m.ProjectId, m.ProjectSlug, m.Roles))
+            .ToList();
+
         return new MeResponse(
             new MemberDto(member.Id, member.DisplayName, member.Email),
-            Array.Empty<MembershipDto>());
+            dtos);
     }
 
-    /// Returns workspace-global role keys for the member (operator etc.). For now
-    /// every seeded operator implicitly has the "operator" key; project-scoped
-    /// role assignments are FEAT-002. We keep this seam here so the JWT carries
-    /// roles end-to-end from day one.
-    private Task<List<string>> GetRoleKeysAsync(Guid memberId, CancellationToken ct)
+    /// <summary>
+    /// Workspace-global + project-scoped role keys for the member. The JWT carries the
+    /// union: <c>operator</c> if the member holds the workspace-level operator grant,
+    /// plus every role key from any of their project memberships.
+    /// </summary>
+    private async Task<List<string>> GetRoleKeysAsync(Guid memberId, CancellationToken ct)
     {
-        // No project memberships yet → no project-scoped roles. The seed operator
-        // is special-cased here so the JWT issued at first boot includes "operator".
-        // FEAT-002 replaces this with a real lookup against RoleAssignments.
-        _ = memberId; _ = ct;
-        return Task.FromResult(new List<string> { "operator" });
+        var keys = new HashSet<string>(StringComparer.Ordinal);
+
+        var projectMemberships = await memberships.GetMembershipsAsync(memberId, ct);
+        foreach (var membership in projectMemberships)
+        {
+            foreach (var key in membership.Roles) keys.Add(key);
+        }
+
+        if (await memberships.IsOperatorAsync(memberId, ct)) keys.Add("operator");
+
+        return keys.ToList();
     }
 }
