@@ -72,6 +72,22 @@ builder.Services
             ValidateLifetime = true,
             ClockSkew = TimeSpan.FromSeconds(30),
         };
+        // Browser EventSource cannot send custom headers; accept ?access_token= ONLY on /stream
+        // paths so it isn't a general workaround that leaks tokens into URL logs everywhere.
+        o.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = ctx =>
+            {
+                if (string.IsNullOrEmpty(ctx.Token) &&
+                    ctx.HttpContext.Request.Path.Value is { } path &&
+                    path.EndsWith("/stream", StringComparison.Ordinal))
+                {
+                    var qs = ctx.Request.Query["access_token"];
+                    if (!string.IsNullOrEmpty(qs)) ctx.Token = qs;
+                }
+                return Task.CompletedTask;
+            },
+        };
     });
 
 builder.Services.AddAuthorization();

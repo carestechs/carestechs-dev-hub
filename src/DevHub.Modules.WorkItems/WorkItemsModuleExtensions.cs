@@ -30,6 +30,7 @@ public static class WorkItemsModuleExtensions
 
         services.AddScoped<IWorkItemsService, WorkItemsService>();
         services.AddScoped<ICheckpointSignalsService, CheckpointSignalsService>();
+        services.AddScoped<WorkItemStreamForwarder>();
 
         return services;
     }
