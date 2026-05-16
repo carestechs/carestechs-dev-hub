@@ -15,6 +15,14 @@ export class AppHeader {
   @Output() readonly menuToggle = new EventEmitter<void>();
   @Output() readonly logout = new EventEmitter<void>();
 
+  /** "99+" overflow when the count is ≥ 100; raw number otherwise; null when 0. */
+  protected readonly badgeText = computed<string | null>(() => {
+    const n = this.pendingCount();
+    if (n <= 0) return null;
+    if (n >= 100) return '99+';
+    return String(n);
+  });
+
   protected readonly initials = computed(() => {
     const name = this.memberName().trim();
     if (!name) return '?';

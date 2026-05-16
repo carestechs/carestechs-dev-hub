@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>DevHub — Home pending actions mockup</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    html, body { font-family: 'Inter', system-ui, sans-serif; background: #F8FAFC; color: #334155; }
+    h1, h2, h3 { font-family: 'Poppins', system-ui, sans-serif; color: #0F172A; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+  </style>
+</head>
+<body class="min-h-screen py-8 px-4 md:px-6">
+  <main class="mx-auto max-w-5xl space-y-12">
+    <!-- Variant: empty -->
+    <section>
+      <h2 class="text-base font-semibold text-slate-500 uppercase tracking-wide mb-2">Empty state</h2>
+      <div>
+        <h3 class="text-xl font-semibold mb-4">Pending on you</h3>
+        <div class="bg-white rounded-xl shadow-sm p-12 text-center">
+          <p class="text-lg font-medium text-slate-700">You're all caught up.</p>
+          <p class="mt-2 text-slate-500">When a checkpoint waits on your role in any project, it shows up here.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Variant: populated -->
+    <section>
+      <h2 class="text-base font-semibold text-slate-500 uppercase tracking-wide mb-2">List state — 3 entries, 2 projects</h2>
+      <div>
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-xl font-semibold">Pending on you</h3>
+          <span class="inline-flex items-center gap-1.5 text-xs text-emerald-700">
+            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            live
+          </span>
+        </div>
+        <ul class="bg-white rounded-xl shadow-sm divide-y divide-slate-200">
+          <li class="px-6 py-3 flex items-start justify-between gap-3 hover:bg-slate-50">
+            <a href="#" class="flex-1 min-w-0">
+              <div class="font-medium text-slate-900 truncate">Add CSV export endpoint</div>
+              <div class="text-xs text-slate-500 mt-0.5">
+                <span class="mono text-sky-700">customer-onboarding-api</span> ·
+                <span class="mono bg-slate-100 rounded px-1.5 py-0.5">approve</span> ·
+                2h ago
+              </div>
+            </a>
+            <span class="text-sky-600 text-sm">Review →</span>
+          </li>
+          <li class="px-6 py-3 flex items-start justify-between gap-3 hover:bg-slate-50">
+            <a href="#" class="flex-1 min-w-0">
+              <div class="font-medium text-slate-900 truncate">Migrate to v2 schema</div>
+              <div class="text-xs text-slate-500 mt-0.5">
+                <span class="mono text-sky-700">customer-onboarding-api</span> ·
+                <span class="mono bg-slate-100 rounded px-1.5 py-0.5">plan-review</span> ·
+                5m ago
+              </div>
+            </a>
+            <span class="text-sky-600 text-sm">Review →</span>
+          </li>
+          <li class="px-6 py-3 flex items-start justify-between gap-3 hover:bg-slate-50">
+            <a href="#" class="flex-1 min-w-0">
+              <div class="font-medium text-slate-900 truncate">Audit-trail export</div>
+              <div class="text-xs text-slate-500 mt-0.5">
+                <span class="mono text-sky-700">internal-platform</span> ·
+                <span class="mono bg-slate-100 rounded px-1.5 py-0.5">brief-review</span> ·
+                1d ago
+              </div>
+            </a>
+            <span class="text-sky-600 text-sm">Review →</span>
+          </li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- Variant: disconnected -->
+    <section>
+      <h2 class="text-base font-semibold text-slate-500 uppercase tracking-wide mb-2">Disconnected state</h2>
+      <div>
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-xl font-semibold">Pending on you</h3>
+          <button class="inline-flex items-center gap-1.5 text-xs text-slate-500 hover:text-sky-700">
+            <span class="w-2 h-2 rounded-full bg-slate-300"></span>
+            disconnected · Reconnect
+          </button>
+        </div>
+        <ul class="bg-white rounded-xl shadow-sm divide-y divide-slate-200">
+          <li class="px-6 py-3 text-sm text-slate-500">Showing last-known list. New events will appear once reconnected.</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- Sidebar variants -->
+    <section>
+      <h2 class="text-base font-semibold text-slate-500 uppercase tracking-wide mb-2">Sidebar group + header badge</h2>
+      <div class="flex gap-6">
+        <aside class="w-64 bg-white rounded-xl shadow-sm p-3 space-y-6">
+          <div>
+            <div class="flex items-center justify-between px-3 mb-2">
+              <h4 class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Pending on you</h4>
+              <span class="inline-flex items-center justify-center bg-amber-500 text-white text-xs font-medium rounded-full h-5 min-w-[20px] px-1">3</span>
+            </div>
+            <ul class="space-y-1 text-sm">
+              <li class="px-3">
+                <div class="font-medium mono text-sky-700 text-xs">customer-onboarding-api</div>
+                <a href="#" class="block text-slate-700 hover:text-sky-700 truncate pl-3 border-l border-slate-200">Add CSV export endpoint</a>
+                <a href="#" class="block text-slate-700 hover:text-sky-700 truncate pl-3 border-l border-slate-200">Migrate to v2 schema</a>
+              </li>
+              <li class="px-3 mt-2">
+                <div class="font-medium mono text-sky-700 text-xs">internal-platform</div>
+                <a href="#" class="block text-slate-700 hover:text-sky-700 truncate pl-3 border-l border-slate-200">Audit-trail export</a>
+              </li>
+            </ul>
+            <a href="#" class="block px-3 mt-3 text-xs text-sky-600 hover:underline">See all →</a>
+          </div>
+        </aside>
+
+        <div class="flex-1 space-y-4">
+          <h4 class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Header badge variants</h4>
+          <div class="flex items-center gap-6">
+            <div class="flex items-center gap-2">
+              <span class="text-sm">0:</span>
+              <span class="text-xs text-slate-500 italic">(no badge rendered)</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="text-sm">3:</span>
+              <span class="inline-flex items-center justify-center bg-amber-500 text-white text-xs font-medium rounded-full h-5 min-w-[20px] px-1">3</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="text-sm">99+:</span>
+              <span class="inline-flex items-center justify-center bg-amber-500 text-white text-xs font-medium rounded-full h-5 min-w-[28px] px-1">99+</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+</body>
+</html>
