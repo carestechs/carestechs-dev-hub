@@ -1,6 +1,5 @@
 import { HttpErrorResponse, provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
-import { Component, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { ActivatedRoute, convertToParamMap } from '@angular/router';
 import { provideRouter } from '@angular/router';
@@ -25,26 +24,98 @@ describe('ProjectHomePage', () => {
     mock = TestBed.inject(HttpTestingController);
   });
 
-  it('renders the header after a successful load', async () => {
+  function flushProject(id = 'a', slug = 'alpha') {
+    mock.expectOne(`/api/projects/by-slug/${slug}`).flush({
+      data: {
+        id, name: slug.toUpperCase(), slug, projectType: 'feature-delivery',
+        owningTeam: { id: 't', name: 'Engineering' },
+        inFlightWorkItems: 0, createdAt: '2026-05-01T00:00:00Z',
+      },
+    });
+  }
+  function flushWorkItems(projectId: string, items: { id: string; title: string; currentStatus: string }[] = []) {
+    const req = mock.expectOne(r => r.url === `/api/projects/${projectId}/work-items`);
+    req.flush({
+      data: items.map(i => ({
+        id: i.id, projectId, title: i.title, currentStatus: i.currentStatus,
+        executor: { id: 'e', key: 'feature-delivery-v1', displayName: 'Feature Delivery v1' },
+        executorCorrelationMarker: 'm1',
+        createdAt: '2026-05-01T00:00:00Z',
+        createdBy: { id: 'u', displayName: 'Op' },
+      })),
+      meta: { totalCount: items.length, page: 1, pageSize: 20 },
+    });
+  }
+
+  it('renders the header and the work items table after a successful load', async () => {
     const fixture = TestBed.createComponent(ProjectHomePage);
     fixture.detectChanges();
 
-    const req = mock.expectOne('/api/projects/by-slug/alpha');
-    req.flush({
-      data: {
-        id: 'a', name: 'Alpha', slug: 'alpha', projectType: 'feature-delivery',
-        owningTeam: { id: 't', name: 'Engineering' },
-        inFlightWorkItems: 2, createdAt: '2026-05-01T00:00:00Z',
-      },
-    });
+    flushProject('p1', 'alpha');
+    await Promise.resolve(); await Promise.resolve();
+    flushWorkItems('p1', [
+      { id: 'w1', title: 'Add CSV export', currentStatus: 'WaitingOnCheckpoint' },
+      { id: 'w2', title: 'Migrate v2', currentStatus: 'Running' },
+    ]);
     await fixture.whenStable();
     fixture.detectChanges();
 
     const html = fixture.nativeElement as HTMLElement;
-    expect(html.querySelector('h1')?.textContent).toContain('Alpha');
+    expect(html.querySelector('h1')?.textContent).toContain('ALPHA');
     expect(html.textContent).toContain('Engineering');
-    expect(html.textContent).toContain('feature-delivery');
-    expect(html.textContent).toContain('Work items land in FEAT-004.');
+    expect(html.textContent).toContain('Add CSV export');
+    expect(html.textContent).toContain('Migrate v2');
+    expect(html.textContent).toContain('Start work →');
+  });
+
+  it('renders the empty state when no work items exist', async () => {
+    const fixture = TestBed.createComponent(ProjectHomePage);
+    fixture.detectChanges();
+    flushProject('p1', 'alpha');
+    await Promise.resolve(); await Promise.resolve();
+    flushWorkItems('p1', []);
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain('No work items yet.');
+  });
+
+  it('starts work via the modal and refreshes the list', async () => {
+    const fixture = TestBed.createComponent(ProjectHomePage);
+    fixture.detectChanges();
+    flushProject('p1', 'alpha');
+    await Promise.resolve(); await Promise.resolve();
+    flushWorkItems('p1', []);
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const cmp = fixture.componentInstance as unknown as {
+      openStart(): void;
+      onStartSubmitted(r: { title: string; input: unknown }): Promise<void>;
+    };
+    cmp.openStart();
+    fixture.detectChanges();
+    void cmp.onStartSubmitted({ title: 'My work', input: {} });
+    await Promise.resolve();
+
+    mock.expectOne(r => r.url === '/api/projects/p1/work-items' && r.method === 'POST').flush({
+      data: {
+        id: 'w1', projectId: 'p1', title: 'My work', currentStatus: 'Running',
+        executor: { id: 'e', key: 'feature-delivery-v1', displayName: 'Feature Delivery v1' },
+        executorCorrelationMarker: 'm1',
+        createdAt: '2026-05-01T00:00:00Z',
+        createdBy: { id: 'u', displayName: 'Op' },
+        executorState: {},
+      },
+    });
+    for (let i = 0; i < 6; i++) await Promise.resolve();
+
+    flushWorkItems('p1', [{ id: 'w1', title: 'My work', currentStatus: 'Running' }]);
+    for (let i = 0; i < 4; i++) await Promise.resolve();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain('My work');
   });
 
   it('renders "Project not found." on 404', async () => {
@@ -74,26 +145,21 @@ describe('ProjectHomePage', () => {
   it('reloads when the slug param changes', async () => {
     const fixture = TestBed.createComponent(ProjectHomePage);
     fixture.detectChanges();
-
-    mock.expectOne('/api/projects/by-slug/alpha').flush({
-      data: {
-        id: 'a', name: 'Alpha', slug: 'alpha', projectType: 't',
-        owningTeam: { id: 't', name: 'Eng' }, inFlightWorkItems: 0, createdAt: '2026-05-01T00:00:00Z',
-      },
-    });
+    flushProject('a', 'alpha');
+    await Promise.resolve(); await Promise.resolve();
+    flushWorkItems('a', []);
     await fixture.whenStable();
 
     paramMap$.next(convertToParamMap({ slug: 'beta' }));
     fixture.detectChanges();
-    mock.expectOne('/api/projects/by-slug/beta').flush({
-      data: {
-        id: 'b', name: 'Beta', slug: 'beta', projectType: 't',
-        owningTeam: { id: 't', name: 'Eng' }, inFlightWorkItems: 0, createdAt: '2026-05-01T00:00:00Z',
-      },
-    });
+    for (let i = 0; i < 4; i++) await Promise.resolve();
+    flushProject('b', 'beta');
+    for (let i = 0; i < 4; i++) await Promise.resolve();
+    flushWorkItems('b', []);
+    for (let i = 0; i < 4; i++) await Promise.resolve();
     await fixture.whenStable();
     fixture.detectChanges();
 
-    expect((fixture.nativeElement as HTMLElement).textContent).toContain('Beta');
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain('BETA');
   });
 });

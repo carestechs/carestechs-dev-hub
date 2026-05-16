@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>DevHub — Project home with work items mockup</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    html, body { font-family: 'Inter', system-ui, sans-serif; background: #F8FAFC; color: #334155; }
+    h1, h2, h3 { font-family: 'Poppins', system-ui, sans-serif; color: #0F172A; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+  </style>
+</head>
+<body class="min-h-screen py-8 px-4 md:px-6">
+  <main class="mx-auto max-w-5xl space-y-8">
+    <a href="#" class="text-sm text-sky-600 hover:underline">← All projects</a>
+
+    <header class="bg-white rounded-xl shadow-sm p-6">
+      <div class="flex items-start justify-between gap-4">
+        <div>
+          <h1 class="text-3xl font-bold">Customer Onboarding API</h1>
+          <p class="text-sm text-slate-500 mt-1 mono">customer-onboarding-api</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="inline-flex items-center rounded-full bg-sky-100 text-sky-700 text-xs font-medium px-2 py-0.5">feature-delivery</span>
+          <button class="rounded-lg font-medium h-10 px-4 bg-sky-500 hover:bg-sky-600 text-white">Start work →</button>
+        </div>
+      </div>
+      <div class="mt-4 flex flex-wrap gap-x-6 gap-y-2 text-sm text-slate-500">
+        <div><span class="font-medium text-slate-700">Team:</span> Engineering</div>
+        <div><span class="font-medium text-slate-700">In-flight work:</span> 4</div>
+      </div>
+    </header>
+
+    <nav class="border-b border-slate-200" aria-label="Project sections">
+      <div class="flex gap-6">
+        <span class="pb-3 -mb-px border-b-2 border-sky-500 text-sky-700 font-medium text-sm">Work items</span>
+        <span class="pb-3 -mb-px text-slate-400 text-sm">Members</span>
+        <span class="pb-3 -mb-px text-slate-400 text-sm">Audit</span>
+      </div>
+    </nav>
+
+    <!-- Filters -->
+    <section class="flex flex-wrap items-center gap-2">
+      <span class="text-sm text-slate-500 mr-2">Status:</span>
+      <button class="px-3 py-1 rounded-full text-xs font-medium bg-sky-500 text-white">All</button>
+      <button class="px-3 py-1 rounded-full text-xs font-medium bg-white text-slate-600 border border-slate-200 hover:bg-slate-50">Running</button>
+      <button class="px-3 py-1 rounded-full text-xs font-medium bg-white text-slate-600 border border-slate-200 hover:bg-slate-50">Waiting on checkpoint</button>
+      <button class="px-3 py-1 rounded-full text-xs font-medium bg-white text-slate-600 border border-slate-200 hover:bg-slate-50">Completed</button>
+      <button class="px-3 py-1 rounded-full text-xs font-medium bg-white text-slate-600 border border-slate-200 hover:bg-slate-50">Failed</button>
+      <button class="px-3 py-1 rounded-full text-xs font-medium bg-white text-slate-600 border border-slate-200 hover:bg-slate-50">Cancelled</button>
+      <label class="ml-auto flex items-center gap-2 text-sm">
+        <input type="checkbox" class="rounded border-slate-300 text-sky-500 focus:ring-sky-300">
+        <span>Waiting on me</span>
+      </label>
+    </section>
+
+    <!-- Work items table -->
+    <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+      <table class="min-w-full">
+        <thead class="bg-slate-50 text-xs font-medium text-slate-500 uppercase tracking-wide">
+          <tr>
+            <th class="px-6 py-3 text-left">Title</th>
+            <th class="px-6 py-3 text-left">Status</th>
+            <th class="px-6 py-3 text-left">Waiting on</th>
+            <th class="px-6 py-3 text-left">Updated</th>
+          </tr>
+        </thead>
+        <tbody class="text-sm text-slate-700">
+          <tr class="border-t border-slate-200 hover:bg-slate-50 cursor-pointer">
+            <td class="px-6 py-3 font-medium">
+              <a href="#" class="text-sky-700 hover:underline">Add CSV export endpoint</a>
+            </td>
+            <td class="px-6 py-3"><span class="inline-flex items-center rounded-full bg-amber-50 text-amber-700 text-xs font-medium px-2 py-0.5">WaitingOnCheckpoint</span></td>
+            <td class="px-6 py-3"><span class="mono text-xs bg-slate-100 rounded px-1.5 py-0.5">reviewer</span></td>
+            <td class="px-6 py-3 text-slate-500">2h ago</td>
+          </tr>
+          <tr class="border-t border-slate-200 hover:bg-slate-50">
+            <td class="px-6 py-3 font-medium">Migrate to v2 schema</td>
+            <td class="px-6 py-3"><span class="inline-flex items-center rounded-full bg-sky-50 text-sky-700 text-xs font-medium px-2 py-0.5">Running</span></td>
+            <td class="px-6 py-3 text-slate-500">—</td>
+            <td class="px-6 py-3 text-slate-500">5m ago</td>
+          </tr>
+          <tr class="border-t border-slate-200 hover:bg-slate-50">
+            <td class="px-6 py-3 font-medium">Fix login throttle</td>
+            <td class="px-6 py-3"><span class="inline-flex items-center rounded-full bg-emerald-50 text-emerald-700 text-xs font-medium px-2 py-0.5">Completed</span></td>
+            <td class="px-6 py-3 text-slate-500">—</td>
+            <td class="px-6 py-3 text-slate-500">1d ago</td>
+          </tr>
+          <tr class="border-t border-slate-200 hover:bg-slate-50">
+            <td class="px-6 py-3 font-medium">Add billing webhook</td>
+            <td class="px-6 py-3"><span class="inline-flex items-center rounded-full bg-red-50 text-red-700 text-xs font-medium px-2 py-0.5">Failed</span></td>
+            <td class="px-6 py-3 text-slate-500">—</td>
+            <td class="px-6 py-3 text-slate-500">3d ago</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="px-6 py-3 border-t border-slate-200 flex items-center justify-between text-sm text-slate-500">
+        <span>Showing 1–4 of 4</span>
+        <div class="flex items-center gap-2">
+          <button class="px-3 py-1 rounded-lg border border-slate-300 disabled:opacity-50" disabled>← Prev</button>
+          <span>Page 1 of 1</span>
+          <button class="px-3 py-1 rounded-lg border border-slate-300 disabled:opacity-50" disabled>Next →</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Empty state -->
+    <section>
+      <h2 class="text-base font-semibold text-slate-500 uppercase tracking-wide mb-2">Empty state</h2>
+      <div class="bg-white rounded-xl shadow-sm p-12 text-center">
+        <p class="text-lg font-medium text-slate-700">No work items yet.</p>
+        <p class="mt-2 text-slate-500">Start your first one to kick off the lifecycle.</p>
+        <button class="mt-4 rounded-lg font-medium h-10 px-4 bg-sky-500 hover:bg-sky-600 text-white">Start work →</button>
+      </div>
+    </section>
+
+    <!-- Start work modal -->
+    <section>
+      <h2 class="text-base font-semibold text-slate-500 uppercase tracking-wide mb-2">Start work modal</h2>
+      <div class="bg-white rounded-xl shadow-lg max-w-xl">
+        <header class="px-6 py-4 border-b border-slate-200">
+          <h3 class="text-lg font-semibold">Start work</h3>
+        </header>
+        <div class="px-6 py-5 space-y-4">
+          <label class="block">
+            <span class="block text-sm font-medium text-slate-700 mb-1">Title <span class="text-red-500">*</span></span>
+            <input type="text" value="Add audit-trail export" class="block w-full border border-slate-300 focus:border-sky-500 focus:ring-2 focus:ring-sky-100 rounded-lg px-3 h-10 outline-none">
+          </label>
+          <label class="block">
+            <span class="block text-sm font-medium text-slate-700 mb-1">Input (JSON)</span>
+            <textarea rows="6" class="block w-full border border-slate-300 focus:border-sky-500 focus:ring-2 focus:ring-sky-100 rounded-lg px-3 py-2 outline-none mono text-sm">{
+  "endpoint": "/audit/export",
+  "format": "csv"
+}</textarea>
+            <span class="block text-xs text-slate-500 mt-1">Executor-shaped payload. DevHub passes it through unchanged.</span>
+          </label>
+        </div>
+        <footer class="px-6 py-4 border-t border-slate-200 flex items-center justify-end gap-3">
+          <button class="rounded-lg font-medium h-10 px-4 bg-white border border-slate-300 text-slate-700 hover:bg-slate-50">Cancel</button>
+          <button class="rounded-lg font-medium h-10 px-4 bg-sky-500 text-white hover:bg-sky-600">Start →</button>
+        </footer>
+      </div>
+    </section>
+
+    <!-- Start work modal with errors -->
+    <section>
+      <h2 class="text-base font-semibold text-slate-500 uppercase tracking-wide mb-2">Start work modal — JSON parse error</h2>
+      <div class="bg-white rounded-xl shadow-lg max-w-xl">
+        <header class="px-6 py-4 border-b border-slate-200">
+          <h3 class="text-lg font-semibold">Start work</h3>
+        </header>
+        <div class="px-6 py-5 space-y-4">
+          <label class="block">
+            <span class="block text-sm font-medium text-slate-700 mb-1">Input (JSON)</span>
+            <textarea rows="3" class="block w-full border border-red-500 rounded-lg px-3 py-2 outline-none mono text-sm">{ broken</textarea>
+            <p class="mt-2 text-sm text-red-600">Input is not valid JSON.</p>
+          </label>
+        </div>
+      </div>
+    </section>
+
+    <!-- Start work modal with 502 -->
+    <section>
+      <h2 class="text-base font-semibold text-slate-500 uppercase tracking-wide mb-2">Start work modal — 502 from executor</h2>
+      <div class="bg-white rounded-xl shadow-lg max-w-xl">
+        <header class="px-6 py-4 border-b border-slate-200">
+          <h3 class="text-lg font-semibold">Start work</h3>
+        </header>
+        <div class="px-6 py-5 space-y-4">
+          <div role="alert" class="bg-red-50 border border-red-200 text-red-700 rounded-lg p-4 text-sm">
+            <strong>Executor failure.</strong> The lifecycle executor refused this action.
+            <p class="mt-1 text-xs mono">executorKey: feature-delivery-v1 · correlationId: 4f8c…</p>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+</body>
+</html>
