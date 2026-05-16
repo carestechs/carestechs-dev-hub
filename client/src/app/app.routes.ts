@@ -45,6 +45,17 @@ export const routes: Routes = [
           import('./features/projects/work-items/review.page').then(m => m.ReviewPage),
       },
       {
+        path: 'projects/:slug/audit',
+        loadComponent: () =>
+          import('./features/audit/project-audit.page').then(m => m.ProjectAuditPage),
+      },
+      {
+        path: 'operator/audit',
+        canActivate: [operatorGuard],
+        loadComponent: () =>
+          import('./features/audit/operator-audit.page').then(m => m.OperatorAuditPage),
+      },
+      {
         path: 'projects/:slug/admin/memberships',
         canActivate: [operatorGuard],
         loadComponent: () =>

@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>DevHub — Audit log mockup</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    html, body { font-family: 'Inter', system-ui, sans-serif; background: #F8FAFC; color: #334155; }
+    h1, h2, h3 { font-family: 'Poppins', system-ui, sans-serif; color: #0F172A; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+  </style>
+</head>
+<body class="min-h-screen py-8 px-4 md:px-6">
+  <main class="mx-auto max-w-6xl space-y-12">
+    <!-- Populated -->
+    <section>
+      <h2 class="text-base font-semibold text-slate-500 uppercase tracking-wide mb-2">Populated table</h2>
+      <header class="mb-4">
+        <h1 class="text-2xl font-bold">Audit log</h1>
+        <p class="text-slate-500 text-sm mt-1">Every authorization decision and every DevHub-mediated mutation.</p>
+      </header>
+
+      <!-- Filter bar -->
+      <div class="bg-white rounded-xl shadow-sm p-4 mb-4 flex flex-wrap items-center gap-3">
+        <input type="text" placeholder="action (e.g. workitem:start)"
+               class="flex-1 min-w-[200px] border border-slate-300 rounded-lg px-3 h-10 text-sm focus:border-sky-500 focus:ring-2 focus:ring-sky-100 outline-none">
+        <select class="border border-slate-300 rounded-lg px-3 h-10 text-sm">
+          <option>All members</option>
+          <option>Operator</option>
+          <option>Ana</option>
+        </select>
+        <div class="flex items-center gap-1">
+          <button class="px-3 py-1 rounded-full text-xs font-medium border bg-sky-500 text-white border-sky-500">All</button>
+          <button class="px-3 py-1 rounded-full text-xs font-medium border bg-white text-slate-600 border-slate-200 hover:bg-slate-50">Granted</button>
+          <button class="px-3 py-1 rounded-full text-xs font-medium border bg-white text-slate-600 border-slate-200 hover:bg-slate-50">Denied</button>
+          <button class="px-3 py-1 rounded-full text-xs font-medium border bg-white text-slate-600 border-slate-200 hover:bg-slate-50">Failed</button>
+        </div>
+        <input type="date" class="border border-slate-300 rounded-lg px-3 h-10 text-sm">
+        <span class="text-xs text-slate-500">to</span>
+        <input type="date" class="border border-slate-300 rounded-lg px-3 h-10 text-sm">
+        <button class="text-sky-600 hover:underline text-sm ml-auto">Clear</button>
+      </div>
+
+      <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+        <table class="min-w-full">
+          <thead class="bg-slate-50 text-xs font-medium text-slate-500 uppercase tracking-wide">
+            <tr>
+              <th class="px-6 py-3 text-left">Occurred</th>
+              <th class="px-6 py-3 text-left">Actor</th>
+              <th class="px-6 py-3 text-left">Target</th>
+              <th class="px-6 py-3 text-left">Action</th>
+              <th class="px-6 py-3 text-left">Outcome</th>
+              <th class="px-6 py-3 text-left">Reason</th>
+            </tr>
+          </thead>
+          <tbody class="text-sm text-slate-700">
+            <tr class="border-t border-slate-200 hover:bg-slate-50 cursor-pointer">
+              <td class="px-6 py-3 mono text-xs">2026-05-16 14:32</td>
+              <td class="px-6 py-3">Operator</td>
+              <td class="px-6 py-3 mono text-xs">WorkItem · 4f8c…</td>
+              <td class="px-6 py-3 mono text-xs">workitem:start</td>
+              <td class="px-6 py-3"><span class="inline-flex items-center rounded-full bg-emerald-50 text-emerald-700 text-xs font-medium px-2 py-0.5">Granted</span></td>
+              <td class="px-6 py-3 text-slate-500">—</td>
+            </tr>
+            <tr class="border-t border-slate-200 bg-slate-50">
+              <td colspan="6" class="px-6 py-3">
+                <pre class="bg-slate-900 text-emerald-300 rounded-lg p-3 text-xs mono overflow-auto">{
+  "executorKey": "feature-delivery-v1",
+  "executorCorrelationMarker": "4f8c2a91d3e7",
+  "title": "Add CSV export"
+}</pre>
+              </td>
+            </tr>
+            <tr class="border-t border-slate-200 hover:bg-slate-50 cursor-pointer">
+              <td class="px-6 py-3 mono text-xs">2026-05-16 14:01</td>
+              <td class="px-6 py-3">Alice</td>
+              <td class="px-6 py-3 mono text-xs">Project · 9a…</td>
+              <td class="px-6 py-3 mono text-xs">workitem:start</td>
+              <td class="px-6 py-3"><span class="inline-flex items-center rounded-full bg-red-50 text-red-700 text-xs font-medium px-2 py-0.5">Denied</span></td>
+              <td class="px-6 py-3 text-slate-500 text-xs">member is not on this project</td>
+            </tr>
+            <tr class="border-t border-slate-200 hover:bg-slate-50 cursor-pointer">
+              <td class="px-6 py-3 mono text-xs">2026-05-16 13:55</td>
+              <td class="px-6 py-3">Operator</td>
+              <td class="px-6 py-3 mono text-xs">CheckpointSignal · b2…</td>
+              <td class="px-6 py-3 mono text-xs">checkpoint:signal</td>
+              <td class="px-6 py-3"><span class="inline-flex items-center rounded-full bg-amber-50 text-amber-800 text-xs font-medium px-2 py-0.5">Failed</span></td>
+              <td class="px-6 py-3 text-slate-500 text-xs">executor failure</td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="px-6 py-3 border-t border-slate-200 flex items-center justify-between text-sm text-slate-500">
+          <span>Showing 1–3 of 142</span>
+          <div class="flex items-center gap-2">
+            <button class="px-3 py-1 rounded-lg border border-slate-300 disabled:opacity-50" disabled>← Prev</button>
+            <span>Page 1 of 5</span>
+            <button class="px-3 py-1 rounded-lg border border-slate-300 hover:bg-slate-50">Next →</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Empty -->
+    <section>
+      <h2 class="text-base font-semibold text-slate-500 uppercase tracking-wide mb-2">Empty state</h2>
+      <div class="bg-white rounded-xl shadow-sm p-12 text-center">
+        <p class="text-lg font-medium text-slate-700">No audit entries match these filters.</p>
+        <p class="mt-2 text-slate-500">Adjust the filter or clear it to see the full log.</p>
+      </div>
+    </section>
+
+    <!-- Forbidden -->
+    <section>
+      <h2 class="text-base font-semibold text-slate-500 uppercase tracking-wide mb-2">Forbidden state</h2>
+      <div class="bg-white rounded-xl shadow-sm p-12 text-center">
+        <p class="text-lg font-medium text-slate-700">You don't have access to this audit log.</p>
+        <p class="mt-2 text-slate-500">Ask an operator to add you to the project membership.</p>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

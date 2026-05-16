@@ -1,0 +1,94 @@
+@if (showFilters()) {
+  <div class="bg-white rounded-xl shadow-sm p-4 mb-4 flex flex-wrap items-center gap-3">
+    <input type="text" placeholder="action (e.g. workitem:start)"
+           class="flex-1 min-w-[200px] border border-slate-300 rounded-lg px-3 h-10 text-sm focus:border-sky-500 focus:ring-2 focus:ring-sky-100 outline-none"
+           [value]="filter().action ?? ''"
+           (input)="onActionInput($event)" />
+    <div class="flex items-center gap-1" role="group" aria-label="Outcome filter">
+      @for (opt of outcomeOptions; track opt.label) {
+        <button type="button"
+                class="px-3 py-1 rounded-full text-xs font-medium border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
+                [class.bg-sky-500]="(filter().outcome ?? null) === opt.value"
+                [class.text-white]="(filter().outcome ?? null) === opt.value"
+                [class.border-sky-500]="(filter().outcome ?? null) === opt.value"
+                [class.bg-white]="(filter().outcome ?? null) !== opt.value"
+                [class.text-slate-600]="(filter().outcome ?? null) !== opt.value"
+                [class.border-slate-200]="(filter().outcome ?? null) !== opt.value"
+                [class.hover:bg-slate-50]="(filter().outcome ?? null) !== opt.value"
+                (click)="onOutcomeClick(opt.value)">
+          {{ opt.label }}
+        </button>
+      }
+    </div>
+    <input type="date" aria-label="From date"
+           class="border border-slate-300 rounded-lg px-3 h-10 text-sm"
+           (change)="onFromChange($event)" />
+    <span class="text-xs text-slate-500">to</span>
+    <input type="date" aria-label="To date"
+           class="border border-slate-300 rounded-lg px-3 h-10 text-sm"
+           (change)="onToChange($event)" />
+    <button type="button" class="text-sky-600 hover:underline text-sm ml-auto focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300 rounded"
+            (click)="clearFilters()">Clear</button>
+  </div>
+}
+
+@if (loading()) {
+  <div class="bg-white rounded-xl shadow-sm p-6 text-sm text-slate-500" aria-busy="true">Loading audit entries…</div>
+} @else if (rows().length === 0) {
+  <div class="bg-white rounded-xl shadow-sm p-12 text-center">
+    <p class="text-lg font-medium text-slate-700">No audit entries match these filters.</p>
+    <p class="mt-2 text-slate-500">Adjust the filter or clear it to see the full log.</p>
+  </div>
+} @else {
+  <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+    <table class="min-w-full">
+      <thead class="bg-slate-50 text-xs font-medium text-slate-500 uppercase tracking-wide">
+        <tr>
+          <th class="px-6 py-3 text-left">Occurred</th>
+          <th class="px-6 py-3 text-left">Actor</th>
+          <th class="px-6 py-3 text-left">Target</th>
+          <th class="px-6 py-3 text-left">Action</th>
+          <th class="px-6 py-3 text-left">Outcome</th>
+          <th class="px-6 py-3 text-left">Reason</th>
+        </tr>
+      </thead>
+      <tbody class="text-sm text-slate-700">
+        @for (row of rows(); track row.id) {
+          <tr class="border-t border-slate-200 hover:bg-slate-50 cursor-pointer"
+              (click)="toggleExpand(row.id)">
+            <td class="px-6 py-3 font-mono text-xs">{{ row.occurredAt.replace('T', ' ').slice(0, 16) }}</td>
+            <td class="px-6 py-3">{{ row.actingMember?.displayName ?? 'system' }}</td>
+            <td class="px-6 py-3 font-mono text-xs">{{ row.targetType }} · {{ shortId(row.targetId) }}</td>
+            <td class="px-6 py-3 font-mono text-xs">{{ row.action }}</td>
+            <td class="px-6 py-3">
+              <span class="inline-flex items-center rounded-full text-xs font-medium px-2 py-0.5"
+                    [class]="outcomePillClass(row.outcome)">
+                {{ row.outcome }}
+              </span>
+            </td>
+            <td class="px-6 py-3 text-slate-500 text-xs">{{ row.reason ?? '—' }}</td>
+          </tr>
+          @if (isExpanded(row.id)) {
+            <tr class="border-t border-slate-200 bg-slate-50">
+              <td colspan="6" class="px-6 py-3">
+                <pre class="bg-slate-900 text-emerald-300 rounded-lg p-3 text-xs font-mono overflow-auto">{{ formatDetails(row.details) }}</pre>
+              </td>
+            </tr>
+          }
+        }
+      </tbody>
+    </table>
+    @if (meta(); as m) {
+      <div class="px-6 py-3 border-t border-slate-200 flex items-center justify-between text-sm text-slate-500">
+        <span>Showing {{ rows().length }} of {{ m.totalCount }}</span>
+        <div class="flex items-center gap-2">
+          <button type="button" class="px-3 py-1 rounded-lg border border-slate-300 disabled:opacity-50 hover:bg-slate-50"
+                  [disabled]="m.page <= 1" (click)="onPrev()">← Prev</button>
+          <span>Page {{ m.page }} of {{ totalPages() }}</span>
+          <button type="button" class="px-3 py-1 rounded-lg border border-slate-300 disabled:opacity-50 hover:bg-slate-50"
+                  [disabled]="m.page >= totalPages()" (click)="onNext()">Next →</button>
+        </div>
+      </div>
+    }
+  </div>
+}
