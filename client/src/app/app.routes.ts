@@ -50,6 +50,13 @@ export const routes: Routes = [
           import('./features/audit/project-audit.page').then(m => m.ProjectAuditPage),
       },
       {
+        path: 'operator',
+        canActivate: [operatorGuard],
+        pathMatch: 'full',
+        loadComponent: () =>
+          import('./features/operator/operator-dashboard.page').then(m => m.OperatorDashboardPage),
+      },
+      {
         path: 'operator/audit',
         canActivate: [operatorGuard],
         loadComponent: () =>
