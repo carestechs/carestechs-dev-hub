@@ -1,3 +1,4 @@
+using DevHub.Contracts.Authorization;
 using DevHub.Contracts.Identity;
 using DevHub.Contracts.Persistence;
 using DevHub.Modules.Workspace.Seeding;
@@ -22,6 +23,8 @@ public static class WorkspaceModuleExtensions
         });
 
         services.AddScoped<IMemberLookup, MemberLookup>();
+        services.AddScoped<IProjectMembershipQuery, ProjectMembershipQuery>();
+        services.AddScoped<IProjectAuthorizationService, ProjectAuthorizationService>();
 
         services.AddOptions<WorkspaceSeedOptions>()
             .Bind(configuration.GetSection(WorkspaceSeedOptions.SectionName));

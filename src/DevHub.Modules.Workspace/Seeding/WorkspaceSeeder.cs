@@ -59,6 +59,23 @@ public sealed class WorkspaceSeeder(
         }
 
         await db.SaveChangesAsync(ct);
+
+        // 3. Workspace-level operator role assignment for the seed member. We need the
+        //    operator role id and the seed member id to exist; the SaveChanges above
+        //    guarantees both have non-empty Ids (client-generated GUIDs from BaseEntity).
+        var hasAssignment = await db.WorkspaceRoleAssignments
+            .AnyAsync(w => w.MemberId == seededMember.Id && w.RoleId == operatorRole.Id, ct);
+        if (!hasAssignment)
+        {
+            db.WorkspaceRoleAssignments.Add(new WorkspaceRoleAssignment
+            {
+                MemberId = seededMember.Id,
+                RoleId = operatorRole.Id,
+                CreatedByMemberId = seededMember.Id, // self-grant; bootstrap
+            });
+            logger.LogInformation("Granting workspace-level operator role to seed member {Email}", seed.Value.Email);
+            await db.SaveChangesAsync(ct);
+        }
     }
 
     public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;

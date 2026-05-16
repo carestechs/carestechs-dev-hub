@@ -23,6 +23,7 @@
     <ProjectReference Include="..\..\src\DevHub.Modules.Workspace\DevHub.Modules.Workspace.csproj" />
     <ProjectReference Include="..\..\src\DevHub.Contracts\DevHub.Contracts.csproj" />
     <ProjectReference Include="..\DevHub.TestHarness\DevHub.TestHarness.csproj" />
+    <ProjectReference Include="..\..\src\DevHub.Modules.Audit\DevHub.Modules.Audit.csproj" />
   </ItemGroup>
 
 </Project>
