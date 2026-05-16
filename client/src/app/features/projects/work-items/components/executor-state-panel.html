@@ -1,0 +1,22 @@
+@if (isEmpty()) {
+  <p class="text-sm text-slate-500">No state reported yet.</p>
+} @else {
+  <dl class="grid grid-cols-3 gap-y-2 text-sm">
+    @for (e of entries(); track e.key) {
+      <dt class="text-slate-500 truncate">{{ e.key }}</dt>
+      <dd class="col-span-2">
+        @if (e.isObject) {
+          <button type="button" class="text-sky-600 hover:underline text-xs"
+                  (click)="toggle(e.key)">
+            {{ isExpanded(e.key) ? 'hide' : 'show' }} {{ '{' + childCount(e.value) + ' ' + childLabel(e.value) + '}' }}
+          </button>
+          @if (isExpanded(e.key)) {
+            <pre class="mt-1 bg-slate-50 rounded p-2 text-xs font-mono overflow-auto">{{ pretty(e.value) }}</pre>
+          }
+        } @else {
+          <span class="font-mono">{{ formatPrimitive(e.value) }}</span>
+        }
+      </dd>
+    }
+  </dl>
+}
