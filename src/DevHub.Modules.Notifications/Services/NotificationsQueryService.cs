@@ -36,7 +36,8 @@ internal sealed class NotificationsQueryService(
                 row.ProjectId, project.Slug,
                 row.WorkItemId, wi.Title,
                 row.CheckpointKey, contract?.DisplayName ?? row.CheckpointKey,
-                row.CreatedAt));
+                row.CreatedAt,
+                row.TaskId));
         }
         return results;
     }
