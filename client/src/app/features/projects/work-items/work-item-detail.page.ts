@@ -78,6 +78,23 @@ export class WorkItemDetailPage {
     return { value: null, source: 'unset' };
   });
 
+  /**
+   * FEAT-009 / T-072: read-through to executorState.assignments. The orchestrator's
+   * RunMemory.data.assignments is a map (taskId → assignee); DevHub doesn't persist a
+   * copy. Returned sorted by taskId ascending so the UI ordering is deterministic.
+   * Narrow shape check keeps the page resilient to malformed executor responses.
+   */
+  protected readonly assignments = computed<Array<[string, string]>>(() => {
+    const state = this.workItem()?.executorState as unknown;
+    if (!state || typeof state !== 'object') return [];
+    const a = (state as Record<string, unknown>)['assignments'];
+    if (!a || typeof a !== 'object') return [];
+    return Object.entries(a as Record<string, unknown>)
+      .filter(([, v]) => typeof v === 'string' && (v as string).length > 0)
+      .map(([k, v]) => [k, v as string] as [string, string])
+      .sort(([x], [y]) => x.localeCompare(y));
+  });
+
   protected readonly streamUrl = computed(() => {
     const p = this.project();
     const wi = this.workItem();

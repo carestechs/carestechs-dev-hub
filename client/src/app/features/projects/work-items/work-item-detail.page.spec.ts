@@ -244,6 +244,49 @@ describe('WorkItemDetailPage', () => {
     expect(hasEdit).withContext('non-operator should not see the Edit button').toBe(false);
   });
 
+  // ---------- FEAT-009 / T-072: Assignments sidebar ----------
+
+  it('Assignments section renders when executorState.assignments has entries, sorted by taskId', async () => {
+    const fixture = TestBed.createComponent(WorkItemDetailPage);
+    fixture.detectChanges();
+    flushProject();
+    await Promise.resolve(); await Promise.resolve();
+    flushWorkItem('p1', 'wi-1', 'feature-delivery-v1', 'WaitingOnCheckpoint', {
+      executorState: { assignments: { 'T-002': 'Bob', 'T-001': 'Alice' } },
+    });
+    flushSignals();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const html = (fixture.nativeElement as HTMLElement);
+    expect(html.textContent).toContain('Assignments');
+    // Two rows rendered.
+    const items = html.querySelectorAll('ul.space-y-1 > li');
+    expect(items.length).toBe(2);
+    // Sorted ascending — T-001 row appears before T-002.
+    expect(items[0].textContent).toContain('T-001');
+    expect(items[0].textContent).toContain('Alice');
+    expect(items[1].textContent).toContain('T-002');
+    expect(items[1].textContent).toContain('Bob');
+  });
+
+  it('Assignments section is absent when executorState carries no assignments map', async () => {
+    const fixture = TestBed.createComponent(WorkItemDetailPage);
+    fixture.detectChanges();
+    flushProject();
+    await Promise.resolve(); await Promise.resolve();
+    flushWorkItem('p1', 'wi-1', 'feature-delivery-v1', 'WaitingOnCheckpoint', {
+      executorState: { step: 'approve' },  // no assignments key
+    });
+    flushSignals();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
+    // The "Assignments" heading text should not appear anywhere on the page.
+    expect(text).not.toContain('Assignments');
+  });
+
   it('submitBranch sends PATCH and updates the page (FEAT-008)', async () => {
     await reconfigureWithAuth(true);
     const fixture = TestBed.createComponent(WorkItemDetailPage);
