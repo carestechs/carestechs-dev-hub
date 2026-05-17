@@ -143,8 +143,11 @@ public sealed class FakeExecutorHost : IAsyncDisposable
         public async Task RecordAsync(HttpContext ctx, string? correlationMarker = null)
         {
             if (Owner is null) return;
+            // Always attempt to capture the body for non-trivial methods. ContentLength is
+            // unreliable with HttpClient.PostAsJsonAsync (often null / chunked), so we just
+            // read whatever's there; the empty-body case yields an empty string.
             string? body = null;
-            if (ctx.Request.ContentLength > 0)
+            if (ctx.Request.Method is "POST" or "PUT" or "PATCH")
             {
                 ctx.Request.EnableBuffering();
                 using var reader = new StreamReader(ctx.Request.Body, leaveOpen: true);
