@@ -9,4 +9,5 @@ public sealed record PendingActionEvent(
     Guid ProjectId,
     Guid WorkItemId,
     string CheckpointKey,
-    DateTimeOffset OccurredAt);
+    DateTimeOffset OccurredAt,
+    string? TaskId = null);

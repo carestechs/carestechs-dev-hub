@@ -654,7 +654,8 @@ Query: `page`, `pageSize`, `sortBy` (default `occurredAt`), `sortDir` (default `
       "workItemTitle": "string",
       "checkpointKey": "string",
       "checkpointDisplayName": "string",
-      "raisedAt": "iso-8601"
+      "raisedAt": "iso-8601",
+      "taskId": "string | null — set when the checkpoint is per-task (FEAT-009)"
     }
   ]
 }
@@ -664,7 +665,7 @@ Query: `page`, `pageSize`, `sortBy` (default `occurredAt`), `sortDir` (default `
 
 > *SSE stream that pushes new pending-action signals to the caller in real time.*
 
-`text/event-stream`; authenticated; no project param — scoped to the caller.
+`text/event-stream`; authenticated; no project param — scoped to the caller. Each event payload includes a `taskId` field (`null` when the active contract is not per-task) so the UI can disambiguate per-task rows during loop-backs.
 
 ---
 
@@ -864,3 +865,4 @@ Standard RFC 7807 fields (`type`, `title`, `status`, `detail`, `instance`) plus 
 - **2026-05-17 (FEAT-008 / T-058)** — `StartWorkItemRequest`, `WorkItemDto`, `WorkItemSummaryDto` gained optional `workBranch` (max 200). New `PATCH /api/projects/{pid}/work-items/{wid}` endpoint (operator-only) scoped to `workBranch` updates in v1; `null` = leave unchanged, `""` = clear the override, otherwise validate + persist. Branch edits do **not** re-forward to the executor — the value is captured at start time only. `workitem:update` audit details carry before/after.
 - **2026-05-17 (FEAT-009 / T-065)** — `ExecutorStartResponse`, `ExecutorFetchResponse`, `ExecutorSignalResponse` gained optional `currentTaskId`; cached on `WorkItem.CurrentTaskId` on every transition. `WorkItemDto` + `WorkItemSummaryDto` carry `currentTaskId`. `IWorkItemLookup.WorkItemLookupResult` also carries it for the Notifications reconciler. Backwards-compatible: defaults to `null` when the executor's response omits the field.
 - **2026-05-17 (FEAT-009 / T-066)** — `CreateCheckpointContractRequest` and `CheckpointContractDto` gained optional `perTask` boolean (defaults to `false`). `POST /api/admin/executors/{id}/checkpoint-contracts` replace-semantics: operators must include `perTask` on every contract they want it on; there's no per-key PATCH. The cross-module `CheckpointContractDescriptor` exposes the flag so the Notifications reconciler (T-067) can key per-task pending rows.
+- **2026-05-17 (FEAT-009 / T-067)** — `PendingActionDto` + the SSE `PendingActionEvent` payload gained optional `taskId`. The reconciler keys per-task pending rows when the active contract has `perTask=true` (loop-back semantics: T-001 row dismissed, T-002 row raised when the executor advances `currentTaskId`); otherwise behavior is byte-for-byte unchanged.

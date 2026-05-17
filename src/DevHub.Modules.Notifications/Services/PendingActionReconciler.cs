@@ -42,16 +42,25 @@ internal sealed class PendingActionReconciler(
             requiredMembers.Add(op);
         }
 
+        // FEAT-009 / T-067: when the active contract is per-task, the discriminator on a
+        // pending row is (checkpoint_key, task_id). Otherwise task_id is null and behaves
+        // identically to today.
+        var currentTaskId = contract.PerTask ? wi.CurrentTaskId : null;
+
         var existingForActiveKey = await db.PendingActionSignals
             .Where(p => p.WorkItemId == workItemId
                         && p.CheckpointKey == wi.CurrentCheckpointKey
+                        && p.TaskId == currentTaskId
                         && p.DismissedAt == null)
             .ToListAsync(ct);
         var existingByMember = existingForActiveKey.ToDictionary(p => p.MemberId);
 
+        // "Stale" = rows on a different checkpoint key, OR (per-task) a different task id.
+        // Loop-back: when CurrentTaskId advances from T-001 to T-002 with the same checkpoint
+        // key, T-001 rows fall into the stale set and get dismissed; T-002 rows get raised.
         var staleForOtherKeys = await db.PendingActionSignals
             .Where(p => p.WorkItemId == workItemId
-                        && p.CheckpointKey != wi.CurrentCheckpointKey
+                        && (p.CheckpointKey != wi.CurrentCheckpointKey || p.TaskId != currentTaskId)
                         && p.DismissedAt == null)
             .ToListAsync(ct);
 
@@ -68,8 +77,9 @@ internal sealed class PendingActionReconciler(
                 ProjectId = wi.ProjectId,
                 WorkItemId = workItemId,
                 CheckpointKey = wi.CurrentCheckpointKey,
+                TaskId = currentTaskId,
             });
-            pending.Add(new PendingActionEvent("raised", memberId, wi.ProjectId, workItemId, wi.CurrentCheckpointKey, now));
+            pending.Add(new PendingActionEvent("raised", memberId, wi.ProjectId, workItemId, wi.CurrentCheckpointKey, now, currentTaskId));
         }
 
         // Dismiss rows for members no longer in the required set (e.g., lost role).
@@ -77,14 +87,14 @@ internal sealed class PendingActionReconciler(
         {
             if (requiredMembers.Contains(memberId)) continue;
             row.DismissedAt = now;
-            pending.Add(new PendingActionEvent("dismissed", memberId, wi.ProjectId, workItemId, row.CheckpointKey, now));
+            pending.Add(new PendingActionEvent("dismissed", memberId, wi.ProjectId, workItemId, row.CheckpointKey, now, row.TaskId));
         }
 
         // Dismiss rows for stale checkpoint keys (status moved from one checkpoint to another).
         foreach (var row in staleForOtherKeys)
         {
             row.DismissedAt = now;
-            pending.Add(new PendingActionEvent("dismissed", row.MemberId, row.ProjectId, row.WorkItemId, row.CheckpointKey, now));
+            pending.Add(new PendingActionEvent("dismissed", row.MemberId, row.ProjectId, row.WorkItemId, row.CheckpointKey, now, row.TaskId));
         }
 
         if (pending.Count == 0) return;
@@ -117,7 +127,7 @@ internal sealed class PendingActionReconciler(
         foreach (var row in rows)
         {
             row.DismissedAt = now;
-            pending.Add(new PendingActionEvent("dismissed", row.MemberId, row.ProjectId, row.WorkItemId, row.CheckpointKey, now));
+            pending.Add(new PendingActionEvent("dismissed", row.MemberId, row.ProjectId, row.WorkItemId, row.CheckpointKey, now, row.TaskId));
         }
 
         await db.SaveChangesAsync(ct);

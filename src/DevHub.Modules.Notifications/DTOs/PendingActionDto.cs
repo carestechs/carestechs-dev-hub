@@ -8,4 +8,5 @@ public sealed record PendingActionDto(
     string WorkItemTitle,
     string CheckpointKey,
     string CheckpointDisplayName,
-    DateTimeOffset RaisedAt);
+    DateTimeOffset RaisedAt,
+    string? TaskId = null);
