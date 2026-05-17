@@ -1,0 +1,57 @@
+<section class="bg-white rounded-xl shadow-sm p-6">
+  <h3 class="text-base font-semibold mb-1">Confirm task assignment</h3>
+  <p class="text-sm text-slate-500 mb-4">
+    @if (currentTaskId(); as t) {
+      Pick the assignee for <span class="font-mono text-xs bg-slate-100 rounded px-1.5 py-0.5">{{ t }}</span>.
+    } @else {
+      Pick the assignee for this task.
+    }
+  </p>
+
+  <div class="flex items-center gap-6 mb-3 text-sm">
+    <label class="flex items-center gap-2 cursor-pointer">
+      <input type="radio" name="assignmentMode" class="text-sky-500 focus:ring-sky-300"
+             [checked]="mode() === 'picker'" (change)="mode.set('picker')">
+      <span>Project member</span>
+    </label>
+    <label class="flex items-center gap-2 cursor-pointer">
+      <input type="radio" name="assignmentMode" class="text-sky-500 focus:ring-sky-300"
+             [checked]="mode() === 'freetext'" (change)="mode.set('freetext')">
+      <span>Other (free text)</span>
+    </label>
+  </div>
+
+  @if (mode() === 'picker') {
+    @if (memberships().length === 0) {
+      <p class="text-xs text-amber-600 mb-2">
+        No project members loaded. Use free text, or add memberships via Admin first.
+      </p>
+    }
+    <select [ngModel]="selectedMemberId()" (ngModelChange)="selectedMemberId.set($event)"
+            [disabled]="working() || memberships().length === 0"
+            class="block w-full border border-slate-300 focus:border-sky-500 focus:ring-2 focus:ring-sky-100 rounded-lg px-3 h-10 outline-none disabled:bg-slate-50">
+      <option value="" disabled>— select a member —</option>
+      @for (m of memberships(); track m.id) {
+        <option [value]="m.member.id">{{ m.member.displayName }}</option>
+      }
+    </select>
+  } @else {
+    <input type="text" autocomplete="off"
+           [ngModel]="freeTextValue()" (ngModelChange)="freeTextValue.set($event)"
+           [disabled]="working()"
+           placeholder="Assignee name or handle"
+           class="block w-full border border-slate-300 focus:border-sky-500 focus:ring-2 focus:ring-sky-100 rounded-lg px-3 h-10 outline-none disabled:bg-slate-50" />
+  }
+
+  <div class="flex items-center justify-end mt-4 gap-2">
+    @if (!canAct()) {
+      <span class="text-xs text-slate-500 mr-auto">You don't have the role required for this checkpoint.</span>
+    }
+    <button type="button"
+            class="bg-sky-500 disabled:bg-slate-300 disabled:cursor-not-allowed text-white text-sm font-medium px-4 h-10 rounded-lg hover:bg-sky-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
+            [disabled]="!canSubmit()"
+            (click)="onSubmit()">
+      @if (working()) { Submitting… } @else { Confirm assignment }
+    </button>
+  </div>
+</section>

@@ -457,10 +457,18 @@ LifecycleReviewPage
 │   ├── MarkdownRenderer (when artefact is a doc)
 │   └── ArtefactFallback (key-value, when neither)
 ├── DecisionHistoryList         # one entry per past signal
-├── CheckpointActionBar         # role-gated buttons + payload editor
+├── CheckpointActionBar         # role-gated buttons + payload editor (default)
 │   └── AppButton (per allowedOutcome)
+├── AssignmentConfirmPanel      # swapped in when contract is per-task + assignment-confirmed (FEAT-009)
+│   ├── Project-member picker (scoped to the project's memberships)
+│   └── Free-text fallback (escape hatch — any string)
 └── StreamFeed                  # SSE
 ```
+
+**Panel swap (FEAT-009).** The review page renders one of two checkpoint-input components, based on the active contract:
+
+- **`CheckpointActionBar`** — default. Action-style outcomes (approve/reject/revise/…) with optional notes.
+- **`AssignmentConfirmPanel`** — when `contract.perTask === true && contract.checkpointKey === 'assignment-confirmed'`. Two modes: project-member picker (sends the selected member's `displayName` as `payload.assignee`), or free-text input. Submits to the same signal endpoint with `taskId` populated from `workItem.currentTaskId`.
 
 **Component → API**
 
@@ -471,6 +479,8 @@ LifecycleReviewPage
 | DecisionHistoryList | signals | `GET /api/projects/{id}/work-items/{wid}/signals` | Page load |
 | CheckpointActionBar | contract | `GET /api/projects/{id}/work-items/{wid}/checkpoints/{key}` | Page load |
 | CheckpointActionBar | submit | `POST /api/projects/{id}/work-items/{wid}/checkpoints/{key}/signal` | User click |
+| AssignmentConfirmPanel | memberships | `GET /api/projects/{id}/memberships` | When contract is per-task + assignment-confirmed (FEAT-009) |
+| AssignmentConfirmPanel | submit | `POST /api/projects/{id}/work-items/{wid}/checkpoints/assignment-confirmed/signal` (with `payload.assignee` + `taskId`) | User click |
 | StreamFeed | events | `GET /api/projects/{id}/work-items/{wid}/stream` (SSE) | After initial fetch |
 
 **States**
@@ -626,3 +636,4 @@ Used in every list screen. Inputs: column defs (header, cell renderer, sortable)
 
 - **2026-05-15** — Initial UI specification. Defines the app shell, 14 screens (auth, home, project, lifecycle review, operator, audit, 5 admin, profile), the Modern Minimal design system compiled from the DDR profile, and shared components (`AppCard`, `AppButton`, `StreamFeed`, `CheckpointActionBar`, `LifecycleTimeline`).
 - **2026-05-17 (FEAT-008 / T-061 + T-062)** — Project create modal gained a "Code source" fieldset (Repo + Default branch). Project detail page surfaces both fields in the metadata strip with a GitHub link, an operator-only "Edit code source" affordance, and a soft amber warning banner when `repo` is null. Work item detail page gained a "Branch" row showing the effective branch (override / project default / not set) with an operator-only inline edit; empty submit clears the override.
+- **2026-05-17 (FEAT-009 / T-070)** — Lifecycle review page gained `AssignmentConfirmPanel`, swapped in when the active contract has `perTask=true` AND `checkpointKey === 'assignment-confirmed'`. Project member picker + free-text fallback; submit forwards `payload.assignee` and `taskId` to the existing signal endpoint. Existing `CheckpointActionBar` continues to render for every other checkpoint.
