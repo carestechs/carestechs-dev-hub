@@ -7,13 +7,37 @@ import {
   Output,
   signal,
 } from '@angular/core';
-import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { AbstractControl, FormControl, FormGroup, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
 import type { CreateProjectRequest, TeamDto } from '../../core/api/workspace.types';
 import type { ExecutorBindingDto } from '../../core/api/executor-registry.types';
 import type { AppError } from '../../core/errors/app-error';
 import { AppButton, AppErrorBanner, AppFormField, AppModal } from '../../shared';
 
 const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+const REPO_PATTERN = /^[A-Za-z0-9._-]+\/[A-Za-z0-9._-]+$/;
+
+/** Mirrors CodeSourceValidator.ValidateRepo in DevHub.Contracts (FEAT-008 / T-056). */
+function repoValidator(c: AbstractControl): ValidationErrors | null {
+  const v = (c.value ?? '') as string;
+  if (v === '') return null;  // optional
+  if (!REPO_PATTERN.test(v)) return { repoShape: true };
+  if (v.endsWith('.git')) return { repoGitSuffix: true };
+  return null;
+}
+
+/** Mirrors CodeSourceValidator.ValidateBranch in DevHub.Contracts (FEAT-008 / T-056). */
+function branchValidator(c: AbstractControl): ValidationErrors | null {
+  const v = (c.value ?? '') as string;
+  if (v === '') return null;  // optional
+  if (v.startsWith('/')) return { branchLeadingSlash: true };
+  if (v.includes('..')) return { branchDotDot: true };
+  for (const ch of v) {
+    const code = ch.charCodeAt(0);
+    if (code < 0x20 || code === 0x7F) return { branchControlChar: true };
+    if (/\s/.test(ch)) return { branchWhitespace: true };
+  }
+  return null;
+}
 
 @Component({
   selector: 'project-form-modal',
@@ -44,6 +68,14 @@ export class ProjectFormModal {
     projectType: new FormControl<string>('', { nonNullable: true, validators: [Validators.required] }),
     owningTeamId: new FormControl<string>('', { nonNullable: true, validators: [Validators.required] }),
     description: new FormControl<string>('', { nonNullable: true }),
+    repo: new FormControl<string>('', {
+      nonNullable: true,
+      validators: [Validators.maxLength(140), repoValidator],
+    }),
+    defaultBranch: new FormControl<string>('', {
+      nonNullable: true,
+      validators: [Validators.maxLength(200), branchValidator],
+    }),
   });
 
   protected readonly submittedFlag = signal(false);
@@ -52,7 +84,10 @@ export class ProjectFormModal {
   constructor() {
     effect(() => {
       if (!this.open()) return;
-      this.form.reset({ name: '', slug: '', projectType: '', owningTeamId: '', description: '' });
+      this.form.reset({
+        name: '', slug: '', projectType: '', owningTeamId: '',
+        description: '', repo: '', defaultBranch: '',
+      });
       this.submittedFlag.set(false);
       this.slugTouched = false;
     });
@@ -90,17 +125,37 @@ export class ProjectFormModal {
     const c = this.form.controls.owningTeamId;
     return (c.touched || this.submittedFlag()) && c.invalid ? 'Owning team is required.' : null;
   }
+  protected repoError(): string | null {
+    const c = this.form.controls.repo;
+    if (!(c.touched || this.submittedFlag()) || c.valid) return null;
+    if (c.errors?.['maxlength']) return 'Repo is too long.';
+    if (c.errors?.['repoShape']) return "Use 'owner/name' — no URL prefix, no whitespace, no leading slash.";
+    if (c.errors?.['repoGitSuffix']) return "Drop the '.git' suffix.";
+    return null;
+  }
+  protected defaultBranchError(): string | null {
+    const c = this.form.controls.defaultBranch;
+    if (!(c.touched || this.submittedFlag()) || c.valid) return null;
+    if (c.errors?.['maxlength']) return 'Branch is too long.';
+    if (c.errors?.['branchLeadingSlash']) return "Branch must not start with '/'.";
+    if (c.errors?.['branchDotDot']) return "Branch must not contain '..'.";
+    if (c.errors?.['branchWhitespace']) return 'Branch must not contain whitespace.';
+    if (c.errors?.['branchControlChar']) return 'Branch must not contain control characters.';
+    return null;
+  }
 
   protected onSubmit(): void {
     this.submittedFlag.set(true);
     if (this.form.invalid) { this.form.markAllAsTouched(); return; }
-    const { name, slug, projectType, owningTeamId, description } = this.form.getRawValue();
+    const { name, slug, projectType, owningTeamId, description, repo, defaultBranch } = this.form.getRawValue();
     this.submitted.emit({
       name,
       slug,
       projectType,
       owningTeamId,
       description: description || undefined,
+      repo: repo || undefined,
+      defaultBranch: defaultBranch || undefined,
     });
   }
 

@@ -33,6 +33,15 @@
     }
   </div>
 } @else if (project(); as p) {
+  @if (isOperator() && !p.repo) {
+    <div class="mt-6 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 text-sm">
+      <strong>No repo set on this project.</strong>
+      Once the orchestrator flips its strict flag, starting work items will fail.
+      <button type="button" class="ml-1 underline hover:no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 rounded"
+              (click)="openCodeSourceEdit()">Set repo and default branch</button>
+    </div>
+  }
+
   <header class="mt-6 bg-white rounded-xl shadow-sm p-6">
     <div class="flex items-start justify-between gap-4">
       <div>
@@ -49,6 +58,27 @@
     <div class="mt-4 flex flex-wrap gap-x-6 gap-y-2 text-sm text-slate-500">
       <div><span class="font-medium text-slate-700">Team:</span> {{ p.owningTeam.name }}</div>
       <div><span class="font-medium text-slate-700">In-flight work:</span> {{ p.inFlightWorkItems }}</div>
+      <div>
+        <span class="font-medium text-slate-700">Repo:</span>
+        @if (p.repo) {
+          <a [href]="'https://github.com/' + p.repo" target="_blank" rel="noopener"
+             class="ml-1 text-sky-600 hover:underline font-mono">{{ p.repo }}</a>
+        } @else {
+          <span class="ml-1 italic text-slate-400">(not set)</span>
+        }
+      </div>
+      <div>
+        <span class="font-medium text-slate-700">Default branch:</span>
+        @if (p.defaultBranch) {
+          <span class="ml-1 font-mono">{{ p.defaultBranch }}</span>
+        } @else {
+          <span class="ml-1 italic text-slate-400">(not set)</span>
+        }
+      </div>
+      @if (isOperator()) {
+        <button type="button" class="ml-auto text-sky-600 hover:underline text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300 rounded"
+                (click)="openCodeSourceEdit()">Edit code source</button>
+      }
     </div>
   </header>
 
@@ -155,3 +185,15 @@
   (submitted)="onStartSubmitted($event)"
   (cancelled)="onStartCancelled()"
 />
+
+@if (project(); as p) {
+  <code-source-edit-modal
+    [open]="codeSourceOpen()"
+    [working]="codeSourceSaving()"
+    [serverError]="codeSourceError()"
+    [initialRepo]="p.repo"
+    [initialDefaultBranch]="p.defaultBranch"
+    (submitted)="onCodeSourceSubmitted($event)"
+    (cancelled)="onCodeSourceCancelled()"
+  />
+}

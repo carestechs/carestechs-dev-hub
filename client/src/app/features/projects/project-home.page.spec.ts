@@ -4,7 +4,15 @@ import { TestBed } from '@angular/core/testing';
 import { ActivatedRoute, convertToParamMap } from '@angular/router';
 import { provideRouter } from '@angular/router';
 import { BehaviorSubject } from 'rxjs';
+import { AuthService } from '../../core/auth/auth.service';
 import { ProjectHomePage } from './project-home.page';
+
+/** Stubs the bits of AuthService project-home reads. Defaults to non-operator. */
+function authStub(isOperator = false) {
+  return {
+    isOperator: () => isOperator,
+  } as unknown as AuthService;
+}
 
 describe('ProjectHomePage', () => {
   let mock: HttpTestingController;
@@ -23,6 +31,26 @@ describe('ProjectHomePage', () => {
     }).compileComponents();
     mock = TestBed.inject(HttpTestingController);
   });
+
+  /**
+   * Re-configures the TestBed with a stubbed AuthService. Use from individual specs
+   * that need to flip `isOperator()` — most tests inherit the default (non-operator)
+   * from the real AuthService instantiated with no token.
+   */
+  async function reconfigureWithAuth(isOperator: boolean): Promise<void> {
+    TestBed.resetTestingModule();
+    await TestBed.configureTestingModule({
+      imports: [ProjectHomePage],
+      providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        provideRouter([]),
+        { provide: ActivatedRoute, useValue: { paramMap: paramMap$.asObservable() } },
+        { provide: AuthService, useValue: authStub(isOperator) },
+      ],
+    }).compileComponents();
+    mock = TestBed.inject(HttpTestingController);
+  }
 
   function flushProject(id = 'a', slug = 'alpha') {
     mock.expectOne(`/api/projects/by-slug/${slug}`).flush({
@@ -140,6 +168,59 @@ describe('ProjectHomePage', () => {
     fixture.detectChanges();
 
     expect((fixture.nativeElement as HTMLElement).textContent).toContain("You don't have access to this project.");
+  });
+
+  it('operator viewing a project with no repo sees the amber warning banner (FEAT-008)', async () => {
+    await reconfigureWithAuth(true);
+    const fixture = TestBed.createComponent(ProjectHomePage);
+    fixture.detectChanges();
+    flushProject('p1', 'alpha');
+    await Promise.resolve(); await Promise.resolve();
+    flushWorkItems('p1', []);
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
+    expect(text).toContain('No repo set on this project.');
+  });
+
+  it('non-operator viewing a project with no repo does NOT see the banner', async () => {
+    // Default config — non-operator.
+    const fixture = TestBed.createComponent(ProjectHomePage);
+    fixture.detectChanges();
+    flushProject('p1', 'alpha');
+    await Promise.resolve(); await Promise.resolve();
+    flushWorkItems('p1', []);
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
+    expect(text).not.toContain('No repo set on this project.');
+  });
+
+  it('renders the GitHub link when project has repo (FEAT-008)', async () => {
+    await reconfigureWithAuth(true);
+    const fixture = TestBed.createComponent(ProjectHomePage);
+    fixture.detectChanges();
+    // Custom flush with repo populated.
+    mock.expectOne('/api/projects/by-slug/alpha').flush({
+      data: {
+        id: 'p1', name: 'ALPHA', slug: 'alpha', projectType: 'feature-delivery',
+        owningTeam: { id: 't', name: 'Engineering' },
+        repo: 'acme/widgets', defaultBranch: 'main',
+        inFlightWorkItems: 0, createdAt: '2026-05-01T00:00:00Z',
+      },
+    });
+    await Promise.resolve(); await Promise.resolve();
+    flushWorkItems('p1', []);
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const html = fixture.nativeElement as HTMLElement;
+    const link = html.querySelector('a[href="https://github.com/acme/widgets"]');
+    expect(link).withContext('GitHub link should be rendered').not.toBeNull();
+    expect(html.textContent).toContain('main');
+    expect(html.textContent).not.toContain('No repo set on this project.');
   });
 
   it('reloads when the slug param changes', async () => {

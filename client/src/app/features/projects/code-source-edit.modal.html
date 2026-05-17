@@ -1,0 +1,44 @@
+<app-modal
+  [open]="open()"
+  title="Edit code source"
+  [dismissOnOverlayClick]="!working()"
+  (closed)="onCancel()"
+>
+  @if (serverError()) {
+    <app-error-banner [error]="serverError()" class="block mb-4" />
+  }
+
+  <form [formGroup]="form" (ngSubmit)="onSubmit()" class="space-y-4" novalidate>
+    <app-form-field label="Repo" [error]="repoError()">
+      <input
+        type="text"
+        formControlName="repo"
+        autocomplete="off"
+        placeholder="owner/name"
+        class="block w-full border border-slate-300 focus:border-sky-500 focus:ring-2 focus:ring-sky-100 rounded-lg px-3 h-10 outline-none font-mono text-sm"
+      />
+    </app-form-field>
+
+    <app-form-field label="Default branch" [error]="defaultBranchError()">
+      <input
+        type="text"
+        formControlName="defaultBranch"
+        autocomplete="off"
+        placeholder="main"
+        class="block w-full border border-slate-300 focus:border-sky-500 focus:ring-2 focus:ring-sky-100 rounded-lg px-3 h-10 outline-none font-mono text-sm"
+      />
+    </app-form-field>
+
+    <p class="text-xs text-slate-500">
+      These coordinates are forwarded to the lifecycle executor when a work item starts.
+      Leaving a field unchanged is a no-op; the existing value is preserved.
+    </p>
+  </form>
+
+  <ng-container modal-footer>
+    <app-button variant="secondary" [disabled]="working()" (clicked)="onCancel()">Cancel</app-button>
+    <app-button variant="primary" [loading]="working()" [disabled]="working()" (clicked)="onSubmit()">
+      Save
+    </app-button>
+  </ng-container>
+</app-modal>
