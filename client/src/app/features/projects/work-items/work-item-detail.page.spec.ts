@@ -49,16 +49,35 @@ describe('WorkItemDetailPage', () => {
     (globalThis as any).EventSource = originalEventSource;
   });
 
-  function flushProject(slug = 'alpha', id = 'p1') {
+  async function reconfigureWithAuth(isOperator: boolean): Promise<void> {
+    TestBed.resetTestingModule();
+    await TestBed.configureTestingModule({
+      imports: [WorkItemDetailPage],
+      providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        provideRouter([]),
+        { provide: ActivatedRoute, useValue: { paramMap: paramMap$.asObservable() } },
+        { provide: AuthService, useValue: { isOperator: () => isOperator, token: () => null } },
+      ],
+    }).compileComponents();
+    mock = TestBed.inject(HttpTestingController);
+  }
+
+  function flushProject(slug = 'alpha', id = 'p1', extras: Record<string, unknown> = {}) {
     mock.expectOne(`/api/projects/by-slug/${slug}`).flush({
       data: {
         id, name: 'Alpha', slug, projectType: 'feature-delivery',
         owningTeam: { id: 't', name: 'Engineering' },
         inFlightWorkItems: 0, createdAt: '2026-05-01T00:00:00Z',
+        ...extras,
       },
     });
   }
-  function flushWorkItem(projectId = 'p1', id = 'wi-1', executorKey = 'feature-delivery-v1', currentStatus = 'WaitingOnCheckpoint') {
+  function flushWorkItem(
+    projectId = 'p1', id = 'wi-1', executorKey = 'feature-delivery-v1',
+    currentStatus = 'WaitingOnCheckpoint', extras: Record<string, unknown> = {},
+  ) {
     mock.expectOne(`/api/projects/${projectId}/work-items/${id}`).flush({
       data: {
         id, projectId, title: 'Sample work', currentStatus, currentCheckpointKey: 'approve',
@@ -67,6 +86,7 @@ describe('WorkItemDetailPage', () => {
         createdAt: '2026-05-01T00:00:00Z',
         createdBy: { id: 'u', displayName: 'Op' },
         executorState: { step: 'approve' },
+        ...extras,
       },
     });
   }
@@ -142,5 +162,130 @@ describe('WorkItemDetailPage', () => {
     fixture.detectChanges();
 
     expect(FakeEventSource.instances.length).toBe(0);
+  });
+
+  // ---------- FEAT-008 / T-062: effective branch row + inline edit ----------
+
+  it('renders the project default branch when work item has no override (FEAT-008)', async () => {
+    const fixture = TestBed.createComponent(WorkItemDetailPage);
+    fixture.detectChanges();
+    flushProject('alpha', 'p1', { defaultBranch: 'main' });
+    await Promise.resolve(); await Promise.resolve();
+    flushWorkItem('p1', 'wi-1', 'feature-delivery-v1', 'WaitingOnCheckpoint', { workBranch: null });
+    flushSignals();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
+    expect(text).toContain('Branch:');
+    expect(text).toContain('main');
+    expect(text).toContain('project default');
+  });
+
+  it('renders the work item override when set, with override label (FEAT-008)', async () => {
+    const fixture = TestBed.createComponent(WorkItemDetailPage);
+    fixture.detectChanges();
+    flushProject('alpha', 'p1', { defaultBranch: 'main' });
+    await Promise.resolve(); await Promise.resolve();
+    flushWorkItem('p1', 'wi-1', 'feature-delivery-v1', 'WaitingOnCheckpoint', { workBranch: 'feat/abc' });
+    flushSignals();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
+    expect(text).toContain('feat/abc');
+    expect(text).toContain('override');
+  });
+
+  it('renders "(not set)" when neither override nor project default exists', async () => {
+    const fixture = TestBed.createComponent(WorkItemDetailPage);
+    fixture.detectChanges();
+    flushProject(); // no defaultBranch
+    await Promise.resolve(); await Promise.resolve();
+    flushWorkItem(); // no workBranch
+    flushSignals();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
+    expect(text).toContain('(not set)');
+  });
+
+  it('operator sees the Edit button on the Branch row, non-operator does not', async () => {
+    await reconfigureWithAuth(true);
+    const fixture = TestBed.createComponent(WorkItemDetailPage);
+    fixture.detectChanges();
+    flushProject('alpha', 'p1', { defaultBranch: 'main' });
+    await Promise.resolve(); await Promise.resolve();
+    flushWorkItem('p1', 'wi-1', 'feature-delivery-v1', 'WaitingOnCheckpoint', { workBranch: null });
+    flushSignals();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    // Operator path — Edit button visible.
+    const buttons = (fixture.nativeElement as HTMLElement).querySelectorAll('button');
+    const hasEdit = Array.from(buttons).some(b => (b.textContent ?? '').trim() === 'Edit');
+    expect(hasEdit).withContext('operator should see the Branch row Edit button').toBe(true);
+  });
+
+  it('non-operator does not see the Edit button on the Branch row', async () => {
+    // Default config — non-operator.
+    const fixture = TestBed.createComponent(WorkItemDetailPage);
+    fixture.detectChanges();
+    flushProject('alpha', 'p1', { defaultBranch: 'main' });
+    await Promise.resolve(); await Promise.resolve();
+    flushWorkItem('p1', 'wi-1', 'feature-delivery-v1', 'WaitingOnCheckpoint', { workBranch: null });
+    flushSignals();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const buttons = (fixture.nativeElement as HTMLElement).querySelectorAll('button');
+    const hasEdit = Array.from(buttons).some(b => (b.textContent ?? '').trim() === 'Edit');
+    expect(hasEdit).withContext('non-operator should not see the Edit button').toBe(false);
+  });
+
+  it('submitBranch sends PATCH and updates the page (FEAT-008)', async () => {
+    await reconfigureWithAuth(true);
+    const fixture = TestBed.createComponent(WorkItemDetailPage);
+    fixture.detectChanges();
+    flushProject('alpha', 'p1', { defaultBranch: 'main' });
+    await Promise.resolve(); await Promise.resolve();
+    flushWorkItem('p1', 'wi-1', 'feature-delivery-v1', 'WaitingOnCheckpoint', { workBranch: null });
+    flushSignals();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const cmp = fixture.componentInstance as unknown as {
+      openBranchEdit(): void;
+      submitBranch(): Promise<void>;
+      branchControl: { setValue: (v: string) => void };
+    };
+    cmp.openBranchEdit();
+    cmp.branchControl.setValue('feat/abc');
+    void cmp.submitBranch();
+    await Promise.resolve();
+
+    const patch = mock.expectOne(r =>
+      r.url === '/api/projects/p1/work-items/wi-1' && r.method === 'PATCH');
+    expect(patch.request.body).toEqual({ workBranch: 'feat/abc' });
+    patch.flush({
+      data: {
+        id: 'wi-1', projectId: 'p1', title: 'Sample work', currentStatus: 'WaitingOnCheckpoint',
+        currentCheckpointKey: 'approve',
+        executor: { id: 'e', key: 'feature-delivery-v1', displayName: 'Feature Delivery v1' },
+        executorCorrelationMarker: 'marker-1',
+        createdAt: '2026-05-01T00:00:00Z',
+        createdBy: { id: 'u', displayName: 'Op' },
+        executorState: {},
+        workBranch: 'feat/abc',
+      },
+    });
+    for (let i = 0; i < 4; i++) await Promise.resolve();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
+    expect(text).toContain('feat/abc');
+    expect(text).toContain('override');
   });
 });
