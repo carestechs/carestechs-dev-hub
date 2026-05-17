@@ -10,6 +10,7 @@
     <Project Path="src/DevHub.Modules.Workspace/DevHub.Modules.Workspace.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/DevHub.Contracts.Tests/DevHub.Contracts.Tests.csproj" />
     <Project Path="tests/DevHub.Modules.Audit.Tests/DevHub.Modules.Audit.Tests.csproj" />
     <Project Path="tests/DevHub.Modules.ExecutorRegistry.Tests/DevHub.Modules.ExecutorRegistry.Tests.csproj" />
     <Project Path="tests/DevHub.Modules.Identity.Tests/DevHub.Modules.Identity.Tests.csproj" />
