@@ -19,14 +19,23 @@ export class AuthService {
   private readonly _token = signal<string | null>(null);
   private readonly _member = signal<Member | null>(null);
   private readonly _memberships = signal<Membership[]>([]);
+  /** Workspace-scoped operator grant from /me — true even if memberships is empty. */
+  private readonly _isOperatorWorkspace = signal<boolean>(false);
 
   readonly token = this._token.asReadonly();
   readonly currentMember = this._member.asReadonly();
   readonly memberships = this._memberships.asReadonly();
   readonly isAuthenticated = computed(() => this._token() !== null);
 
-  /** Operator status comes from any membership that carries the operator role. */
+  /**
+   * True if the member holds the system <c>operator</c> role at workspace scope
+   * OR if any project membership carries the operator role key. The workspace-
+   * scoped grant is what /me's isOperator flag surfaces; the per-project check
+   * stays as a backstop for the (unusual) case where the operator role is
+   * assigned only via ProjectMembership.
+   */
   readonly isOperator = computed(() =>
+    this._isOperatorWorkspace() ||
     this._memberships().some(m => m.roles.includes(OPERATOR_ROLE_KEY)));
 
   /** Single-flight refresh — used by the auth interceptor to coalesce N concurrent 401s into one POST /refresh. */
@@ -108,6 +117,7 @@ export class AuthService {
     this._token.set(null);
     this._member.set(null);
     this._memberships.set([]);
+    this._isOperatorWorkspace.set(false);
   }
 
   private async refreshMeQuiet(): Promise<void> {
@@ -117,6 +127,7 @@ export class AuthService {
       );
       this._member.set(env.data.member);
       this._memberships.set(env.data.memberships);
+      this._isOperatorWorkspace.set(env.data.isOperator);
     } catch {
       // If /me fails the token is unusable — treat as logged out.
       this.clear();

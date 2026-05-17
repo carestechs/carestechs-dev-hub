@@ -28,6 +28,8 @@ export interface RefreshResponse {
 export interface MeResponse {
   member: Member;
   memberships: Membership[];
+  /** Workspace-scoped operator grant (NOT derivable from memberships alone). */
+  isOperator: boolean;
 }
 
 export interface Envelope<T> {
