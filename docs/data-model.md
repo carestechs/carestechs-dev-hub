@@ -239,6 +239,7 @@ Six modules own data; each owns its own `DbContext` and its own schema. Cross-mo
 | display_name | varchar(120) | Required | UI label |
 | required_role_key | varchar(60) | Required | Matches `Role.key`; the role required to signal this checkpoint |
 | allowed_outcomes | text[] | Required | e.g. `["approve","reject","revise"]` |
+| per_task | boolean | Required, default `false` | When `true`, pending actions on this checkpoint are keyed per task (`PendingActionSignal.task_id`); the executor advances `WorkItem.current_task_id` between pauses. FEAT-009. |
 | created_at | timestamptz | Required, Auto | |
 
 **Indexes:**
@@ -259,6 +260,7 @@ Six modules own data; each owns its own `DbContext` and its own schema. Cross-mo
 | title | varchar(255) | Required | Human-readable title for the work |
 | current_status | varchar(60) | Required | Latest snapshot (`Running`, `WaitingOnCheckpoint`, `Completed`, `Failed`, `Cancelled`) — kept fresh by fetch + stream wrappers, not authoritative |
 | current_checkpoint_key | varchar(60) | Nullable | Set when `current_status = WaitingOnCheckpoint` |
+| current_task_id | varchar(60) | Nullable | Identifier of the task the executor is currently on, when the active checkpoint is `per_task=true`. Cached from the executor's response on every transition; the executor's memory is authoritative. FEAT-009. |
 | work_branch | varchar(200) | Optional | Optional per-work-item override of the project's `default_branch`. Forwarded as `intake.codeSource.workBranch` on start; omitted (not sent as `null`) when unset. Same validation rules as `default_branch`. |
 | created_at | timestamptz | Required, Auto | |
 | created_by_member_id | UUID | Required | The member who started this work |
@@ -333,11 +335,13 @@ Six modules own data; each owns its own `DbContext` and its own schema. Cross-mo
 | project_id | UUID | Required | Cross-module reference to `Workspace.Project.id` |
 | work_item_id | UUID | Required | Cross-module reference to `WorkItems.WorkItem.id` |
 | checkpoint_key | varchar(60) | Required | Matches `CheckpointContract.checkpoint_key` |
+| task_id | varchar(60) | Nullable | Set when the active contract is `per_task=true` (FEAT-009). Distinguishes per-task pending rows so multi-task work items show one row per task instead of one row per checkpoint. |
 | created_at | timestamptz | Required, Auto | When the signal was raised |
 | dismissed_at | timestamptz | Nullable | When the checkpoint was resolved (any outcome) — kept briefly for UI fade |
 
 **Indexes:**
-- Unique on `(member_id, work_item_id, checkpoint_key)` where `dismissed_at IS NULL`.
+- Unique on `(member_id, work_item_id, checkpoint_key, COALESCE(task_id, '<root>'))` where `dismissed_at IS NULL` (FEAT-009 — folds NULL `task_id`s into a sentinel so legacy / non-per-task rows still collide as one, while distinct task ids coexist).
+- Non-unique index on `(member_id, work_item_id, checkpoint_key)` (for query patterns that don't care about task discrimination).
 - Index on `(member_id, project_id)` where `dismissed_at IS NULL`.
 
 ## Relationships
@@ -448,3 +452,4 @@ Conventional values: `Running`, `WaitingOnCheckpoint`, `Completed`, `Failed`, `C
 
 - **2026-05-15** — Initial data model compiled from DevHub stakeholder definition. Defines 12 entities across 6 modules (Workspace, Identity, ExecutorRegistry, WorkItems, Audit, Notifications), the soft-delete + append-only-audit policy, and the ID-only cross-module reference contract.
 - **2026-05-17 (FEAT-008 / T-055)** — `Project` gained optional `repo` (varchar 140) and `default_branch` (varchar 200). `WorkItem` gained optional `work_branch` (varchar 200). All three nullable; existing rows survive the migration. Validation rules mirror the orchestrator's `intake.codeSource` schema; values are forwarded on work-item start.
+- **2026-05-17 (FEAT-009 / T-064)** — `CheckpointContract` gained `per_task` (bool, default `false`). `WorkItem` gained `current_task_id` (nullable varchar 60). `PendingActionSignal` gained `task_id` (nullable varchar 60); active-row uniqueness rewritten to `(member_id, work_item_id, checkpoint_key, COALESCE(task_id, '<root>'))` where `dismissed_at IS NULL`. Existing rows survive (legacy `task_id = NULL` rows collide as a single sentinel — same behavior as today).

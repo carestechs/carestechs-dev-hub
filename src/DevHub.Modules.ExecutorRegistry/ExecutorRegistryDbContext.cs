@@ -46,6 +46,7 @@ public sealed class ExecutorRegistryDbContext(DbContextOptions<ExecutorRegistryD
             e.Property(x => x.DisplayName).HasMaxLength(120).IsRequired();
             e.Property(x => x.RequiredRoleKey).HasMaxLength(60).IsRequired();
             e.Property(x => x.AllowedOutcomesJson).HasColumnType("jsonb").IsRequired();
+            e.Property(x => x.PerTask).HasDefaultValue(false);
             e.HasIndex(x => new { x.ExecutorId, x.CheckpointKey }).IsUnique();
         });
 

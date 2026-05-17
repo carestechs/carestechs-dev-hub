@@ -13,5 +13,6 @@ public sealed class PendingActionSignal : BaseEntity
     public required Guid ProjectId { get; set; }
     public required Guid WorkItemId { get; set; }
     public required string CheckpointKey { get; set; }
+    public string? TaskId { get; set; }
     public DateTimeOffset? DismissedAt { get; set; }
 }
