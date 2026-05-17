@@ -70,4 +70,13 @@ public sealed class SignalRequest
     public string Outcome { get; init; } = string.Empty;
 
     public JsonElement? Payload { get; init; }
+
+    /// <summary>
+    /// Identifier of the task this signal targets (FEAT-009). Required by the executor when
+    /// the active contract is per-task; DevHub forwards it verbatim. Omitted from the body
+    /// when null — never sent as <c>null</c>, matching the orchestrator's omit-don't-null
+    /// pattern.
+    /// </summary>
+    [MaxLength(60)]
+    public string? TaskId { get; init; }
 }

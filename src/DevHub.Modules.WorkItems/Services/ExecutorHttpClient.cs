@@ -35,11 +35,15 @@ internal sealed class ExecutorHttpClient(
 
     public async Task<ExecutorSignalResponse> SignalAsync(
         ExecutorRegistrationDescriptor executor, string correlationMarker, string checkpointKey,
-        string outcome, JsonElement? payload, CancellationToken ct = default)
+        string outcome, JsonElement? payload, string? taskId, CancellationToken ct = default)
     {
         using var req = NewRequest(HttpMethod.Post, executor, correlationMarker,
             $"/work-items/{correlationMarker}/checkpoints/{Uri.EscapeDataString(checkpointKey)}/signal");
-        req.Content = JsonContent.Create(new { outcome, payload });
+        // Omit (don't send null) when no taskId — matches the orchestrator's omit-don't-null
+        // pattern from IMP-004. Existing flows (no taskId) keep their byte-for-byte body.
+        req.Content = taskId is null
+            ? JsonContent.Create(new { outcome, payload })
+            : JsonContent.Create(new { outcome, payload, taskId });
         return await SendJsonAsync<ExecutorSignalResponse>(executor, req, ct);
     }
 
