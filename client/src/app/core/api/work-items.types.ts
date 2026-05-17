@@ -18,6 +18,8 @@ export interface WorkItemSummaryDto {
   executorCorrelationMarker: string;
   createdAt: string;
   createdBy: MemberRef;
+  /** Optional per-work-item branch override; falls back to project.defaultBranch (FEAT-008). */
+  workBranch?: string | null;
 }
 
 export interface WorkItemDto extends WorkItemSummaryDto {
@@ -34,8 +36,25 @@ export interface CheckpointSignalDto {
   payload?: unknown;
 }
 
-export interface StartWorkItemRequest { title: string; input: unknown; }
+export interface StartWorkItemRequest {
+  title: string;
+  input: unknown;
+  /** Optional per-work-item override of the project's defaultBranch (FEAT-008). */
+  workBranch?: string;
+}
 export interface SignalRequest { outcome: string; payload?: unknown; }
+
+/**
+ * PATCH payload for /api/projects/{pid}/work-items/{wid}. v1 surface is workBranch-only.
+ *
+ * Three-valued semantics on `workBranch`:
+ * - `undefined` (or property omitted) → leave existing value unchanged.
+ * - `""` (empty string) → clear the override; falls back to project.defaultBranch.
+ * - any other string → validated server-side and persisted.
+ */
+export interface UpdateWorkItemRequest {
+  workBranch?: string | null;
+}
 
 export interface CheckpointContractView {
   checkpointKey: string;
