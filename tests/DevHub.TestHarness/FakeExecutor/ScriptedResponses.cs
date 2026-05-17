@@ -25,6 +25,11 @@ public sealed class ScriptedResponses
     public object SignalExecutorState { get; set; } = new { };
     public int SignalHttpStatusCode { get; set; } = 200;
 
+    /// FEAT-009 / T-073: mutable per-call task identifier. The harness emits this in every
+    /// response body (start, fetch, signal) so tests can advance T-001 → T-002 between
+    /// reconciler runs without rebuilding the executor.
+    public string? CurrentTaskId { get; set; }
+
     /// Chunks for the SSE endpoint. Each entry is one byte payload + a delay before the next
     /// write. Default: three "data: ..." chunks with a 50ms delay each.
     public IList<(string Chunk, TimeSpan DelayBefore)> StreamChunks { get; set; } = new List<(string, TimeSpan)>

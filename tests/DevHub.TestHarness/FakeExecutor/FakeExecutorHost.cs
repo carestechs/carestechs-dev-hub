@@ -58,6 +58,7 @@ public sealed class FakeExecutorHost : IAsyncDisposable
                 currentStatus = marker.Owner!.Scripted.StartStatus,
                 currentCheckpointKey = marker.Owner.Scripted.StartCheckpointKey,
                 executorState = marker.Owner.Scripted.StartExecutorState,
+                currentTaskId = marker.Owner.Scripted.CurrentTaskId,
             });
         });
 
@@ -70,6 +71,7 @@ public sealed class FakeExecutorHost : IAsyncDisposable
                 currentStatus = marker.Owner!.Scripted.FetchStatus,
                 currentCheckpointKey = marker.Owner.Scripted.FetchCheckpointKey,
                 executorState = marker.Owner.Scripted.FetchExecutorState,
+                currentTaskId = marker.Owner.Scripted.CurrentTaskId,
             });
         });
 
@@ -86,6 +88,7 @@ public sealed class FakeExecutorHost : IAsyncDisposable
                 currentCheckpointKey = marker.Owner.Scripted.SignalCheckpointKey,
                 executorState = marker.Owner.Scripted.SignalExecutorState,
                 httpStatus = status,
+                currentTaskId = marker.Owner.Scripted.CurrentTaskId,
             });
         });
 
