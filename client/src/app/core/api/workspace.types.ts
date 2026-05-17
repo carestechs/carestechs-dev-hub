@@ -32,6 +32,10 @@ export interface ProjectDto {
   projectType: string;
   owningTeam: TeamRefDto;
   description?: string;
+  /** GitHub owner/name. Forwarded to the executor on work-item start (FEAT-008). */
+  repo?: string;
+  /** Default git branch. Forwarded as `intake.codeSource.baseBranch` (FEAT-008). */
+  defaultBranch?: string;
   inFlightWorkItems: number;
   createdAt: string;
 }
@@ -63,11 +67,18 @@ export interface CreateProjectRequest {
   projectType: string;
   owningTeamId: string;
   description?: string;
+  /** GitHub owner/name (FEAT-008). Validated server-side; do not include scheme or .git suffix. */
+  repo?: string;
+  /** Default git branch (FEAT-008). No whitespace, no leading `/`, no `..`, no control chars. */
+  defaultBranch?: string;
 }
 export interface UpdateProjectRequest {
   name?: string;
   description?: string;
   projectType?: string;
+  /** null/undefined = leave unchanged; any value is validated server-side (FEAT-008). */
+  repo?: string;
+  defaultBranch?: string;
 }
 
 export interface AddMembershipRequest { memberId: string; roleKeys: string[]; }

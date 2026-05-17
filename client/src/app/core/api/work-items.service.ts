@@ -7,6 +7,7 @@ import type {
   CheckpointSignalDto,
   SignalRequest,
   StartWorkItemRequest,
+  UpdateWorkItemRequest,
   WorkItemDto,
   WorkItemSummaryDto,
 } from './work-items.types';
@@ -26,6 +27,12 @@ export class WorkItemsService {
   }
   start(projectId: string, body: StartWorkItemRequest): Promise<WorkItemDto> {
     return this.unwrapPost(`/api/projects/${projectId}/work-items`, body);
+  }
+  update(projectId: string, workItemId: string, body: UpdateWorkItemRequest): Promise<WorkItemDto> {
+    return firstValueFrom(this.http.patch<Envelope<WorkItemDto>>(
+      `/api/projects/${projectId}/work-items/${workItemId}`,
+      body,
+    )).then(env => env.data);
   }
   getCheckpoint(projectId: string, workItemId: string, key: string): Promise<CheckpointContractView> {
     return this.unwrapGet<CheckpointContractView>(

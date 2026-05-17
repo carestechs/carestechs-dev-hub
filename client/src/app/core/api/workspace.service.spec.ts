@@ -78,6 +78,22 @@ describe('WorkspaceService', () => {
     expect((await p).slug).toBe('add csv export');
   });
 
+  it('updateProject sends PATCH with repo + defaultBranch in the body (FEAT-008)', async () => {
+    const p = svc.updateProject('p1', { repo: 'acme/widgets', defaultBranch: 'main' });
+    const req = mock.expectOne('/api/projects/p1');
+    expect(req.request.method).toBe('PATCH');
+    expect(req.request.body).toEqual({ repo: 'acme/widgets', defaultBranch: 'main' });
+    req.flush({ data: {
+      id: 'p1', name: 'X', slug: 'x', projectType: 'f',
+      owningTeam: { id: 't', name: 'T' },
+      repo: 'acme/widgets', defaultBranch: 'main',
+      inFlightWorkItems: 0, createdAt: '2026-05-01T00:00:00Z',
+    } });
+    const dto = await p;
+    expect(dto.repo).toBe('acme/widgets');
+    expect(dto.defaultBranch).toBe('main');
+  });
+
   it('addMembership wraps the body and unwraps the response', async () => {
     const p = svc.addMembership('p1', { memberId: 'm1', roleKeys: ['operator'] });
     const req = mock.expectOne('/api/projects/p1/memberships');
