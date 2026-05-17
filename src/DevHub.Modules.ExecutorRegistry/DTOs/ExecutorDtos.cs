@@ -17,7 +17,8 @@ public sealed record CheckpointContractDto(
     string CheckpointKey,
     string DisplayName,
     string RequiredRoleKey,
-    IReadOnlyList<string> AllowedOutcomes);
+    IReadOnlyList<string> AllowedOutcomes,
+    bool PerTask = false);
 
 public sealed class CreateExecutorRequest
 {
@@ -50,6 +51,13 @@ public sealed class CreateCheckpointContractRequest
 
     [Required, MinLength(1)]
     public IReadOnlyList<string> AllowedOutcomes { get; init; } = Array.Empty<string>();
+
+    /// <summary>
+    /// When true, pending actions on this checkpoint are keyed per task (FEAT-009).
+    /// The executor advances <c>WorkItem.CurrentTaskId</c> between pauses; DevHub raises
+    /// a distinct pending row for each task discriminator.
+    /// </summary>
+    public bool PerTask { get; init; }
 }
 
 public sealed class UpdateExecutorRequest
