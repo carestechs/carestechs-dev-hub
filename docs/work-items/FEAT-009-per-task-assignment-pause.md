@@ -7,7 +7,7 @@
 | **ID** | FEAT-009 |
 | **Name** | Per-Task Assignment Pause (`assignment-confirmed`) |
 | **Target Version** | v1 |
-| **Status** | Not Started |
+| **Status** | Completed (2026-05-17) |
 | **Priority** | Medium |
 | **Requested By** | Operator (orchestrator IMP-005 manual-variant fifth checkpoint) |
 | **Date Created** | 2026-05-17 |
