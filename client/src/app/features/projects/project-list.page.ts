@@ -5,13 +5,18 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { debounceTime, distinctUntilChanged } from 'rxjs';
 import { WorkspaceService } from '../../core/api/workspace.service';
 import type {
+  CreateProjectRequest,
   PageMeta,
   ProjectDto,
   TeamDto,
 } from '../../core/api/workspace.types';
+import { ExecutorRegistryService } from '../../core/api/executor-registry.service';
+import type { ExecutorBindingDto } from '../../core/api/executor-registry.types';
+import { AuthService } from '../../core/auth/auth.service';
 import type { AppError } from '../../core/errors/app-error';
-import { AppErrorBanner, EmptyState } from '../../shared';
+import { AppButton, AppErrorBanner, EmptyState } from '../../shared';
 import { ProjectCard } from './project-card';
+import { ProjectFormModal } from './project-form.modal';
 import { HttpErrorResponse } from '@angular/common/http';
 
 interface Filters {
@@ -23,13 +28,17 @@ interface Filters {
 @Component({
   selector: 'project-list-page',
   standalone: true,
-  imports: [ReactiveFormsModule, AppErrorBanner, EmptyState, ProjectCard],
+  imports: [ReactiveFormsModule, AppButton, AppErrorBanner, EmptyState, ProjectCard, ProjectFormModal],
   templateUrl: './project-list.page.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ProjectListPage {
   private readonly ws = inject(WorkspaceService);
+  private readonly registry = inject(ExecutorRegistryService);
+  private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
+
+  protected readonly isOperator = this.auth.isOperator;
 
   protected readonly loading = signal(true);
   protected readonly error = signal<AppError | null>(null);
@@ -37,6 +46,12 @@ export class ProjectListPage {
   protected readonly meta = signal<PageMeta | null>(null);
 
   protected readonly teams = signal<TeamDto[]>([]);
+  protected readonly bindings = signal<ExecutorBindingDto[]>([]);
+
+  // Create-project modal state.
+  protected readonly createOpen = signal(false);
+  protected readonly creating = signal(false);
+  protected readonly createError = signal<AppError | null>(null);
 
   protected readonly filterForm = new FormGroup({
     teamId: new FormControl<string>('', { nonNullable: true }),
@@ -109,6 +124,41 @@ export class ProjectListPage {
 
   protected clearFilters(): void {
     this.filterForm.reset({ teamId: '', projectType: '', q: '' });
+  }
+
+  protected async openCreate(): Promise<void> {
+    this.createError.set(null);
+    this.createOpen.set(true);
+    // Lazy-load bindings (and refresh teams) so the operator sees current options.
+    try {
+      const [bindingsEnv] = await Promise.all([
+        this.registry.listBindings({ pageSize: 100 }),
+        this.teams().length === 0 ? this.loadTeams() : Promise.resolve(),
+      ]);
+      this.bindings.set(bindingsEnv.data);
+    } catch {
+      // Non-fatal — the form will surface the empty-state hint.
+    }
+  }
+
+  protected closeCreate(): void {
+    if (this.creating()) return;
+    this.createOpen.set(false);
+    this.createError.set(null);
+  }
+
+  protected async submitCreate(req: CreateProjectRequest): Promise<void> {
+    this.creating.set(true);
+    this.createError.set(null);
+    try {
+      const created = await this.ws.createProject(req);
+      this.createOpen.set(false);
+      void this.router.navigate(['/projects', created.slug]);
+    } catch (e: unknown) {
+      this.createError.set(this.toAppError(e));
+    } finally {
+      this.creating.set(false);
+    }
   }
 
   /** v1 client-side search until the API gains a q parameter. */

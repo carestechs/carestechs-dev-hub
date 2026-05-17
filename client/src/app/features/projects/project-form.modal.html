@@ -1,0 +1,79 @@
+<app-modal
+  [open]="open()"
+  title="New project"
+  [dismissOnOverlayClick]="!working()"
+  (closed)="onCancel()"
+>
+  @if (serverError()) {
+    <app-error-banner [error]="serverError()" class="block mb-4" />
+  }
+
+  <form [formGroup]="form" (ngSubmit)="onSubmit()" class="space-y-4" novalidate>
+    <app-form-field label="Name" [required]="true" [error]="nameError()">
+      <input
+        type="text"
+        formControlName="name"
+        autocomplete="off"
+        class="block w-full border border-slate-300 focus:border-sky-500 focus:ring-2 focus:ring-sky-100 rounded-lg px-3 h-10 outline-none"
+      />
+    </app-form-field>
+
+    <app-form-field label="Slug" [required]="true" [error]="slugError()">
+      <input
+        type="text"
+        formControlName="slug"
+        autocomplete="off"
+        class="block w-full border border-slate-300 focus:border-sky-500 focus:ring-2 focus:ring-sky-100 rounded-lg px-3 h-10 outline-none font-mono text-sm"
+      />
+    </app-form-field>
+
+    <app-form-field label="Project type" [required]="true" [error]="typeError()">
+      <select
+        formControlName="projectType"
+        class="block w-full border border-slate-300 focus:border-sky-500 focus:ring-2 focus:ring-sky-100 rounded-lg px-3 h-10 outline-none"
+      >
+        <option value="" disabled>— select a type —</option>
+        @for (b of bindings(); track b.id) {
+          <option [value]="b.projectType">{{ b.projectType }} ({{ b.executorKey }})</option>
+        }
+      </select>
+      @if (bindings().length === 0) {
+        <p class="text-xs text-amber-600 mt-1">
+          No executor bindings registered yet. Visit Admin → Executor bindings first.
+        </p>
+      }
+    </app-form-field>
+
+    <app-form-field label="Owning team" [required]="true" [error]="teamError()">
+      <select
+        formControlName="owningTeamId"
+        class="block w-full border border-slate-300 focus:border-sky-500 focus:ring-2 focus:ring-sky-100 rounded-lg px-3 h-10 outline-none"
+      >
+        <option value="" disabled>— select a team —</option>
+        @for (t of teams(); track t.id) {
+          <option [value]="t.id">{{ t.name }}</option>
+        }
+      </select>
+      @if (teams().length === 0) {
+        <p class="text-xs text-amber-600 mt-1">
+          No teams exist yet. Visit Admin → Teams first.
+        </p>
+      }
+    </app-form-field>
+
+    <app-form-field label="Description">
+      <textarea
+        formControlName="description"
+        rows="3"
+        class="block w-full border border-slate-300 focus:border-sky-500 focus:ring-2 focus:ring-sky-100 rounded-lg px-3 py-2 outline-none"
+      ></textarea>
+    </app-form-field>
+  </form>
+
+  <ng-container modal-footer>
+    <app-button variant="secondary" [disabled]="working()" (clicked)="onCancel()">Cancel</app-button>
+    <app-button variant="primary" [loading]="working()" [disabled]="working()" (clicked)="onSubmit()">
+      Create
+    </app-button>
+  </ng-container>
+</app-modal>

@@ -3,6 +3,9 @@
     <h1 class="text-3xl font-bold">Projects</h1>
     <p class="text-slate-500 mt-2">Every project you can see in this workspace.</p>
   </div>
+  @if (isOperator()) {
+    <app-button variant="primary" (clicked)="openCreate()">+ New project</app-button>
+  }
 </header>
 
 <!-- Filter bar -->
@@ -66,6 +69,10 @@
       <empty-state
         title="No projects match these filters."
         description="Try clearing the filters above." />
+    } @else if (isOperator()) {
+      <empty-state
+        title="No projects yet."
+        description="Click + New project to create the first one." />
     } @else {
       <empty-state
         title="No projects yet."
@@ -78,4 +85,16 @@
       <project-card [project]="p" (opened)="onCardOpen($event)" />
     }
   </section>
+}
+
+@if (isOperator()) {
+  <project-form-modal
+    [open]="createOpen()"
+    [working]="creating()"
+    [serverError]="createError()"
+    [teams]="teams()"
+    [bindings]="bindings()"
+    (submitted)="submitCreate($event)"
+    (cancelled)="closeCreate()"
+  />
 }
