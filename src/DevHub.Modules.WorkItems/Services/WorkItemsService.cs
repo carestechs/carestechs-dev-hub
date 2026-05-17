@@ -77,7 +77,8 @@ internal sealed class WorkItemsService(
             executorRef ?? new ExecutorRefDto(r.ExecutorId, "executor", "Executor"),
             r.ExecutorCorrelationMarker, r.CreatedAt,
             memberNames[r.CreatedByMemberId],
-            r.WorkBranch)).ToList();
+            r.WorkBranch,
+            r.CurrentTaskId)).ToList();
 
         return new PagedEnvelopeDto<WorkItemSummaryDto>(dtos,
             new PageMeta(totalCount, page.Page, page.PageSize, page.SortBy, page.SortDir));
@@ -97,13 +98,16 @@ internal sealed class WorkItemsService(
         // ExecutorFailureException propagates as 502 via the global handler.
         var resp = await executorClient.FetchStateAsync(descriptor, wi.ExecutorCorrelationMarker, ct);
 
-        if (wi.CurrentStatus != resp.CurrentStatus || wi.CurrentCheckpointKey != resp.CurrentCheckpointKey)
+        if (wi.CurrentStatus != resp.CurrentStatus
+            || wi.CurrentCheckpointKey != resp.CurrentCheckpointKey
+            || wi.CurrentTaskId != resp.CurrentTaskId)
         {
             await db.WorkItems
                 .Where(w => w.Id == workItemId)
                 .ExecuteUpdateAsync(s => s
                     .SetProperty(w => w.CurrentStatus, resp.CurrentStatus)
-                    .SetProperty(w => w.CurrentCheckpointKey, resp.CurrentCheckpointKey), ct);
+                    .SetProperty(w => w.CurrentCheckpointKey, resp.CurrentCheckpointKey)
+                    .SetProperty(w => w.CurrentTaskId, resp.CurrentTaskId), ct);
         }
 
         var createdBy = await members.FindByIdAsync(wi.CreatedByMemberId, ct);
@@ -115,7 +119,8 @@ internal sealed class WorkItemsService(
                 ? new MemberRefDto(wi.CreatedByMemberId, "(unknown)")
                 : new MemberRefDto(createdBy.Id, createdBy.DisplayName),
             resp.ExecutorState,
-            wi.WorkBranch);
+            wi.WorkBranch,
+            resp.CurrentTaskId);
     }
 
     public async Task<WorkItemDto> StartAsync(
@@ -187,6 +192,7 @@ internal sealed class WorkItemsService(
             Title = request.Title,
             CurrentStatus = startResp.CurrentStatus,
             CurrentCheckpointKey = startResp.CurrentCheckpointKey,
+            CurrentTaskId = startResp.CurrentTaskId,
             CreatedByMemberId = actingMemberId,
             WorkBranch = request.WorkBranch,
         };
@@ -221,7 +227,8 @@ internal sealed class WorkItemsService(
                 ? new MemberRefDto(actingMemberId, "(unknown)")
                 : new MemberRefDto(actor.Id, actor.DisplayName),
             startResp.ExecutorState,
-            workItem.WorkBranch);
+            workItem.WorkBranch,
+            workItem.CurrentTaskId);
     }
 
     public async Task<WorkItemDto> UpdateAsync(
@@ -287,7 +294,8 @@ internal sealed class WorkItemsService(
                 ? new MemberRefDto(wi.CreatedByMemberId, "(unknown)")
                 : new MemberRefDto(createdBy.Id, createdBy.DisplayName),
             emptyState.RootElement.Clone(),
-            wi.WorkBranch);
+            wi.WorkBranch,
+            wi.CurrentTaskId);
     }
 
     public async Task CancelAsync(Guid projectId, Guid workItemId, Guid actingMemberId, CancellationToken ct)
