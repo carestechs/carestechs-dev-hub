@@ -10,4 +10,5 @@ public sealed class CheckpointContract : BaseEntity
     public required string DisplayName { get; set; }
     public required string RequiredRoleKey { get; set; }
     public required string AllowedOutcomesJson { get; set; }
+    public bool PerTask { get; set; }
 }
