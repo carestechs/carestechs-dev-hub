@@ -11,4 +11,11 @@ public interface IProjectLookup
     Task<ProjectLookupResult?> FindByIdAsync(Guid projectId, CancellationToken cancellationToken = default);
 }
 
-public sealed record ProjectLookupResult(Guid Id, string Name, string Slug, string ProjectType, Guid OwningTeamId);
+public sealed record ProjectLookupResult(
+    Guid Id,
+    string Name,
+    string Slug,
+    string ProjectType,
+    Guid OwningTeamId,
+    string? Repo = null,
+    string? DefaultBranch = null);

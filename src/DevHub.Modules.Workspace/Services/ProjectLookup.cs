@@ -15,10 +15,10 @@ internal sealed class ProjectLookup(WorkspaceDbContext db) : IProjectLookup
     {
         var row = await db.Projects.AsNoTracking()
             .Where(p => p.Id == projectId && p.DeletedAt == null)
-            .Select(p => new { p.Id, p.Name, p.Slug, p.ProjectType, p.OwningTeamId })
+            .Select(p => new { p.Id, p.Name, p.Slug, p.ProjectType, p.OwningTeamId, p.Repo, p.DefaultBranch })
             .FirstOrDefaultAsync(cancellationToken);
         return row is null
             ? null
-            : new ProjectLookupResult(row.Id, row.Name, row.Slug, row.ProjectType, row.OwningTeamId);
+            : new ProjectLookupResult(row.Id, row.Name, row.Slug, row.ProjectType, row.OwningTeamId, row.Repo, row.DefaultBranch);
     }
 }

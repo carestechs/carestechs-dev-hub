@@ -17,6 +17,7 @@ public interface IExecutorHttpClient
         ExecutorRegistrationDescriptor executor,
         string correlationMarker,
         JsonElement input,
+        CodeSourcePayload? codeSource,
         CancellationToken cancellationToken = default);
 
     Task<ExecutorFetchResponse> FetchStateAsync(

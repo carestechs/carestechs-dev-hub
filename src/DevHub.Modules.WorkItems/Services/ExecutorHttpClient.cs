@@ -13,10 +13,16 @@ internal sealed class ExecutorHttpClient(
     ILogger<ExecutorHttpClient> log) : IExecutorHttpClient
 {
     public async Task<ExecutorStartResponse> StartAsync(
-        ExecutorRegistrationDescriptor executor, string correlationMarker, JsonElement input, CancellationToken ct = default)
+        ExecutorRegistrationDescriptor executor, string correlationMarker, JsonElement input,
+        CodeSourcePayload? codeSource, CancellationToken ct = default)
     {
         using var req = NewRequest(HttpMethod.Post, executor, correlationMarker, "/work-items");
-        req.Content = JsonContent.Create(new { input, correlationMarker });
+        // Additive envelope: the existing { input, correlationMarker } body is byte-for-byte
+        // unchanged when codeSource is null, keeping AC-6 (and the FakeExecutor smoke tests)
+        // happy during the orchestrator's deprecation window.
+        req.Content = codeSource is null
+            ? JsonContent.Create(new { input, correlationMarker })
+            : JsonContent.Create(new { input, correlationMarker, intake = new { codeSource } });
         return await SendJsonAsync<ExecutorStartResponse>(executor, req, ct);
     }
 
