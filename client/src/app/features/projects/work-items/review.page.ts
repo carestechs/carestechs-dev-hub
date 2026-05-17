@@ -9,10 +9,11 @@ import type {
   WorkItemDto,
 } from '../../../core/api/work-items.types';
 import { WorkspaceService } from '../../../core/api/workspace.service';
-import type { ProjectDto } from '../../../core/api/workspace.types';
+import type { ProjectDto, ProjectMembershipDto } from '../../../core/api/workspace.types';
 import { AuthService } from '../../../core/auth/auth.service';
 import type { AppError } from '../../../core/errors/app-error';
 import { ActiveStepArtefactPanel } from './components/active-step-artefact-panel';
+import { AssignmentConfirmPanel, type AssignmentConfirmSubmit } from './components/assignment-confirm-panel';
 import { CheckpointActionBar, type SubmittedOutcome } from './components/checkpoint-action-bar';
 import { DecisionHistoryList } from './components/decision-history-list';
 import { LifecycleTimeline, type TimelineStep } from './components/lifecycle-timeline';
@@ -33,6 +34,7 @@ const TERMINAL_STATUSES = new Set(['Completed', 'Failed', 'Cancelled']);
     ActiveStepArtefactPanel,
     DecisionHistoryList,
     CheckpointActionBar,
+    AssignmentConfirmPanel,
     StreamFeed,
   ],
   templateUrl: './review.page.html',
@@ -56,6 +58,15 @@ export class ReviewPage {
 
   protected readonly submitting = signal<string | null>(null);
   protected readonly submitError = signal<AppError | null>(null);
+
+  // FEAT-009 / T-070: memberships fed to AssignmentConfirmPanel when the active contract
+  // is per-task + assignment-confirmed. Fetched lazily on contract resolution.
+  protected readonly memberships = signal<ProjectMembershipDto[]>([]);
+
+  protected readonly isAssignmentConfirmCheckpoint = computed(() => {
+    const c = this.contract();
+    return c !== null && c.perTask === true && c.checkpointKey === 'assignment-confirmed';
+  });
 
   // Build the timeline by merging executorState.steps with signals.
   protected readonly timeline = computed<TimelineStep[]>(() => {
@@ -146,6 +157,11 @@ export class ReviewPage {
         try {
           const contract = await this.workItems.getCheckpoint(project.id, workItemId, wi.currentCheckpointKey);
           this.contract.set(contract);
+          // Only fetch memberships when the per-task assignment panel will render — skip on
+          // every other checkpoint to keep the page snappy.
+          if (contract.perTask && contract.checkpointKey === 'assignment-confirmed') {
+            await this.loadMemberships(project.id);
+          }
         } catch {
           // Contract may not exist (404 if executor didn't declare it). The bar shows read-only.
         }
@@ -154,6 +170,16 @@ export class ReviewPage {
       this.classify(e);
     } finally {
       this.loading.set(false);
+    }
+  }
+
+  private async loadMemberships(projectId: string): Promise<void> {
+    try {
+      const rows = await this.ws.listMemberships(projectId);
+      this.memberships.set(rows);
+    } catch {
+      // Non-fatal — the panel falls back to free-text-only when the list is empty.
+      this.memberships.set([]);
     }
   }
 
@@ -180,6 +206,9 @@ export class ReviewPage {
       if (wi.currentCheckpointKey && wi.currentStatus === 'WaitingOnCheckpoint') {
         const contract = await this.workItems.getCheckpoint(projectId, workItemId, wi.currentCheckpointKey);
         this.contract.set(contract);
+        if (contract.perTask && contract.checkpointKey === 'assignment-confirmed' && this.memberships().length === 0) {
+          await this.loadMemberships(projectId);
+        }
       } else {
         this.contract.set(null);
       }
@@ -198,6 +227,26 @@ export class ReviewPage {
       await this.refetchOnly(p.id, wi.id);
     } catch (e: unknown) {
       this.submitError.set(toAppError(e, 'Could not submit signal'));
+    } finally {
+      this.submitting.set(null);
+    }
+  }
+
+  protected async onAssignmentSubmitted(action: AssignmentConfirmSubmit): Promise<void> {
+    const p = this.project();
+    const wi = this.workItem();
+    if (!p || !wi || !wi.currentCheckpointKey) return;
+    this.submitting.set(action.outcome);
+    this.submitError.set(null);
+    try {
+      const idem = newIdempotencyKey();
+      await this.workItems.signal(
+        p.id, wi.id, wi.currentCheckpointKey,
+        { outcome: action.outcome, payload: action.payload, taskId: action.taskId ?? undefined },
+        idem);
+      await this.refetchOnly(p.id, wi.id);
+    } catch (e: unknown) {
+      this.submitError.set(toAppError(e, 'Could not submit assignment'));
     } finally {
       this.submitting.set(null);
     }
