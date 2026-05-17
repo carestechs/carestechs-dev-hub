@@ -4,4 +4,5 @@ public sealed record CheckpointContractDescriptor(
     string CheckpointKey,
     string DisplayName,
     string RequiredRoleKey,
-    IReadOnlyList<string> AllowedOutcomes);
+    IReadOnlyList<string> AllowedOutcomes,
+    bool PerTask = false);

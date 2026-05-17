@@ -48,7 +48,7 @@ internal sealed class ExecutorRouter(
             e.CheckpointContracts.Select(Map).ToList());
 
     internal static CheckpointContractDescriptor Map(CheckpointContract c) =>
-        new(c.CheckpointKey, c.DisplayName, c.RequiredRoleKey, ParseOutcomes(c.AllowedOutcomesJson));
+        new(c.CheckpointKey, c.DisplayName, c.RequiredRoleKey, ParseOutcomes(c.AllowedOutcomesJson), c.PerTask);
 
     internal static IReadOnlyList<string> ParseOutcomes(string json)
     {

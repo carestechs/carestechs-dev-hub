@@ -101,6 +101,7 @@ internal sealed class ExecutorRegistrationService(
                 DisplayName = c.DisplayName,
                 RequiredRoleKey = c.RequiredRoleKey,
                 AllowedOutcomesJson = JsonSerializer.Serialize(c.AllowedOutcomes),
+                PerTask = c.PerTask,
             });
         }
         db.Executors.Add(entry);
@@ -178,6 +179,7 @@ internal sealed class ExecutorRegistrationService(
                 DisplayName = c.DisplayName,
                 RequiredRoleKey = c.RequiredRoleKey,
                 AllowedOutcomesJson = JsonSerializer.Serialize(c.AllowedOutcomes),
+                PerTask = c.PerTask,
             });
         }
 
@@ -219,6 +221,6 @@ internal sealed class ExecutorRegistrationService(
     private static ExecutorDto MapDto(ExecutorRegistration e) =>
         new(e.Id, e.Key, e.DisplayName, e.BaseUrl, e.CredentialsRef, e.Status,
             e.CheckpointContracts.Select(c => new CheckpointContractDto(
-                c.CheckpointKey, c.DisplayName, c.RequiredRoleKey, ExecutorRouter.ParseOutcomes(c.AllowedOutcomesJson))).ToList(),
+                c.CheckpointKey, c.DisplayName, c.RequiredRoleKey, ExecutorRouter.ParseOutcomes(c.AllowedOutcomesJson), c.PerTask)).ToList(),
             e.CreatedAt);
 }

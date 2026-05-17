@@ -381,11 +381,14 @@ Accepts any subset of `{ name, description, projectType, repo, defaultBranch }`.
       "checkpointKey": "string",
       "displayName": "string",
       "requiredRoleKey": "string — matches Role.key",
-      "allowedOutcomes": ["approve", "reject", "revise"]
+      "allowedOutcomes": ["approve", "reject", "revise"],
+      "perTask": false
     }
   ]
 }
 ```
+
+The `perTask` flag (FEAT-009; optional, defaults to `false`) opts the contract into per-task pending-row identity: DevHub keys `PendingActionSignal` rows by `(member, work_item, checkpoint, task_id)` rather than `(member, work_item, checkpoint)`. The executor advances `WorkItem.CurrentTaskId` between pauses; DevHub raises a distinct row per task discriminator. `assignment-confirmed` is the first user.
 
 | Code | Condition |
 |------|-----------|
@@ -398,6 +401,8 @@ Accepts any subset of `{ name, description, projectType, repo, defaultBranch }`.
 ##### PATCH /api/admin/executors/{id} (status, displayName, baseUrl, credentialsRef)
 
 ##### POST /api/admin/executors/{id}/checkpoint-contracts (append or replace)
+
+Atomically replaces the entire checkpoint-contracts set for the executor — operators must include `perTask` on every contract they want it on; there's no per-key PATCH.
 
 ##### DELETE /api/admin/executors/{id} (soft, must have no Active bindings)
 
@@ -734,6 +739,7 @@ Query: `page`, `pageSize`, `sortBy` (default `occurredAt`), `sortDir` (default `
 | displayName | string | No | |
 | requiredRoleKey | string | No | |
 | allowedOutcomes | string[] | No | |
+| perTask | boolean | No | When `true`, DevHub raises per-task pending rows (FEAT-009). Defaults to `false`. |
 
 ### WorkItemSummaryDto
 
@@ -857,3 +863,4 @@ Standard RFC 7807 fields (`type`, `title`, `status`, `detail`, `instance`) plus 
 - **2026-05-17 (FEAT-008 / T-057)** — `ProjectDto`, `CreateProjectRequest`, `UpdateProjectRequest` gained optional `repo` (max 140) and `defaultBranch` (max 200). Boundary validation parity with the upstream orchestrator's `intake.codeSource` schema; rejected values produce `400` with no DB write and a `Denied` audit entry. Update audit captures before/after for both fields when they change.
 - **2026-05-17 (FEAT-008 / T-058)** — `StartWorkItemRequest`, `WorkItemDto`, `WorkItemSummaryDto` gained optional `workBranch` (max 200). New `PATCH /api/projects/{pid}/work-items/{wid}` endpoint (operator-only) scoped to `workBranch` updates in v1; `null` = leave unchanged, `""` = clear the override, otherwise validate + persist. Branch edits do **not** re-forward to the executor — the value is captured at start time only. `workitem:update` audit details carry before/after.
 - **2026-05-17 (FEAT-009 / T-065)** — `ExecutorStartResponse`, `ExecutorFetchResponse`, `ExecutorSignalResponse` gained optional `currentTaskId`; cached on `WorkItem.CurrentTaskId` on every transition. `WorkItemDto` + `WorkItemSummaryDto` carry `currentTaskId`. `IWorkItemLookup.WorkItemLookupResult` also carries it for the Notifications reconciler. Backwards-compatible: defaults to `null` when the executor's response omits the field.
+- **2026-05-17 (FEAT-009 / T-066)** — `CreateCheckpointContractRequest` and `CheckpointContractDto` gained optional `perTask` boolean (defaults to `false`). `POST /api/admin/executors/{id}/checkpoint-contracts` replace-semantics: operators must include `perTask` on every contract they want it on; there's no per-key PATCH. The cross-module `CheckpointContractDescriptor` exposes the flag so the Notifications reconciler (T-067) can key per-task pending rows.
