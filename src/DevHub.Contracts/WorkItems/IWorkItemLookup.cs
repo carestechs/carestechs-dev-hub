@@ -19,4 +19,5 @@ public sealed record WorkItemLookupResult(
     Guid ExecutorId,
     string CurrentStatus,
     string? CurrentCheckpointKey,
-    string Title);
+    string Title,
+    string? CurrentTaskId = null);

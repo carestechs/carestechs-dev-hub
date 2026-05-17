@@ -16,7 +16,8 @@ public sealed record WorkItemSummaryDto(
     string ExecutorCorrelationMarker,
     DateTimeOffset CreatedAt,
     MemberRefDto CreatedBy,
-    string? WorkBranch);
+    string? WorkBranch,
+    string? CurrentTaskId = null);
 
 public sealed record WorkItemDto(
     Guid Id,
@@ -29,7 +30,8 @@ public sealed record WorkItemDto(
     DateTimeOffset CreatedAt,
     MemberRefDto CreatedBy,
     JsonElement ExecutorState,
-    string? WorkBranch);
+    string? WorkBranch,
+    string? CurrentTaskId = null);
 
 public sealed record CheckpointSignalDto(
     Guid Id,

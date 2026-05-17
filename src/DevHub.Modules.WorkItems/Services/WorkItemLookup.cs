@@ -11,7 +11,7 @@ internal sealed class WorkItemLookup(WorkItemsDbContext db) : IWorkItemLookup
             .Where(w => w.Id == workItemId)
             .Select(w => new WorkItemLookupResult(
                 w.Id, w.ProjectId, w.ExecutorId,
-                w.CurrentStatus, w.CurrentCheckpointKey, w.Title))
+                w.CurrentStatus, w.CurrentCheckpointKey, w.Title, w.CurrentTaskId))
             .FirstOrDefaultAsync(cancellationToken);
     }
 

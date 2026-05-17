@@ -535,7 +535,8 @@ The branch value forwarded to the executor was captured at start time and is **n
     "createdAt": "iso-8601",
     "createdBy": { "id": "uuid", "displayName": "string" },
     "executorState": { "any": "executor-shaped — opaque to DevHub" },
-    "workBranch": "string | null — optional per-work-item branch override (FEAT-008)"
+    "workBranch": "string | null — optional per-work-item branch override (FEAT-008)",
+    "currentTaskId": "string | null — the executor's current task identifier when the active contract is per-task (FEAT-009)"
   }
 }
 ```
@@ -748,6 +749,7 @@ Query: `page`, `pageSize`, `sortBy` (default `occurredAt`), `sortDir` (default `
 | updatedAt | iso-8601 | No | |
 | waitingOnMe | boolean | No | True if the caller has a `PendingActionSignal` on this item |
 | workBranch | string | Yes | Per-work-item override of the project's `defaultBranch` (FEAT-008). Forwarded to the executor as `intake.codeSource.workBranch` on start. |
+| currentTaskId | string | Yes | The executor's current task identifier when the active checkpoint is `per_task=true` (FEAT-009). Cached on every transition; the executor's memory is authoritative. |
 
 ### WorkItemDto
 
@@ -854,3 +856,4 @@ Standard RFC 7807 fields (`type`, `title`, `status`, `detail`, `instance`) plus 
 - **2026-05-15** — Initial API specification. Defines the façade surface (auth, workspace CRUD, executor registry, work-items + checkpoints + streams, audit, notifications), the `{ data, meta }` envelope, RFC 7807 errors, JWT auth, project-scoped authorization rules, and the SSE pass-through pattern.
 - **2026-05-17 (FEAT-008 / T-057)** — `ProjectDto`, `CreateProjectRequest`, `UpdateProjectRequest` gained optional `repo` (max 140) and `defaultBranch` (max 200). Boundary validation parity with the upstream orchestrator's `intake.codeSource` schema; rejected values produce `400` with no DB write and a `Denied` audit entry. Update audit captures before/after for both fields when they change.
 - **2026-05-17 (FEAT-008 / T-058)** — `StartWorkItemRequest`, `WorkItemDto`, `WorkItemSummaryDto` gained optional `workBranch` (max 200). New `PATCH /api/projects/{pid}/work-items/{wid}` endpoint (operator-only) scoped to `workBranch` updates in v1; `null` = leave unchanged, `""` = clear the override, otherwise validate + persist. Branch edits do **not** re-forward to the executor — the value is captured at start time only. `workitem:update` audit details carry before/after.
+- **2026-05-17 (FEAT-009 / T-065)** — `ExecutorStartResponse`, `ExecutorFetchResponse`, `ExecutorSignalResponse` gained optional `currentTaskId`; cached on `WorkItem.CurrentTaskId` on every transition. `WorkItemDto` + `WorkItemSummaryDto` carry `currentTaskId`. `IWorkItemLookup.WorkItemLookupResult` also carries it for the Notifications reconciler. Backwards-compatible: defaults to `null` when the executor's response omits the field.

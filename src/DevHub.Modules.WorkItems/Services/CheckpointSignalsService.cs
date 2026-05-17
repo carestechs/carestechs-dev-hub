@@ -107,6 +107,7 @@ internal sealed class CheckpointSignalsService(
         // Refresh the cache.
         wi.CurrentStatus = signalResp.CurrentStatus;
         wi.CurrentCheckpointKey = signalResp.CurrentCheckpointKey;
+        wi.CurrentTaskId = signalResp.CurrentTaskId;
 
         await audit.WriteAsync(new AuditWriteRequest("CheckpointSignal", signal.Id, "checkpoint:signal", AuditOutcome.Granted)
         {
@@ -138,7 +139,8 @@ internal sealed class CheckpointSignalsService(
                 ? new MemberRefDto(wi.CreatedByMemberId, "(unknown)")
                 : new MemberRefDto(createdBy.Id, createdBy.DisplayName),
             signalResp.ExecutorState,
-            wi.WorkBranch);
+            wi.WorkBranch,
+            wi.CurrentTaskId);
     }
 
     public async Task<PagedEnvelopeDto<CheckpointSignalDto>> ListSignalsAsync(
