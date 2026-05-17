@@ -46,6 +46,14 @@ public sealed class WorkItemsController(
         return CreatedAtAction(nameof(Get), new { projectId, id = dto.Id }, new EnvelopeDto<WorkItemDto>(dto));
     }
 
+    [HttpPatch("{id:guid}")]
+    public async Task<IActionResult> Update(
+        Guid projectId,
+        Guid id,
+        [FromBody] UpdateWorkItemRequest req,
+        CancellationToken ct) =>
+        Ok(new EnvelopeDto<WorkItemDto>(await svc.UpdateAsync(projectId, id, req, me.MemberId, ct)));
+
     [HttpPost("{id:guid}/cancel")]
     public async Task<IActionResult> Cancel(Guid projectId, Guid id, CancellationToken ct)
     {

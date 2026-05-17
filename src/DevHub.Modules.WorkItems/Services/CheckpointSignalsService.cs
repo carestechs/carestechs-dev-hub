@@ -137,7 +137,8 @@ internal sealed class CheckpointSignalsService(
             createdBy is null
                 ? new MemberRefDto(wi.CreatedByMemberId, "(unknown)")
                 : new MemberRefDto(createdBy.Id, createdBy.DisplayName),
-            signalResp.ExecutorState);
+            signalResp.ExecutorState,
+            wi.WorkBranch);
     }
 
     public async Task<PagedEnvelopeDto<CheckpointSignalDto>> ListSignalsAsync(

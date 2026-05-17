@@ -460,19 +460,56 @@ Query: `page`, `pageSize`, `sortBy` ∈ {`createdAt`, `updatedAt`, `title`}, `so
 ```json
 {
   "title": "string",
-  "input": { "any": "executor-shaped payload" }
+  "input": { "any": "executor-shaped payload" },
+  "workBranch": "string — optional, per-work-item override of the project's default branch (FEAT-008)"
 }
 ```
 
-**Response (201 Created):** envelope with `data: WorkItemDto`.
+`workBranch`, when set, is forwarded to the executor as `intake.codeSource.workBranch` (T-059) and stored on the WorkItem row. Validated at the boundary against the same branch-shorthand rules as `defaultBranch` (no whitespace, no leading `/`, no `..`, no control chars).
+
+**Response (201 Created):** envelope with `data: WorkItemDto`. `WorkItemDto.workBranch` echoes whatever was persisted (`null` when not set on the request).
 
 | Code | Condition |
 |------|-----------|
 | 201 | Created |
-| 400 | Validation error |
+| 400 | Validation error (includes `workBranch` rule violations) |
 | 403 | Authorization failed |
 | 409 | Project not bound to any executor |
 | 502 | Executor refused or unreachable (problem-detail includes executor id + correlationId) |
+
+##### PATCH /api/projects/{projectId}/work-items/{workItemId}
+
+> *Update a work item. v1 surface is intentionally minimal: only `workBranch` is updatable. The slot exists for later FEATs (e.g. PR linkage callbacks) without further schema migration.*
+
+| Attribute | Value |
+|-----------|-------|
+| **Auth** | Required |
+| **Roles** | System:operator |
+
+**Request Body:**
+
+```json
+{
+  "workBranch": "string | null | empty string"
+}
+```
+
+Semantics:
+- `null` (or property omitted) → leave the existing value unchanged.
+- `""` (empty string) → clear the override; the work item falls back to the project's `defaultBranch` at display time.
+- Any other string → validated and persisted.
+
+The branch value forwarded to the executor was captured at start time and is **not re-forwarded** by this endpoint — an in-flight run does not learn about a branch edit. The audit entry (`workitem:update`, `Granted`) carries `workBranchBefore` / `workBranchAfter` in `details` when the value actually changes.
+
+**Response (200 OK):** envelope with `data: WorkItemDto`. `ExecutorState` is `null` in this response (no executor refetch; call GET to refresh).
+
+| Code | Condition |
+|------|-----------|
+| 200 | Updated (or no-op when `workBranch` matches existing) |
+| 400 | Validation error |
+| 403 | Authorization failed (non-operator) |
+| 404 | Work item not found |
+| 409 | Project has no executor bound (descriptor needed to build the response) |
 
 ##### GET /api/projects/{projectId}/work-items/{workItemId}
 
@@ -497,7 +534,8 @@ Query: `page`, `pageSize`, `sortBy` ∈ {`createdAt`, `updatedAt`, `title`}, `so
     "currentCheckpointKey": "string|null",
     "createdAt": "iso-8601",
     "createdBy": { "id": "uuid", "displayName": "string" },
-    "executorState": { "any": "executor-shaped — opaque to DevHub" }
+    "executorState": { "any": "executor-shaped — opaque to DevHub" },
+    "workBranch": "string | null — optional per-work-item branch override (FEAT-008)"
   }
 }
 ```
@@ -709,10 +747,11 @@ Query: `page`, `pageSize`, `sortBy` (default `occurredAt`), `sortDir` (default `
 | createdAt | iso-8601 | No | |
 | updatedAt | iso-8601 | No | |
 | waitingOnMe | boolean | No | True if the caller has a `PendingActionSignal` on this item |
+| workBranch | string | Yes | Per-work-item override of the project's `defaultBranch` (FEAT-008). Forwarded to the executor as `intake.codeSource.workBranch` on start. |
 
 ### WorkItemDto
 
-Extends `WorkItemSummaryDto` with `executorState: object` (opaque) and `signals: CheckpointSignalDto[]` (last N, default 20).
+Extends `WorkItemSummaryDto` with `executorState: object` (opaque) and `signals: CheckpointSignalDto[]` (last N, default 20). Carries the same `workBranch` field.
 
 ### CheckpointSignalDto
 
@@ -786,6 +825,7 @@ Standard RFC 7807 fields (`type`, `title`, `status`, `detail`, `instance`) plus 
 | DELETE | /api/admin/executor-bindings/{id} | ExecutorRegistry | System:operator | Unbind |
 | GET | /api/projects/{id}/work-items | WorkItems | Project:any | List work items |
 | POST | /api/projects/{id}/work-items | WorkItems | Project:<startRole> | Start a new work item |
+| PATCH | /api/projects/{id}/work-items/{wid} | WorkItems | System:operator | Update work item (v1: `workBranch` only) |
 | GET | /api/projects/{id}/work-items/{wid} | WorkItems | Project:any | Read work item |
 | GET | /api/projects/{id}/work-items/{wid}/checkpoints/{key} | WorkItems | Project:any | Read checkpoint |
 | POST | /api/projects/{id}/work-items/{wid}/checkpoints/{key}/signal | WorkItems | Project:<contractRole> | Signal a checkpoint |
@@ -813,3 +853,4 @@ Standard RFC 7807 fields (`type`, `title`, `status`, `detail`, `instance`) plus 
 
 - **2026-05-15** — Initial API specification. Defines the façade surface (auth, workspace CRUD, executor registry, work-items + checkpoints + streams, audit, notifications), the `{ data, meta }` envelope, RFC 7807 errors, JWT auth, project-scoped authorization rules, and the SSE pass-through pattern.
 - **2026-05-17 (FEAT-008 / T-057)** — `ProjectDto`, `CreateProjectRequest`, `UpdateProjectRequest` gained optional `repo` (max 140) and `defaultBranch` (max 200). Boundary validation parity with the upstream orchestrator's `intake.codeSource` schema; rejected values produce `400` with no DB write and a `Denied` audit entry. Update audit captures before/after for both fields when they change.
+- **2026-05-17 (FEAT-008 / T-058)** — `StartWorkItemRequest`, `WorkItemDto`, `WorkItemSummaryDto` gained optional `workBranch` (max 200). New `PATCH /api/projects/{pid}/work-items/{wid}` endpoint (operator-only) scoped to `workBranch` updates in v1; `null` = leave unchanged, `""` = clear the override, otherwise validate + persist. Branch edits do **not** re-forward to the executor — the value is captured at start time only. `workitem:update` audit details carry before/after.

@@ -6,6 +6,7 @@ using DevHub.Contracts.Executors;
 using DevHub.Contracts.Identity;
 using DevHub.Contracts.Notifications;
 using DevHub.Contracts.Pagination;
+using DevHub.Contracts.Validation;
 using DevHub.Contracts.Workspace;
 using DevHub.Modules.WorkItems.DTOs;
 using DevHub.Modules.WorkItems.Entities;
@@ -73,7 +74,8 @@ internal sealed class WorkItemsService(
             r.Id, r.ProjectId, r.Title, r.CurrentStatus, r.CurrentCheckpointKey,
             executorRef ?? new ExecutorRefDto(r.ExecutorId, "executor", "Executor"),
             r.ExecutorCorrelationMarker, r.CreatedAt,
-            memberNames[r.CreatedByMemberId])).ToList();
+            memberNames[r.CreatedByMemberId],
+            r.WorkBranch)).ToList();
 
         return new PagedEnvelopeDto<WorkItemSummaryDto>(dtos,
             new PageMeta(totalCount, page.Page, page.PageSize, page.SortBy, page.SortDir));
@@ -110,7 +112,8 @@ internal sealed class WorkItemsService(
             createdBy is null
                 ? new MemberRefDto(wi.CreatedByMemberId, "(unknown)")
                 : new MemberRefDto(createdBy.Id, createdBy.DisplayName),
-            resp.ExecutorState);
+            resp.ExecutorState,
+            wi.WorkBranch);
     }
 
     public async Task<WorkItemDto> StartAsync(
@@ -127,6 +130,11 @@ internal sealed class WorkItemsService(
         var requiredRole = startContract?.RequiredRoleKey ?? "operator";
 
         await authz.EnsureAuthorizedAsync(actingMemberId, projectId, "workitem:start", requiredRole, ct);
+
+        // Boundary validation for the optional per-work-item branch override.
+        // Empty string is rejected at start time (operators clear via PATCH instead).
+        if (request.WorkBranch is not null)
+            CodeSourceValidator.ValidateBranch(request.WorkBranch, fieldName: "workBranch");
 
         await using var tx = await db.Database.BeginTransactionAsync(ct);
 
@@ -159,6 +167,7 @@ internal sealed class WorkItemsService(
             CurrentStatus = startResp.CurrentStatus,
             CurrentCheckpointKey = startResp.CurrentCheckpointKey,
             CreatedByMemberId = actingMemberId,
+            WorkBranch = request.WorkBranch,
         };
         db.WorkItems.Add(workItem);
 
@@ -190,7 +199,70 @@ internal sealed class WorkItemsService(
             actor is null
                 ? new MemberRefDto(actingMemberId, "(unknown)")
                 : new MemberRefDto(actor.Id, actor.DisplayName),
-            startResp.ExecutorState);
+            startResp.ExecutorState,
+            workItem.WorkBranch);
+    }
+
+    public async Task<WorkItemDto> UpdateAsync(
+        Guid projectId, Guid workItemId, UpdateWorkItemRequest request, Guid actingMemberId, CancellationToken ct)
+    {
+        // v1: operator-only. Future FEATs may relax to project members with the
+        // bound 'update' role, but the workitem:update authz key only needs to
+        // exist as a string today — EnsureOperatorAsync covers it.
+        await authz.EnsureOperatorAsync(actingMemberId, "workitem:update", ct);
+
+        // Validate non-null, non-empty values. Empty string means "clear" (handled below).
+        if (!string.IsNullOrEmpty(request.WorkBranch))
+            CodeSourceValidator.ValidateBranch(request.WorkBranch, fieldName: "workBranch");
+
+        await using var tx = await db.Database.BeginTransactionAsync(ct);
+
+        var wi = await db.WorkItems.FirstOrDefaultAsync(w => w.Id == workItemId && w.ProjectId == projectId, ct)
+            ?? throw new NotFoundException("Work item not found.");
+
+        var before = wi.WorkBranch;
+        // null = leave unchanged, "" = clear, otherwise = set.
+        wi.WorkBranch = request.WorkBranch switch
+        {
+            null => wi.WorkBranch,
+            "" => null,
+            _ => request.WorkBranch,
+        };
+
+        var details = new Dictionary<string, object?>();
+        if (before != wi.WorkBranch)
+        {
+            details["workBranchBefore"] = before;
+            details["workBranchAfter"] = wi.WorkBranch;
+        }
+
+        if (details.Count > 0)
+        {
+            await audit.WriteAsync(new AuditWriteRequest("WorkItem", wi.Id, "workitem:update", AuditOutcome.Granted)
+            {
+                ActingMemberId = actingMemberId,
+                ProjectId = projectId,
+                Details = details,
+            }, ct);
+        }
+
+        await db.SaveChangesAsync(ct);
+        await tx.CommitAsync(ct);
+
+        // The work item's branch change does not affect any in-flight executor run;
+        // the value was forwarded at start time and the executor doesn't refetch.
+        var descriptor = await router.ResolveAsync(projectId, ct)
+            ?? throw new ConflictException("Project has no executor bound.");
+        var createdBy = await members.FindByIdAsync(wi.CreatedByMemberId, ct);
+        return new WorkItemDto(
+            wi.Id, wi.ProjectId, wi.Title, wi.CurrentStatus, wi.CurrentCheckpointKey,
+            new ExecutorRefDto(descriptor.Id, descriptor.Key, descriptor.DisplayName),
+            wi.ExecutorCorrelationMarker, wi.CreatedAt,
+            createdBy is null
+                ? new MemberRefDto(wi.CreatedByMemberId, "(unknown)")
+                : new MemberRefDto(createdBy.Id, createdBy.DisplayName),
+            default,  // ExecutorState — not refetched on update; clients call GET to refresh
+            wi.WorkBranch);
     }
 
     public async Task CancelAsync(Guid projectId, Guid workItemId, Guid actingMemberId, CancellationToken ct)

@@ -12,6 +12,8 @@ public interface IWorkItemsService
 
     Task<WorkItemDto> StartAsync(Guid projectId, StartWorkItemRequest request, Guid actingMemberId, CancellationToken ct);
 
+    Task<WorkItemDto> UpdateAsync(Guid projectId, Guid workItemId, UpdateWorkItemRequest request, Guid actingMemberId, CancellationToken ct);
+
     Task CancelAsync(Guid projectId, Guid workItemId, Guid actingMemberId, CancellationToken ct);
 }
 

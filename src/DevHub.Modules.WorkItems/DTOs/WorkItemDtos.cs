@@ -15,7 +15,8 @@ public sealed record WorkItemSummaryDto(
     ExecutorRefDto Executor,
     string ExecutorCorrelationMarker,
     DateTimeOffset CreatedAt,
-    MemberRefDto CreatedBy);
+    MemberRefDto CreatedBy,
+    string? WorkBranch);
 
 public sealed record WorkItemDto(
     Guid Id,
@@ -27,7 +28,8 @@ public sealed record WorkItemDto(
     string ExecutorCorrelationMarker,
     DateTimeOffset CreatedAt,
     MemberRefDto CreatedBy,
-    JsonElement ExecutorState);
+    JsonElement ExecutorState,
+    string? WorkBranch);
 
 public sealed record CheckpointSignalDto(
     Guid Id,
@@ -44,6 +46,20 @@ public sealed class StartWorkItemRequest
     public string Title { get; init; } = string.Empty;
 
     public JsonElement Input { get; init; }
+
+    [MaxLength(200)]
+    public string? WorkBranch { get; init; }
+}
+
+public sealed record UpdateWorkItemRequest
+{
+    /// <summary>
+    /// null = leave unchanged. Empty string ("") = clear the override (fall back
+    /// to the project's default branch). Any other non-null value is validated
+    /// against the branch-shorthand rules and persisted.
+    /// </summary>
+    [MaxLength(200)]
+    public string? WorkBranch { get; init; }
 }
 
 public sealed class SignalRequest
