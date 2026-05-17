@@ -5,9 +5,11 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { WorkItemsService } from '../../core/api/work-items.service';
 import type { StartWorkItemRequest, WorkItemSummaryDto } from '../../core/api/work-items.types';
 import { WorkspaceService } from '../../core/api/workspace.service';
-import type { PageMeta, PageRequest, ProjectDto } from '../../core/api/workspace.types';
+import type { PageMeta, PageRequest, ProjectDto, UpdateProjectRequest } from '../../core/api/workspace.types';
+import { AuthService } from '../../core/auth/auth.service';
 import type { AppError } from '../../core/errors/app-error';
 import { AppButton } from '../../shared';
+import { CodeSourceEditModal } from './code-source-edit.modal';
 import { StartWorkModal } from './work-items/start-work.modal';
 
 type ErrorKind = 'forbidden' | 'not-found' | 'other';
@@ -20,15 +22,18 @@ const STATUS_FILTERS: readonly StatusFilter[] = [
 @Component({
   selector: 'project-home-page',
   standalone: true,
-  imports: [RouterLink, AppButton, StartWorkModal],
+  imports: [RouterLink, AppButton, CodeSourceEditModal, StartWorkModal],
   templateUrl: './project-home.page.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ProjectHomePage {
   private readonly ws = inject(WorkspaceService);
   private readonly workItems = inject(WorkItemsService);
+  private readonly auth = inject(AuthService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+
+  protected readonly isOperator = this.auth.isOperator;
 
   protected readonly loading = signal(true);
   protected readonly project = signal<ProjectDto | null>(null);
@@ -51,6 +56,11 @@ export class ProjectHomePage {
   protected readonly modalOpen = signal(false);
   protected readonly modalWorking = signal(false);
   protected readonly modalError = signal<AppError | null>(null);
+
+  // Code-source edit modal state (operator-only).
+  protected readonly codeSourceOpen = signal(false);
+  protected readonly codeSourceSaving = signal(false);
+  protected readonly codeSourceError = signal<AppError | null>(null);
 
   constructor() {
     this.route.paramMap.pipe(takeUntilDestroyed()).subscribe(async params => {
@@ -156,6 +166,36 @@ export class ProjectHomePage {
       this.modalError.set(toAppError(e, 'Could not start work'));
     } finally {
       this.modalWorking.set(false);
+    }
+  }
+
+  protected openCodeSourceEdit(): void {
+    if (!this.isOperator()) return;
+    this.codeSourceError.set(null);
+    this.codeSourceOpen.set(true);
+  }
+  protected onCodeSourceCancelled(): void {
+    if (this.codeSourceSaving()) return;
+    this.codeSourceOpen.set(false);
+  }
+  protected async onCodeSourceSubmitted(req: UpdateProjectRequest): Promise<void> {
+    const p = this.project();
+    if (!p) return;
+    // No-op submit (no fields changed) — just close.
+    if (req.repo === undefined && req.defaultBranch === undefined) {
+      this.codeSourceOpen.set(false);
+      return;
+    }
+    this.codeSourceSaving.set(true);
+    this.codeSourceError.set(null);
+    try {
+      const updated = await this.ws.updateProject(p.id, req);
+      this.project.set(updated);
+      this.codeSourceOpen.set(false);
+    } catch (e: unknown) {
+      this.codeSourceError.set(toAppError(e, 'Could not update code source'));
+    } finally {
+      this.codeSourceSaving.set(false);
     }
   }
 
