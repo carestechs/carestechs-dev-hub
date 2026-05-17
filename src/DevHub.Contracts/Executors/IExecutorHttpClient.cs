@@ -31,6 +31,7 @@ public interface IExecutorHttpClient
         string checkpointKey,
         string outcome,
         JsonElement? payload,
+        string? taskId,
         CancellationToken cancellationToken = default);
 
     Task<ExecutorStreamConnection> OpenStreamAsync(

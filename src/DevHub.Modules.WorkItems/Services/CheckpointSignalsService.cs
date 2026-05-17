@@ -46,6 +46,23 @@ internal sealed class CheckpointSignalsService(
             });
         }
 
+        // FEAT-009 / T-068: assignment-confirmed (the first per-task checkpoint) requires a
+        // non-empty payload.assignee at the DevHub boundary. The executor's idempotency hash
+        // is (run_id, "assignment-confirmed", task_id) and treats assignee as opaque — but
+        // an empty assignee would slip through to the executor and produce a useless audit
+        // trail. Reject at the boundary before the executor call.
+        var assignee = ExtractAssignee(request.Payload);
+        if (contract.PerTask && checkpointKey == "assignment-confirmed" && string.IsNullOrWhiteSpace(assignee))
+        {
+            throw new ValidationException(new Dictionary<string, string[]>
+            {
+                ["payload.assignee"] = new[]
+                {
+                    "payload.assignee must be a non-empty string for assignment-confirmed signals.",
+                },
+            });
+        }
+
         await using var tx = await db.Database.BeginTransactionAsync(ct);
 
         // Idempotency replay.
@@ -84,7 +101,7 @@ internal sealed class CheckpointSignalsService(
         try
         {
             signalResp = await executorClient.SignalAsync(
-                descriptor, wi.ExecutorCorrelationMarker, checkpointKey, request.Outcome, request.Payload, ct);
+                descriptor, wi.ExecutorCorrelationMarker, checkpointKey, request.Outcome, request.Payload, request.TaskId, ct);
         }
         catch (ExecutorFailureException ex)
         {
@@ -121,6 +138,8 @@ internal sealed class CheckpointSignalsService(
                 ["outcome"] = request.Outcome,
                 ["idempotencyKey"] = idempotencyKey,
                 ["executorResponseStatus"] = signalResp.HttpStatus,
+                ["taskId"] = request.TaskId,
+                ["assignee"] = assignee,
             },
         }, ct);
 
@@ -181,5 +200,20 @@ internal sealed class CheckpointSignalsService(
 
         return new PagedEnvelopeDto<CheckpointSignalDto>(dtos,
             new PageMeta(totalCount, page.Page, page.PageSize, page.SortBy, page.SortDir));
+    }
+
+    /// <summary>
+    /// Reads <c>payload.assignee</c> from the signal's payload as a string. Returns null
+    /// when the payload is absent, isn't an object, doesn't carry an <c>assignee</c> key,
+    /// or carries a non-string value. The boundary guard in <see cref="SignalAsync"/>
+    /// checks for non-empty; this method is shape-only.
+    /// </summary>
+    private static string? ExtractAssignee(JsonElement? payload)
+    {
+        if (payload is null) return null;
+        var p = payload.Value;
+        if (p.ValueKind != JsonValueKind.Object) return null;
+        if (!p.TryGetProperty("assignee", out var a)) return null;
+        return a.ValueKind == JsonValueKind.String ? a.GetString() : null;
     }
 }

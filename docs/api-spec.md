@@ -571,20 +571,25 @@ The branch value forwarded to the executor was captured at start time and is **n
 ```json
 {
   "outcome": "string — must be in the contract's allowedOutcomes",
-  "payload": { "any": "contract-shaped" }
+  "payload": { "any": "contract-shaped" },
+  "taskId": "string — optional; required by the executor when the active contract is per-task (FEAT-009). Forwarded verbatim; omitted from the executor body when null."
 }
 ```
+
+**`assignment-confirmed` boundary validation (FEAT-009):** when the active contract has `perTask=true` AND `checkpointKey === "assignment-confirmed"`, DevHub requires `payload.assignee` to be a non-empty string. Rejected values produce `400` with `errors.payload.assignee` populated and no executor call.
 
 **Response (200 OK):** envelope with `data: WorkItemDto` (updated).
 
 | Code | Condition |
 |------|-----------|
 | 200 | Forwarded; executor accepted |
-| 400 | Outcome not in `allowedOutcomes`; payload schema mismatch |
+| 400 | Outcome not in `allowedOutcomes`; payload schema mismatch; missing `payload.assignee` on assignment-confirmed |
 | 403 | Member is not on the project OR does not hold the required role |
 | 404 | Work item / checkpoint not found |
 | 409 | Checkpoint is not currently waiting (already resolved) |
 | 502 | Executor failure (problem-detail includes executor id + correlationId) |
+
+The `workitem:signal` audit row's `details` includes both `taskId` (when set) and `assignee` (when extracted from the payload).
 
 ##### GET /api/projects/{projectId}/work-items/{workItemId}/signals
 
@@ -866,3 +871,4 @@ Standard RFC 7807 fields (`type`, `title`, `status`, `detail`, `instance`) plus 
 - **2026-05-17 (FEAT-009 / T-065)** — `ExecutorStartResponse`, `ExecutorFetchResponse`, `ExecutorSignalResponse` gained optional `currentTaskId`; cached on `WorkItem.CurrentTaskId` on every transition. `WorkItemDto` + `WorkItemSummaryDto` carry `currentTaskId`. `IWorkItemLookup.WorkItemLookupResult` also carries it for the Notifications reconciler. Backwards-compatible: defaults to `null` when the executor's response omits the field.
 - **2026-05-17 (FEAT-009 / T-066)** — `CreateCheckpointContractRequest` and `CheckpointContractDto` gained optional `perTask` boolean (defaults to `false`). `POST /api/admin/executors/{id}/checkpoint-contracts` replace-semantics: operators must include `perTask` on every contract they want it on; there's no per-key PATCH. The cross-module `CheckpointContractDescriptor` exposes the flag so the Notifications reconciler (T-067) can key per-task pending rows.
 - **2026-05-17 (FEAT-009 / T-067)** — `PendingActionDto` + the SSE `PendingActionEvent` payload gained optional `taskId`. The reconciler keys per-task pending rows when the active contract has `perTask=true` (loop-back semantics: T-001 row dismissed, T-002 row raised when the executor advances `currentTaskId`); otherwise behavior is byte-for-byte unchanged.
+- **2026-05-17 (FEAT-009 / T-068)** — `SignalRequest` gained optional `taskId`, forwarded verbatim to the executor (omitted from the body when null). `assignment-confirmed` contracts (`perTask=true` + `checkpointKey="assignment-confirmed"`) require a non-empty `payload.assignee` at the DevHub boundary; rejected values produce `400` with no executor call. Audit details carry both `taskId` and `assignee` when present.
