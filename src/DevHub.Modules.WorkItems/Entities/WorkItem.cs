@@ -12,4 +12,5 @@ public sealed class WorkItem : BaseEntity
     public required string CurrentStatus { get; set; }
     public string? CurrentCheckpointKey { get; set; }
     public required Guid CreatedByMemberId { get; set; }
+    public string? WorkBranch { get; set; }
 }
