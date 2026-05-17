@@ -103,6 +103,21 @@
     </div>
   </header>
 
+  @if (assignments().length > 0) {
+    <section class="mt-6 bg-white rounded-xl shadow-sm p-6">
+      <h2 class="text-lg font-semibold mb-3">Assignments</h2>
+      <ul class="space-y-1 text-sm">
+        @for (entry of assignments(); track entry[0]) {
+          <li class="flex items-center gap-3">
+            <span class="font-mono text-xs bg-slate-100 rounded px-1.5 py-0.5">{{ entry[0] }}</span>
+            <span class="text-slate-400">→</span>
+            <span>{{ entry[1] }}</span>
+          </li>
+        }
+      </ul>
+    </section>
+  }
+
   <section class="mt-6 bg-white rounded-xl shadow-sm p-6">
     <h2 class="text-lg font-semibold mb-3">Executor state</h2>
     <executor-state-panel [state]="wi.executorState" />
