@@ -57,10 +57,16 @@
             <li>
               <div class="font-mono text-xs text-sky-700 mb-1">{{ g.slug }}</div>
               <ul class="space-y-1">
-                @for (a of g.actions; track a.workItemId + ':' + a.checkpointKey) {
+                @for (a of g.actions; track a.workItemId + ':' + a.checkpointKey + ':' + (a.taskId ?? '<root>')) {
                   <li>
                     <a [routerLink]="['/projects', a.projectSlug, 'work-items', a.workItemId, 'review']"
-                       class="block text-slate-700 hover:text-sky-700 truncate pl-3 border-l border-slate-200">{{ a.workItemTitle }}</a>
+                       [queryParams]="a.taskId ? { taskId: a.taskId } : null"
+                       class="block text-slate-700 hover:text-sky-700 truncate pl-3 border-l border-slate-200">
+                      {{ a.workItemTitle }}
+                      @if (a.taskId; as t) {
+                        <span class="text-slate-400"> — <span class="font-mono text-xs">{{ t }}</span></span>
+                      }
+                    </a>
                   </li>
                 }
               </ul>
