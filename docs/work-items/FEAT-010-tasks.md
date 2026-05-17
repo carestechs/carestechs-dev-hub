@@ -1,306 +1,226 @@
-# FEAT-010 Task Breakdown — Orchestrator Adapter
+# FEAT-010 Task Breakdown — In-process Orchestrator Client
 
-> Generated from `docs/work-items/FEAT-010-orchestrator-adapter.md` using `.ai-framework/prompts/feature-tasks.md`. 10 tasks across DevOps, Backend (adapter — new repo), and Testing. The bulk of the work lives in a **new sibling repo** (`../carestechs-devhub-orchestrator-adapter`); only a small DevHub-side documentation update lands in this repo.
+> Generated from `docs/work-items/FEAT-010-orchestrator-client.md` using `.ai-framework/prompts/feature-tasks.md`. **6 tasks**, all landing inside this repo. T-074..T-083 were the earlier "sibling adapter service" framing — superseded; their numbers are not reused so the global task-ID space stays unique.
 
 ## Scope choices locked in before generation
 
-- **New sibling repo, not in-process module in DevHub.** Confirmed in the brief: keeps DevHub's `ExecutorHttpClient` and the FakeExecutor protocol stable. The adapter is a standalone Python FastAPI service in `../carestechs-devhub-orchestrator-adapter`.
-- **Python FastAPI** matches the orchestrator's language so any future "let's just merge the adapter into the orchestrator" refactor is trivial. Also matches `respx` + `httpx` ergonomics for upstream calls.
-- **Single agent per adapter instance in v1.** `AGENT_REF` env var, no dispatch logic. Second agent → second container.
-- **`assignments` derivation lives in the adapter via trace scan.** The orchestrator has no `/runs/{id}/memory` endpoint; `RunMemory.data` is only readable via internal service code. The adapter scans `/runs/{id}/trace` for `assignment-confirmed` signal records and rebuilds `{ taskId: assignee }`. v1 acceptable; upstream can add a memory endpoint later and the adapter can switch.
-- **Marker↔run-id mapping in shared Postgres.** New DB `devhub_orchestrator_adapter` on the umbrella's shared cluster. One table.
-- **Auth: static API keys, both directions.** Inbound bearer = `DEVHUB_API_KEY`; outbound = `ORCHESTRATOR_API_KEY` (`X-API-Key` header). JWT / OAuth not in v1.
-- **Sibling-repo tasks ship via that repo's own PRs.** This DevHub task file documents the structure + acceptance; actual commits land in `../carestechs-devhub-orchestrator-adapter`. Same convention as FEAT-007's T-053.
-- **One DevHub-side task (T-083)** updates `docs/ARCHITECTURE.md` and `docs/api-spec.md` to point operators at the adapter instead of the orchestrator directly. This is the only PR that lands in this repo.
+- **In-process implementation.** A new class in `DevHub.Modules.WorkItems`, not a separate service. Reason: same reasoning as the revised brief (§11) — DevHub has one intended executor, the `WorkItem` row already has the right place to store the run id, and a separate Python service was net cost with no benefit.
+- **Two `IExecutorHttpClient` implementations side-by-side.** The existing `ExecutorHttpClient` (devhub protocol; speaks `/work-items`) stays for the FakeExecutor and any future devhub-protocol executor. The new `OrchestratorExecutorClient` (orchestrator protocol; speaks `/api/v1/runs`) handles the real production path. DI selects based on `ExecutorRegistrationDescriptor.Protocol`.
+- **`Protocol` field defaults to `"devhub"`.** Existing executor registrations get the legacy behavior on migration; production registrations explicitly set `"orchestrator"`. Hard requirement: all 190 existing backend tests pass unchanged.
+- **`WorkItem.ExecutorRunId` lives on the existing row.** No new mapping table.
+- **NDJSON-to-SSE conversion happens inside `OrchestratorExecutorClient.OpenStreamAsync`.** Keeps protocol translation in one class; `WorkItemStreamForwarder` continues to flush the stream it's given.
+- **Trace-scan replays for `assignments`.** The orchestrator has no `/runs/{id}/memory` endpoint; the client replays `assignment-confirmed` records from the trace. v1 fine for typical run lengths.
+- **Tier-1 `awaiting_signal` field name unverified** against the lifecycle agent's actual node definitions. T-085's plan should grep the agent definitions before locking the derivation logic.
 
 ---
 
 ## Foundation
 
-### T-074: Scaffold the adapter repo + umbrella wiring
+### T-084: EF migrations — `WorkItem.ExecutorRunId` + `ExecutorRegistration.Protocol`
 
-**Type:** DevOps · **Workflow:** standard · **Complexity:** M · **Dependencies:** None
+**Type:** Database · **Workflow:** standard · **Complexity:** S · **Dependencies:** None
 
 **Description:**
-Bootstrap a new sibling repo `../carestechs-devhub-orchestrator-adapter` with a FastAPI skeleton, `Dockerfile`, `docker-compose.prod.yml` joining the external `devtools-infra` network, `GET /health` endpoint, and an entry in the umbrella's `../start.sh` PROJECTS list. The container is named `devhub-orchestrator-adapter` for cross-project DNS; loopback host port `127.0.0.1:8095` for ops curl.
+Two nullable / defaulted columns across two modules. Entity + DbContext config + EF migrations.
 
 **Rationale:**
-AC-1, AC-10. Every other task assumes the project exists and is reachable.
+AC-1, AC-2, AC-9. Every other task in this FEAT reads from these columns.
 
 **Acceptance Criteria:**
-- [ ] `../carestechs-devhub-orchestrator-adapter/pyproject.toml` declares `python = "^3.12"`, `fastapi`, `httpx`, `uvicorn`, `sqlalchemy`, `asyncpg`, `pydantic-settings`. Dev deps: `pytest`, `pytest-asyncio`, `respx`.
-- [ ] `src/adapter/main.py` exposes a FastAPI app with `GET /health` returning `{ "status": "ok" }` after a one-shot upstream reachability check (`GET {ORCHESTRATOR_BASE_URL}/health`).
-- [ ] `Dockerfile` builds a minimal image (~80 MB). Multi-stage; no dev deps in the runtime layer.
-- [ ] `docker-compose.prod.yml` declares the service, joins external network `devtools-infra`, publishes `127.0.0.1:8095:8000`, reads env from `.env.production`.
-- [ ] `.env.production.example` documents: `DEVHUB_API_KEY`, `ORCHESTRATOR_BASE_URL`, `ORCHESTRATOR_API_KEY`, `AGENT_REF`, `ADAPTER_DB_URL`.
-- [ ] `../start.sh` PROJECTS array includes `carestechs-devhub-orchestrator-adapter`.
-- [ ] `README.md` documents: purpose, the five translated routes, env vars, smoke-test command.
-- [ ] After `cd .. && ./start.sh`, `curl -sf http://127.0.0.1:8095/health` returns 200 within 30 s.
+- [ ] `WorkItem.ExecutorRunId` added (`Guid?`, nullable). EF migration on `WorkItemsDbContext`.
+- [ ] `ExecutorRegistration.Protocol` added (`string`, max 20, default `"devhub"`). EF migration on `ExecutorRegistryDbContext`. Persist via `HasDefaultValue("devhub")` so existing rows backfill.
+- [ ] `ExecutorRegistrationDescriptor` (cross-module record) gains `Protocol` with default `"devhub"`.
+- [ ] `docs/data-model.md` — field rows for both new columns + changelog row.
+- [ ] `dotnet test` 190/190 still green.
 
 **Files to Modify/Create:**
-- Create (sibling repo): `pyproject.toml`, `Dockerfile`, `docker-compose.prod.yml`, `.env.production.example`, `README.md`, `src/adapter/main.py`, `src/adapter/__init__.py`
-- Modify (umbrella root): `../start.sh` — add the new project name
+- Modify: `src/DevHub.Modules.WorkItems/Entities/WorkItem.cs`
+- Modify: `src/DevHub.Modules.WorkItems/WorkItemsDbContext.cs`
+- Modify: `src/DevHub.Modules.ExecutorRegistry/Entities/ExecutorRegistration.cs`
+- Modify: `src/DevHub.Modules.ExecutorRegistry/ExecutorRegistryDbContext.cs`
+- Modify: `src/DevHub.Contracts/Executors/ExecutorRegistrationDescriptor.cs`
+- Modify: `src/DevHub.Modules.ExecutorRegistry/Services/ExecutorRouter.cs` (Map function projects `Protocol`)
+- Create: 2 migrations
+- Modify: `docs/data-model.md`
 
 **Technical Notes:**
-Mirror the orchestrator's structure (`src/app/...`) but use `src/adapter/...` to avoid module-name collision when running in the same Python environment. The umbrella convention from FEAT-007 specifies external network = `devtools-infra` declared `external: true, name: devtools-infra`.
+Mirror the FEAT-009 / T-064 pattern (record default values on positional ctors; `HasDefaultValue` on the EF property). `ExecutorRunId` is a value column with no index in v1 — DevHub looks up by WorkItem id, then reads `ExecutorRunId` off the row.
 
 ---
 
-### T-075: Marker↔run-id Postgres mapping
+## Backend
 
-**Type:** Backend (adapter) · **Workflow:** standard · **Complexity:** S · **Dependencies:** T-074
+### T-085: `OrchestratorExecutorClient` — IExecutorHttpClient implementation
+
+**Type:** Backend · **Workflow:** standard · **Complexity:** L · **Dependencies:** T-084
 
 **Description:**
-SQLAlchemy model + migration for the (marker, run_id, executor_id, agent_ref, created_at) table on the shared cluster's new database `devhub_orchestrator_adapter`. Repository functions: `store`, `find_run_id_by_marker`, `find_marker_by_run_id`.
+New class `DevHub.Modules.WorkItems.Services.Orchestrator.OrchestratorExecutorClient` implementing `IExecutorHttpClient` against the orchestrator's `/api/v1/runs` API. Includes status mapping, three-tier `currentCheckpointKey` derivation, `currentTaskId` derivation, `assignments` projection from trace replay, and NDJSON-to-SSE conversion inside `OpenStreamAsync`.
 
 **Rationale:**
-AC-2 + everything downstream. DevHub keys all subsequent calls by `marker`; the adapter has to translate to `run_id`.
+AC-2..AC-8 + AC-10. The bulk of the FEAT.
 
 **Acceptance Criteria:**
-- [ ] `src/adapter/models.py` declares the `MarkerMapping` table with PK on `marker` (text, 64), unique on `run_id` (uuid), index on `executor_id` (uuid).
-- [ ] Alembic migration creates the table on first boot. Idempotent (skips if table exists).
-- [ ] `src/adapter/store.py` exposes async `store(marker, run_id, executor_id, agent_ref)`, `lookup_run_id(marker) → uuid | None`, `lookup_marker(run_id) → str | None`.
-- [ ] Health check returns 503 when the DB is unreachable so DevHub's `ExecutorFailureException` triggers.
-- [ ] `../infra/init-databases.sql` (sibling-repo patch) appends `CREATE DATABASE devhub_orchestrator_adapter;` (documented in this task; actual PR opens in `../infra`).
-- [ ] Manual one-shot for already-initialized infra volumes documented in the README: `docker exec -i postgres psql -U devtools -d postgres -c 'CREATE DATABASE devhub_orchestrator_adapter;'`.
+- [ ] New file `src/DevHub.Modules.WorkItems/Services/Orchestrator/OrchestratorExecutorClient.cs`. Implements every method on `IExecutorHttpClient` against the orchestrator's `/api/v1/runs[/{id}/...]` routes.
+- [ ] `StartAsync` posts `{ agentRef, intake: { workItem, codeSource? } }` to `POST /api/v1/runs`; on success, returns `ExecutorStartResponse` with `runId` on the `ExecutorState` JSON. The actual `WorkItem.ExecutorRunId` persistence happens in T-086 (service layer); the client just surfaces the value.
+- [ ] `FetchStateAsync` issues `GET /api/v1/runs/{runId}`, then runs the three-tier `currentCheckpointKey` + `currentTaskId` derivation and assembles `executorState`.
+- [ ] `SignalAsync` posts `{ name = checkpointKey, taskId, payload }` to `POST /api/v1/runs/{runId}/signals`, then refetches state for the response body.
+- [ ] `OpenStreamAsync` opens `GET /api/v1/runs/{runId}/trace?follow=true` with no read timeout; returns an `ExecutorStreamConnection` whose stream is a TransformStream emitting `data: <json>\n\n` per NDJSON line. Pre-flight 404 propagates as `ExecutorFailureException(404)` before any body bytes.
+- [ ] `CancelAsync` posts to `POST /api/v1/runs/{runId}/cancel` with `{ reason: "DevHub operator cancel" }`. Returns silently on 200/204; throws `ExecutorFailureException` on 4xx.
+- [ ] Status mapping table (RunStatus → CurrentStatus) lives in a `static class StatusMapper` next to the client.
+- [ ] Three-tier checkpoint derivation in a `static class CheckpointDerivation`. Tier 1: `lastStep.nodeInputs.awaiting_signal`. Tier 2: scan `/runs/{id}/trace?kind=awaiting_signal` for the most recent record. Tier 3: null + INFO log.
+- [ ] `assignments` derivation: scan `/runs/{id}/trace?kind=signal`, filter for `name == "assignment-confirmed"`, build `{ taskId: assignee }`.
+- [ ] `runId` resolved by reading the `WorkItem.ExecutorRunId` column — the client is given a `correlationMarker` by DevHub today, and needs to convert that to `runId`. **Decision:** since the marker IS the key DevHub uses, T-086 changes the service layer to pass the persisted `ExecutorRunId` directly (the client never sees the marker). This keeps the client cleanly run_id-only.
+- [ ] Auth: outbound `X-API-Key: <value-of-CredentialsRef-env-var>` resolved via the existing `IExecutorCredentialResolver`. No new credential mechanism.
+- [ ] 190 backend tests still green. New tests land in T-088.
 
 **Files to Modify/Create:**
-- Create (sibling repo): `src/adapter/models.py`, `src/adapter/store.py`, `alembic/env.py`, `alembic/versions/<ts>_initial.py`, `alembic.ini`
-- Modify (cross-repo, separate PR): `../infra/init-databases.sql`
+- Create: `src/DevHub.Modules.WorkItems/Services/Orchestrator/OrchestratorExecutorClient.cs`
+- Create: `src/DevHub.Modules.WorkItems/Services/Orchestrator/StatusMapper.cs`
+- Create: `src/DevHub.Modules.WorkItems/Services/Orchestrator/CheckpointDerivation.cs`
+- Create: `src/DevHub.Modules.WorkItems/Services/Orchestrator/ExecutorStateProjection.cs`
+- Create: `src/DevHub.Modules.WorkItems/Services/Orchestrator/NdjsonToSseStream.cs`
 
 **Technical Notes:**
-Use `asyncpg` driver — same as the orchestrator. Connection pool size 5 is enough for v1. Don't share a DB context with the orchestrator (their state is opaque to us; ours to them).
+Two key shape changes from the existing `ExecutorHttpClient`:
+
+1. **The interface currently takes `correlationMarker` everywhere.** That maps directly to the DevHub-protocol executor's URL path. For the orchestrator, we need the `run_id`. The simplest path: change `IExecutorHttpClient`'s method signatures from `(executor, correlationMarker, ...)` to `(executor, executorRef, ...)` where `executorRef` is a small record `{ Marker, RunId }`. T-086's plan describes the migration in detail. Both implementations adapt their lookup accordingly. Risk: this is a small breaking change on the interface; covered by the existing 190 tests because both implementations are updated in lockstep.
+
+2. **`OpenStreamAsync` returns a wrapped stream.** The wrapping is a tiny `Stream` subclass that reads from the upstream `HttpResponseMessage.Content` line-by-line and emits SSE-framed bytes. Existing `WorkItemStreamForwarder` just `CopyToAsync`s whatever stream it gets — no changes there.
+
+Before locking the tier-1 derivation, grep `../carestechs-agent-orchestrator/agents/` for `awaiting_signal` / `expected_signal` to verify the actual field name. If different, update `CheckpointDerivation.cs` accordingly.
 
 ---
 
-### T-076: Auth bridge + RFC 7807 error pass-through
+### T-086: Wire `ExecutorRunId` + protocol selection through `WorkItemsService`
 
-**Type:** Backend (adapter) · **Workflow:** standard · **Complexity:** S · **Dependencies:** T-074
+**Type:** Backend · **Workflow:** standard · **Complexity:** M · **Dependencies:** T-084, T-085
 
 **Description:**
-Inbound: a small `Depends(require_devhub_auth)` that validates `Authorization: Bearer <DEVHUB_API_KEY>` against the env var. Outbound: a shared `httpx.AsyncClient` instance pre-configured with `X-API-Key: <ORCHESTRATOR_API_KEY>` on every request. Error translation: wrap upstream calls; on non-2xx, parse the RFC 7807 body if present and re-raise with the same status + body.
+Two things land in this task: (1) persist `WorkItem.ExecutorRunId` on Start and read it on all subsequent operations; (2) register `OrchestratorExecutorClient` in DI and pick the right `IExecutorHttpClient` per executor based on `descriptor.Protocol`.
 
 **Rationale:**
-AC-9. Without auth + error translation in place, downstream tasks can't reliably test against either the orchestrator or a mock.
+AC-2, AC-9. Without this, the new client is unreachable.
 
 **Acceptance Criteria:**
-- [ ] `src/adapter/auth.py` — `require_devhub_auth(request) -> None`. Rejects missing / mismatched bearer with 401 (RFC 7807 body).
-- [ ] `src/adapter/upstream.py` exposes a singleton `httpx.AsyncClient` with timeout 60 s (longer for the stream endpoint — handled separately), and a `proxy_call(method, path, **kwargs)` helper that propagates auth + raises a typed `UpstreamError` on non-2xx with `status_code` + parsed RFC 7807 body.
-- [ ] `src/adapter/main.py` registers a FastAPI exception handler for `UpstreamError` that returns the upstream's status + body verbatim. DevHub sees the same shape it'd get from a direct orchestrator call.
-- [ ] 401 on missing bearer; 401 with mismatched bearer; 502 with `details.upstream_correlation_id` when orchestrator returns 5xx without a problem body.
+- [ ] `IExecutorHttpClient` method signatures adjusted to accept the `WorkItem` (or a new `WorkItemRef { Id, Marker, ExecutorRunId? }` value object) instead of bare `correlationMarker`. Both implementations updated to use the right id internally.
+- [ ] `ExecutorHttpClient` (devhub protocol) continues to use `Marker` in its URLs — no behavior change.
+- [ ] `OrchestratorExecutorClient` uses `ExecutorRunId` in its URLs — required to be non-null for non-Start operations; null is only valid before the orchestrator's `POST /runs` returns.
+- [ ] `WorkItemsService.StartAsync`: after `executorClient.StartAsync` returns, parse `runId` from `startResp.ExecutorState["runId"]` and persist to the new `WorkItem` row before commit.
+- [ ] Factory / DI: a new `IExecutorClientFactory.Resolve(descriptor)` returns the right impl. Default `descriptor.Protocol == "devhub"` → existing client; `"orchestrator"` → new client. Document the contract in xmldoc.
+- [ ] WorkItemsService injects the factory, not the client directly. Every existing call-site updated.
+- [ ] `docs/api-spec.md`: ExecutorRegistration request/response gains `protocol`; WorkItemDto + WorkItemSummaryDto gain optional `executorRunId`. Changelog row.
 
 **Files to Modify/Create:**
-- Create (sibling repo): `src/adapter/auth.py`, `src/adapter/upstream.py`, `src/adapter/errors.py`
+- Modify: `src/DevHub.Contracts/Executors/IExecutorHttpClient.cs` (interface signature change)
+- Modify: `src/DevHub.Modules.WorkItems/Services/ExecutorHttpClient.cs` (adapts to new sig)
+- Modify: `src/DevHub.Modules.WorkItems/Services/Orchestrator/OrchestratorExecutorClient.cs` (uses ExecutorRunId)
+- Create: `src/DevHub.Modules.WorkItems/Services/IExecutorClientFactory.cs` + impl
+- Modify: `src/DevHub.Modules.WorkItems/WorkItemsModuleExtensions.cs` (DI registration)
+- Modify: `src/DevHub.Modules.WorkItems/Services/WorkItemsService.cs` (persist RunId on Start; use factory)
+- Modify: `src/DevHub.Modules.WorkItems/Services/CheckpointSignalsService.cs` (use factory)
+- Modify: `src/DevHub.Modules.WorkItems/Controllers/WorkItemsController.cs` (stream forwarder uses factory)
+- Modify: `src/DevHub.Modules.ExecutorRegistry/DTOs/*.cs` (Create/Update requests gain `Protocol`; DTO surfaces it)
+- Modify: `src/DevHub.Modules.WorkItems/DTOs/WorkItemDtos.cs` (`ExecutorRunId`)
+- Modify: `docs/api-spec.md`
 
 **Technical Notes:**
-The orchestrator wraps every error in `app.core.exceptions` (RFC 7807-shaped). The adapter just forwards. Don't translate field names — `type` / `title` / `detail` / `instance` pass through.
+The interface signature change is the most visible part. It does touch `ExecutorHttpClient` (existing devhub-protocol implementation) — the change should be mechanical: replace `string correlationMarker` parameters with `WorkItemRef` and read `.Marker` inside the existing implementation. Same auth, same paths.
+
+If the tests get noisy on positional-record changes for `WorkItemDto.ExecutorRunId`, mirror the FEAT-009 / T-065 approach: add it at the end with a default null.
 
 ---
 
-## Translation Endpoints
+### T-087: Operator UI — protocol picker on executor admin
 
-### T-077: `POST /work-items` → `POST /api/v1/runs` (Start)
-
-**Type:** Backend (adapter) · **Workflow:** standard · **Complexity:** M · **Dependencies:** T-075, T-076
+**Type:** Frontend · **Workflow:** standard · **Complexity:** S · **Dependencies:** T-086
 
 **Description:**
-DevHub posts `{ input, correlationMarker, intake: { codeSource } }` (FEAT-008 shape). Adapter synthesizes the orchestrator's `CreateRunRequest` shape: `{ agentRef: <env>, intake: { workItem: <synthesized>, codeSource: <forwarded> } }`. On 202, stores the marker↔run-id mapping, returns DevHub's expected `ExecutorStartResponse` shape: `{ currentStatus: "Running", currentCheckpointKey: null, executorState: { runId, agentRef, ... }, currentTaskId: null }`.
+The admin executors form gains a `Protocol` dropdown (values: `devhub`, `orchestrator`), defaulting to `orchestrator` for new registrations (since that's the real path forward). Display on the executor list/detail surfaces the value.
 
 **Rationale:**
-AC-2, AC-8. The entry point for every work item.
+Without it, operators have to write to the DB to flip an executor to the orchestrator protocol. v1 needs UI for this.
 
 **Acceptance Criteria:**
-- [ ] Adapter accepts the DevHub-shaped body. `intake.codeSource` passes through verbatim (the orchestrator's IMP-004 expects this shape).
-- [ ] `intake.workItem` synthesized from `input` if `input.workItem` is present, else from `{ id: marker, kind: "DEVHUB", content: <input as JSON string> }` as a fallback.
-- [ ] `agentRef` read from `AGENT_REF` env var on startup.
-- [ ] On the orchestrator's 202, marker↔run-id row stored before responding to DevHub.
-- [ ] Response body matches `ExecutorStartResponse` exactly: `currentStatus`, `currentCheckpointKey`, `executorState` (initial projection — `{ runId, agentRef }` is enough on start), `currentTaskId`.
-- [ ] On the orchestrator's 4xx/5xx, the marker↔run-id row is **not** stored, and the error body passes through.
-- [ ] At-least-once retry from DevHub (same marker) creates a duplicate run on the orchestrator — explicitly documented as a v1 limitation in the README.
+- [ ] Create/edit form on the executors admin page gains a Protocol dropdown.
+- [ ] Default for new entries: `"orchestrator"`. The dropdown displays both values; copy makes the distinction clear ("devhub" = "DevHub native — for tests / FakeExecutor"; "orchestrator" = "carestechs-agent-orchestrator").
+- [ ] List + detail surfaces the executor's protocol next to status.
+- [ ] WorkItem detail page shows `executorRunId` (in a small monospace label next to the existing `marker`).
+- [ ] Specs cover: create with default; create with `devhub`; toggle from devhub → orchestrator via update.
 
 **Files to Modify/Create:**
-- Create (sibling repo): `src/adapter/routes/start.py`, `src/adapter/translators/start.py`
+- Modify: `client/src/app/features/admin/executors/executor-form.modal.ts/.html`
+- Modify: `client/src/app/features/admin/executors/executors.page.html` (list display)
+- Modify: `client/src/app/features/projects/work-items/work-item-detail.page.html` (small `executorRunId` label)
+- Modify: `client/src/app/core/api/executor-registry.types.ts` (`protocol` field)
+- Modify: `client/src/app/core/api/work-items.types.ts` (`executorRunId` field)
+- Modify: `docs/ui-specification.md` (executors admin section + changelog)
 
 **Technical Notes:**
-The orchestrator's `RunStatus` after `POST /runs` is typically `pending`, but DevHub's `currentStatus = "Running"` covers both `pending` and `running`. Hardcode `"Running"` on the start response; the subsequent fetch will refine to `WaitingOnCheckpoint` when the run pauses.
+Cheap. The hardest part is making the dropdown copy clear so an operator doesn't accidentally pick `devhub` for a real registration.
 
 ---
 
-### T-078: `GET /work-items/{marker}` → `GET /api/v1/runs/{run_id}` (Fetch + status derivation)
+## Testing
 
-**Type:** Backend (adapter) · **Workflow:** standard · **Complexity:** L · **Dependencies:** T-075, T-076
+### T-088: Integration tests with a Kestrel-hosted fake orchestrator
+
+**Type:** Testing · **Workflow:** standard · **Complexity:** M · **Dependencies:** T-085, T-086
 
 **Description:**
-The most complex translation. Lookup `run_id` by marker; fetch the orchestrator's `RunDetailDto`; map `RunStatus` → DevHub `CurrentStatus`; derive `currentCheckpointKey` and `currentTaskId` via a three-tier fallback; assemble `executorState` JSON. Returns `ExecutorFetchResponse`-shaped body.
+New `FakeOrchestratorHost` (sibling to the existing `FakeExecutorHost`) listens on `/api/v1/runs/{...}` routes with scripted responses + recorded calls. New test class `OrchestratorExecutorClientTests` and `OrchestratorExecutorEndToEndTests` exercise the client against this fake.
 
 **Rationale:**
-AC-3, AC-7. DevHub's reconciler calls this on every transition; the per-task pending rows depend on `currentCheckpointKey` + `currentTaskId` being accurate.
+The brief's quality bar. Without coverage, the next refactor breaks something silently.
 
 **Acceptance Criteria:**
-- [ ] Marker lookup → 404 (RFC 7807) when not found.
-- [ ] `RunStatus` mapping per the brief's table (pending/running → Running, paused → WaitingOnCheckpoint, completed → Completed, failed → Failed, cancelled → Cancelled).
-- [ ] `currentCheckpointKey` derivation, in priority order:
-  1. `RunDetailDto.lastStep.nodeName` when it indicates an await (e.g. starts with `confirm_` or `await_`) — read agent-side config to know which.
-  2. Trace scan: `GET /runs/{run_id}/trace?kind=awaiting_signal` (one-shot, no `follow`) and take the most recent record.
-  3. `null` (logged at INFO).
-- [ ] `currentTaskId` derivation:
-  1. From the same trace record (records carry `current_task_id` per IMP-005 when set).
-  2. From the most recent `assignment-confirmed` signal's `task_id` if no current pause record (rare).
-  3. `null`.
-- [ ] `executorState` projection assembled from `RunDetailDto` + a trace scan for `assignments` records:
-  ```json
-  {
-    "runId": "<uuid>",
-    "agentRef": "<agentRef>",
-    "lastStep": { ... } | null,
-    "assignments": { "T-001": "Alice", "T-002": "Bob" } | {},
-    "stopReason": "done_node" | null
-  }
-  ```
-- [ ] When the orchestrator's trace endpoint returns nothing useful for derivation, `currentCheckpointKey: null`, `currentTaskId: null` — never an error.
+- [ ] New `tests/DevHub.TestHarness/FakeOrchestrator/FakeOrchestratorHost.cs` + `ScriptedRunResponses.cs` modeled on the existing FakeExecutor harness. Routes implemented: `POST /api/v1/runs`, `GET /api/v1/runs/{id}`, `POST /api/v1/runs/{id}/signals`, `POST /api/v1/runs/{id}/cancel`, `GET /api/v1/runs/{id}/trace` (NDJSON).
+- [ ] `DevHubApiFactory` gains a `UseFakeOrchestrator` flag (mutually exclusive with `UseFakeExecutor`). Sets up the test executor registration with `Protocol = "orchestrator"`.
+- [ ] New test class `OrchestratorExecutorClientTests` covers:
+  - Start forwards `intake.codeSource` + synthesizes `intake.workItem`; persists `ExecutorRunId`.
+  - Fetch maps `RunStatus` → `CurrentStatus` for every value; derives `currentCheckpointKey` from tier 1 + tier 2; `null` on tier 3.
+  - Signal posts `{ name, taskId, payload }`; ignores `outcome` field.
+  - Cancel returns silently on 200/204.
+  - Stream emits `data: <json>\n\n` per NDJSON line; malformed JSON suppressed.
+- [ ] New test class `OrchestratorExecutorEndToEndTests` covers:
+  - FEAT-008 codeSource: project with repo + branch → orchestrator's `intake.codeSource` matches.
+  - FEAT-009 per-task: assignment-confirmed signal forwards `taskId` + `payload.assignee` to the orchestrator.
+  - Audit invariants preserved (workitem:start, workitem:signal carry the right details).
+- [ ] All 190 existing backend tests still pass — the protocol selector defaults to `"devhub"`, the FakeExecutor's tests don't touch `OrchestratorExecutorClient`.
 
 **Files to Modify/Create:**
-- Create (sibling repo): `src/adapter/routes/fetch.py`, `src/adapter/translators/fetch.py`, `src/adapter/translators/state.py`, `src/adapter/translators/trace_scan.py`
+- Create: `tests/DevHub.TestHarness/FakeOrchestrator/FakeOrchestratorHost.cs`
+- Create: `tests/DevHub.TestHarness/FakeOrchestrator/ScriptedRunResponses.cs`
+- Modify: `tests/DevHub.TestHarness/DevHubApiFactory.cs` (add UseFakeOrchestrator)
+- Create: `tests/DevHub.Modules.WorkItems.Tests/OrchestratorExecutorClientTests.cs`
+- Create: `tests/DevHub.Modules.WorkItems.Tests/OrchestratorExecutorEndToEndTests.cs`
 
 **Technical Notes:**
-The trace scan reads the last N records of kinds `awaiting_signal` and `signal` (orchestrator's standard trace kinds). For `assignments`, walk the full trace and replay every `assignment-confirmed` signal — bounded by the run's lifetime, typically tens of records. Cache the result for a short TTL (60 s) within the request to avoid double-fetching on a single `GET /work-items/{marker}`.
+Reuse the FakeExecutor's recording pattern (`CallRecord`, body capture, query helpers). The trace endpoint needs to emit NDJSON lines — async generator or pre-buffered list, both fine for v1.
+
+For per-task trace scenarios, the scripted-responses model needs to support a mutable `RunMemoryAssignments` map (so a test can post a signal and verify the next fetch's `executorState.assignments` includes it). Easiest: keep a process-local map keyed by `runId` in the host, updated by the signal handler.
 
 ---
 
-### T-079: `POST /work-items/{marker}/checkpoints/{key}/signal` → `POST /api/v1/runs/{run_id}/signals`
+## Docs
 
-**Type:** Backend (adapter) · **Workflow:** standard · **Complexity:** S · **Dependencies:** T-075, T-076
+### T-089: ARCHITECTURE.md + api-spec.md + brief Status
 
-**Description:**
-Translate DevHub's signal call to the orchestrator's. Body: `{ outcome, payload, taskId }` → `{ name: <checkpointKey>, payload: <payload>, taskId: <taskId> }`. The orchestrator's `name` is what DevHub calls `checkpointKey` — straight mapping.
-
-**Rationale:**
-AC-4, AC-7. The operator-facing path for every checkpoint signal (including FEAT-009 `assignment-confirmed`).
-
-**Acceptance Criteria:**
-- [ ] Marker lookup → 404 when not found.
-- [ ] Orchestrator signal request body: `{ name: <checkpointKey>, taskId: <taskId or null>, payload: <payload> }`.
-- [ ] The orchestrator's `outcome` field is implicit in `name` (the signal name is the outcome); DevHub's `outcome` field is **ignored** during translation since the orchestrator routes by signal name not outcome value. Document this in the translator's docstring.
-- [ ] On the orchestrator's 202 with `meta.alreadyReceived=true` (orchestrator's signal idempotency), the adapter still returns DevHub's `ExecutorSignalResponse` shape — DevHub sees no difference.
-- [ ] Response body shape: `{ currentStatus, currentCheckpointKey, executorState, httpStatus, currentTaskId }`. Re-derived via the same path T-078 uses (the orchestrator's signal response doesn't carry the run's new state — adapter has to fetch).
-
-**Files to Modify/Create:**
-- Create (sibling repo): `src/adapter/routes/signal.py`, `src/adapter/translators/signal.py`
-
-**Technical Notes:**
-The orchestrator's signal endpoint returns 202 + a `SignalCreateResponse` with `data: SignalDto` (the persisted signal row), not the run's new state. The adapter has to follow up with a `GET /runs/{run_id}` to surface the new state — same code path as T-078. Factor `fetch_run_state(run_id)` into a shared helper.
-
----
-
-### T-080: `POST /work-items/{marker}/cancel` → `POST /api/v1/runs/{run_id}/cancel`
-
-**Type:** Backend (adapter) · **Workflow:** standard · **Complexity:** S · **Dependencies:** T-075, T-076
+**Type:** Documentation · **Workflow:** standard · **Complexity:** S · **Dependencies:** T-085 through T-088
 
 **Description:**
-Simplest translation. Marker → run_id → forward.
-
-**Rationale:**
-AC-6. Cancel-path closes the lifecycle from DevHub's UI.
+Documentation pass. Add an "Executor protocols" section to ARCHITECTURE.md, a routing-table row to api-spec.md, and mark the FEAT-010 brief as Completed.
 
 **Acceptance Criteria:**
-- [ ] Marker lookup → 404.
-- [ ] Orchestrator's `CancelRunRequest` body shape: `{ reason: "DevHub operator cancel" }` (or pull from DevHub's body if present — DevHub doesn't send one today).
-- [ ] On 200 from orchestrator, adapter returns 204 to match DevHub's existing cancel response expectation.
-- [ ] On 409 (already terminal): pass through.
+- [ ] `docs/ARCHITECTURE.md` gains a section "Executor protocols (FEAT-010)" — explains the two `IExecutorHttpClient` implementations, when each is used, and how the factory selects.
+- [ ] `docs/api-spec.md` Executor Registry section notes the `protocol` field with allowed values; Work Items section notes `executorRunId` on the DTO.
+- [ ] `docs/work-items/FEAT-010-orchestrator-client.md` Status flipped to **Completed**.
+- [ ] Changelog rows in `docs/ARCHITECTURE.md` + `docs/api-spec.md`.
 
 **Files to Modify/Create:**
-- Create (sibling repo): `src/adapter/routes/cancel.py`
-
-**Technical Notes:**
-DevHub's `ExecutorHttpClient.CancelAsync` doesn't have an explicit response-body expectation (it's `void`). Match 204.
-
----
-
-### T-081: `GET /work-items/{marker}/stream` → `GET /api/v1/runs/{run_id}/trace?follow=true` (NDJSON→SSE)
-
-**Type:** Backend (adapter) · **Workflow:** standard · **Complexity:** L · **Dependencies:** T-075, T-076
-
-**Description:**
-The hot-path translator. Adapter opens a streaming HTTP connection to the orchestrator's `/trace?follow=true`, reads NDJSON line by line, and emits each line as an SSE `data: <json>\n\n` frame to the DevHub client. Pre-flight 404 from the orchestrator becomes a 404 to DevHub before any body bytes.
-
-**Rationale:**
-AC-5. SSE pass-through is what makes the live-trace screen feel native.
-
-**Acceptance Criteria:**
-- [ ] Marker lookup → 404 before opening the upstream stream.
-- [ ] Upstream content-type `application/x-ndjson`; adapter response content-type `text/event-stream`.
-- [ ] One NDJSON line in → one SSE frame out. Empty/whitespace lines suppressed. Malformed JSON lines logged at WARN and suppressed.
-- [ ] Client disconnect (DevHub closes the SSE) closes the upstream connection within 1 s.
-- [ ] Upstream disconnect closes the SSE cleanly (no partial frame).
-- [ ] `Cache-Control: no-cache`, `X-Accel-Buffering: no` headers on the response (orchestrator already sets these; adapter preserves them).
-- [ ] An initial `: ready\n\n` heartbeat is emitted within 100 ms of the connection opening (matches the FEAT-005 SSE convention DevHub already expects).
-
-**Files to Modify/Create:**
-- Create (sibling repo): `src/adapter/routes/stream.py`, `src/adapter/translators/stream.py`
-
-**Technical Notes:**
-Use `httpx.AsyncClient.stream()` with `timeout=httpx.Timeout(60.0, read=None)` — long-poll friendly. The translator is a single async generator. FastAPI's `StreamingResponse` wraps it. Don't buffer; flush after every frame.
-
-The orchestrator's NDJSON includes records of varying `kind` (`step`, `policy_call`, `webhook_event`, `awaiting_signal`, `signal`, `dispatch`). DevHub's SSE feed treats them all as opaque events — no filtering at the adapter layer.
-
----
-
-## Testing + DevHub Docs
-
-### T-082: Adapter test suite (unit + lightweight integration with `respx`)
-
-**Type:** Testing (adapter) · **Workflow:** standard · **Complexity:** M · **Dependencies:** T-077, T-078, T-079, T-080, T-081
-
-**Description:**
-`pytest` + `respx` (httpx-based mock library) to cover every translation path against a recorded orchestrator response set. Unit tests for status mapping, `currentCheckpointKey` derivation, and `executorState` assembly. Integration tests that drive a request through the FastAPI app while mocking upstream.
-
-**Rationale:**
-The brief's quality bar. T-074 through T-081 are too easy to break silently in subsequent refactors without coverage.
-
-**Acceptance Criteria:**
-- [ ] Status mapping table covered: every `RunStatus` value produces the documented `CurrentStatus`.
-- [ ] `currentCheckpointKey` derivation: each of the three tiers is exercised; null fallback covered.
-- [ ] `executorState` assembly: assignments map built from a multi-signal trace; empty when no signals; `lastStep` populated from `RunDetailDto.lastStep`.
-- [ ] Start endpoint: 202 from upstream produces 200 to DevHub with mapping stored; 4xx from upstream produces matching error to DevHub with no mapping stored.
-- [ ] Signal endpoint: 202 with `alreadyReceived` flag handled; subsequent fetch returns refreshed state.
-- [ ] Stream endpoint: NDJSON-to-SSE conversion exercised with a fixture stream; line counts match; malformed JSON suppressed.
-- [ ] At least 25 tests total.
-
-**Files to Modify/Create:**
-- Create (sibling repo): `tests/test_status_mapping.py`, `tests/test_checkpoint_derivation.py`, `tests/test_executor_state.py`, `tests/test_start.py`, `tests/test_signal.py`, `tests/test_stream.py`, `tests/conftest.py`
-
-**Technical Notes:**
-`respx` lets you `respx_mock.get("...").mock(return_value=httpx.Response(...))`. FastAPI's `TestClient` for the inbound side. Keep tests fast (< 5 s total) by mocking everything — no real Postgres in this suite (covered by T-083's smoke test).
-
----
-
-### T-083: `verify-adapter.sh` smoke test + DevHub docs update
-
-**Type:** DevOps + Documentation · **Workflow:** standard · **Complexity:** M · **Dependencies:** T-082
-
-**Description:**
-**Two deliverables**:
-
-1. **Adapter repo**: `scripts/verify-adapter.sh` — end-to-end smoke against a live umbrella. Boots the adapter + orchestrator + DevHub, starts a work item via DevHub's API, advances through a signal, asserts the run reaches `completed` on the orchestrator side.
-2. **DevHub repo**: Update `docs/ARCHITECTURE.md` with an "Executor adapter" section documenting that production executor registrations point at the adapter, not the orchestrator directly. Add a one-line pointer in `docs/api-spec.md` next to the Executor Registry section. Add a `docs/orchestrator-adapter.md` cross-reference file pointing readers at the sibling repo.
-
-**Rationale:**
-AC-1, AC-10. Without the smoke script the adapter is "trust the unit tests"; without the docs update operators won't know to point the executor URL at the adapter.
-
-**Acceptance Criteria:**
-- [ ] `scripts/verify-adapter.sh` in the sibling repo runs idempotently against a freshly booted umbrella. Tests: health → register executor (pointed at adapter URL) → start work item → fetch shows `Running` → fetch later shows `WaitingOnCheckpoint` with derived `currentCheckpointKey` → signal → fetch shows `Completed`.
-- [ ] DevHub `docs/ARCHITECTURE.md`: new "Executor adapter" subsection under the Executor Registry section. Documents: purpose, where it lives, why it exists (route-level mismatch with the orchestrator).
-- [ ] DevHub `docs/api-spec.md`: one-line note in the Executor Registry section: "Production registrations point at the adapter URL; see [`docs/orchestrator-adapter.md`](orchestrator-adapter.md)."
-- [ ] DevHub `docs/orchestrator-adapter.md`: deployment / operator notes — env vars, URL conventions, where the source lives.
-- [ ] DevHub changelog entries in `docs/ARCHITECTURE.md` and `docs/api-spec.md`.
-
-**Files to Modify/Create:**
-- Create (sibling repo): `scripts/verify-adapter.sh`
-- Modify (this repo): `docs/ARCHITECTURE.md`, `docs/api-spec.md`
-- Create (this repo): `docs/orchestrator-adapter.md`
-
-**Technical Notes:**
-Mirror the structure of FEAT-007's `scripts/verify-umbrella.sh` — bash, set -euo pipefail, polled checks, descriptive failure messages. The smoke script is what we'll point at when something breaks in production; treat it as the operator's debugging tool, not just CI.
+- Modify: `docs/ARCHITECTURE.md`
+- Modify: `docs/api-spec.md`
+- Modify: `docs/work-items/FEAT-010-orchestrator-client.md`
 
 ---
 
@@ -308,35 +228,28 @@ Mirror the structure of FEAT-007's `scripts/verify-umbrella.sh` — bash, set -e
 
 | Type | Count |
 |------|-------|
-| DevOps | 1 (T-074) |
-| Backend (adapter) | 6 (T-075, T-076, T-077, T-078, T-079, T-080, T-081) — wait, that's 7 |
-| Testing | 1 (T-082) |
-| Docs + DevOps | 1 (T-083) |
-| **Total** | **10** |
+| Database | 1 (T-084) |
+| Backend | 2 (T-085, T-086) |
+| Frontend | 1 (T-087) |
+| Testing | 1 (T-088) |
+| Documentation | 1 (T-089) |
+| **Total** | **6** |
 
-| Complexity | Count |
-|------------|-------|
-| S | 4 (T-075, T-076, T-079, T-080) |
-| M | 4 (T-074, T-077, T-082, T-083) |
-| L | 2 (T-078, T-081) |
+**Complexity:** S=2 (T-084, T-087, T-089 — three S), M=2 (T-086, T-088), L=1 (T-085). (T-089 is S but listed in Documentation.)
 
-**Critical path:** T-074 → T-075 → T-077 → T-078 (the fetch/state-derivation work — the hardest task) → T-082 → T-083. T-079, T-080, T-081 can land in parallel after T-076.
+**Critical path:** T-084 → T-085 → T-086 → T-088 → T-089. T-087 (UI) can land in parallel with T-088.
 
 **Dependency DAG:**
+
 ```
-T-074 ──┬──→ T-075 ──┐
-        │           ├──→ T-077 ──┐
-        └──→ T-076 ──┤           ├──→ T-082 ──→ T-083
-                     ├──→ T-078 ─┤
-                     ├──→ T-079 ─┤
-                     ├──→ T-080 ─┤
-                     └──→ T-081 ─┘
+T-084 ──→ T-085 ──→ T-086 ──┬──→ T-088 ──→ T-089
+                            └──→ T-087 ─────┘
 ```
 
 **Risks / open questions:**
 
-- **`currentCheckpointKey` derivation tier 1** depends on the agent definition naming awaits with a prefix (`confirm_*`, `await_*`). If the lifecycle agent doesn't use that convention, tier 1 is empty and we always fall back to tier 2 (trace scan). T-078's plan should call this out and confirm against the agent definition before implementation.
-- **`assignments` trace-scan cost.** Each `GET /work-items/{marker}` re-replays the full trace. For long-running multi-task work items this is O(N) per fetch. A 60s in-process cache (per the technical note) keeps it bounded; if it becomes a bottleneck, the upstream team can add a memory endpoint later.
-- **Marker idempotency on retry.** v1 has none — duplicate `POST /work-items` from DevHub creates duplicate runs. Mitigation: DevHub doesn't retry start automatically; T-074's README documents the limitation. If this becomes a problem, FEAT-011 adds an `Idempotency-Key` header.
-- **Sibling-repo scaffold work.** T-074 stands up a new Python repo. The user works primarily in C# / Angular and may want to spec the Python style separately. The brief assumed FastAPI; the plan should ask before scaffolding rather than make stylistic decisions silently.
-- **Verify the orchestrator's trace `kind=awaiting_signal` records exist.** I'm reading the orchestrator's enum that includes `awaiting_signal` as a webhook event type, but the trace store's record kinds aren't enumerated in the brief's research. T-078 should verify this against `../carestechs-agent-orchestrator/src/app/modules/ai/trace.py` (or wherever the trace records are emitted) before implementing tier 2.
+- **`IExecutorHttpClient` interface signature change.** Replaces `string correlationMarker` with a small `WorkItemRef` value object across the interface. Five method signatures change. Both implementations + every caller (WorkItemsService, CheckpointSignalsService, WorkItemStreamForwarder, every test fake) update in lockstep. T-086's plan should call out the migration order explicitly so the build doesn't break mid-task.
+- **Tier-1 `awaiting_signal` field name** unverified against the lifecycle agent's node definitions. T-085's plan should grep first.
+- **Trace-scan cost.** Each fetch replays the full `assignment-confirmed` signal history. v1 acceptable for typical run lengths; if it becomes a hotspot, add a per-request cache in T-085.
+- **No retry idempotency.** Same as before — DevHub doesn't auto-retry starts, so the risk is low. Could add an `Idempotency-Key` header to the orchestrator's `POST /runs` if it grows.
+- **Backward compatibility is load-bearing.** The protocol default = `"devhub"` is what keeps the existing 190 tests passing. Every task should re-run the full suite before merge.
