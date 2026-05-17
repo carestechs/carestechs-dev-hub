@@ -275,6 +275,10 @@ internal sealed class WorkItemsService(
         var descriptor = await router.ResolveAsync(projectId, ct)
             ?? throw new ConflictException("Project has no executor bound.");
         var createdBy = await members.FindByIdAsync(wi.CreatedByMemberId, ct);
+        // ExecutorState — not refetched on update; clients call GET to refresh. We return
+        // an empty JSON object rather than default(JsonElement), which would be
+        // JsonValueKind.Undefined and would crash System.Text.Json on serialization.
+        using var emptyState = JsonDocument.Parse("{}");
         return new WorkItemDto(
             wi.Id, wi.ProjectId, wi.Title, wi.CurrentStatus, wi.CurrentCheckpointKey,
             new ExecutorRefDto(descriptor.Id, descriptor.Key, descriptor.DisplayName),
@@ -282,7 +286,7 @@ internal sealed class WorkItemsService(
             createdBy is null
                 ? new MemberRefDto(wi.CreatedByMemberId, "(unknown)")
                 : new MemberRefDto(createdBy.Id, createdBy.DisplayName),
-            default,  // ExecutorState — not refetched on update; clients call GET to refresh
+            emptyState.RootElement.Clone(),
             wi.WorkBranch);
     }
 
