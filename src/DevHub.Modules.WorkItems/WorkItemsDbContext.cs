@@ -20,6 +20,7 @@ public sealed class WorkItemsDbContext(DbContextOptions<WorkItemsDbContext> opti
             e.Property(x => x.Title).HasMaxLength(255).IsRequired();
             e.Property(x => x.CurrentStatus).HasMaxLength(60).IsRequired();
             e.Property(x => x.CurrentCheckpointKey).HasMaxLength(60);
+            e.Property(x => x.WorkBranch).HasMaxLength(200);
             e.HasIndex(x => new { x.ExecutorId, x.ExecutorCorrelationMarker }).IsUnique();
             e.HasIndex(x => new { x.ProjectId, x.CurrentStatus });
         });

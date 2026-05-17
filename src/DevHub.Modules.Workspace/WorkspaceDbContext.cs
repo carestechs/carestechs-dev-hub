@@ -47,6 +47,8 @@ public sealed class WorkspaceDbContext(DbContextOptions<WorkspaceDbContext> opti
             b.Property(p => p.Name).HasMaxLength(120).IsRequired();
             b.Property(p => p.Slug).HasMaxLength(60).IsRequired();
             b.Property(p => p.ProjectType).HasMaxLength(60).IsRequired();
+            b.Property(p => p.Repo).HasMaxLength(140);
+            b.Property(p => p.DefaultBranch).HasMaxLength(200);
             b.HasIndex(p => p.Slug).IsUnique().HasFilter("deleted_at IS NULL");
             b.HasIndex(p => p.Name).IsUnique().HasFilter("deleted_at IS NULL");
             b.HasIndex(p => p.OwningTeamId);

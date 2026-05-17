@@ -43,6 +43,8 @@ Six modules own data; each owns its own `DbContext` and its own schema. Cross-mo
 | project_type | varchar(60) | Required | Routes the project to a lifecycle executor via `ExecutorBinding` |
 | owning_team_id | UUID | Required, FK → Team.id | The team that owns this project |
 | description | text | Optional | Free-form description |
+| repo | varchar(140) | Optional | GitHub `owner/name` (no scheme, no `.git`). Forwarded as `intake.codeSource.repo` to the executor on work-item start. Validated at the DevHub boundary per the orchestrator's `intake.codeSource` schema. |
+| default_branch | varchar(200) | Optional | Default git branch name (e.g. `main`). Forwarded as `intake.codeSource.baseBranch` on start. Same validation rules as a git branch shorthand (no whitespace, no leading `/`, no `..`, no control chars). |
 | created_at | timestamptz | Required, Auto | Record creation timestamp |
 | updated_at | timestamptz | Required, Auto | Last modification timestamp |
 | deleted_at | timestamptz | Nullable (soft delete) | Soft-delete marker |
@@ -257,6 +259,7 @@ Six modules own data; each owns its own `DbContext` and its own schema. Cross-mo
 | title | varchar(255) | Required | Human-readable title for the work |
 | current_status | varchar(60) | Required | Latest snapshot (`Running`, `WaitingOnCheckpoint`, `Completed`, `Failed`, `Cancelled`) — kept fresh by fetch + stream wrappers, not authoritative |
 | current_checkpoint_key | varchar(60) | Nullable | Set when `current_status = WaitingOnCheckpoint` |
+| work_branch | varchar(200) | Optional | Optional per-work-item override of the project's `default_branch`. Forwarded as `intake.codeSource.workBranch` on start; omitted (not sent as `null`) when unset. Same validation rules as `default_branch`. |
 | created_at | timestamptz | Required, Auto | |
 | created_by_member_id | UUID | Required | The member who started this work |
 | updated_at | timestamptz | Required, Auto | |
@@ -444,3 +447,4 @@ Conventional values: `Running`, `WaitingOnCheckpoint`, `Completed`, `Failed`, `C
 ## Changelog
 
 - **2026-05-15** — Initial data model compiled from DevHub stakeholder definition. Defines 12 entities across 6 modules (Workspace, Identity, ExecutorRegistry, WorkItems, Audit, Notifications), the soft-delete + append-only-audit policy, and the ID-only cross-module reference contract.
+- **2026-05-17 (FEAT-008 / T-055)** — `Project` gained optional `repo` (varchar 140) and `default_branch` (varchar 200). `WorkItem` gained optional `work_branch` (varchar 200). All three nullable; existing rows survive the migration. Validation rules mirror the orchestrator's `intake.codeSource` schema; values are forwarded on work-item start.
