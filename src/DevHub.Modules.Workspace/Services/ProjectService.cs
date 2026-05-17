@@ -3,6 +3,7 @@ using DevHub.Contracts.Audit;
 using DevHub.Contracts.Authorization;
 using DevHub.Contracts.Executors;
 using DevHub.Contracts.Pagination;
+using DevHub.Contracts.Validation;
 using DevHub.Modules.Workspace.DTOs;
 using DevHub.Modules.Workspace.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -58,7 +59,7 @@ internal sealed class ProjectService(
             .Take(page.PageSize)
             .Select(p => new
             {
-                p.Id, p.Name, p.Slug, p.ProjectType, p.Description, p.CreatedAt, p.OwningTeamId,
+                p.Id, p.Name, p.Slug, p.ProjectType, p.Description, p.Repo, p.DefaultBranch, p.CreatedAt, p.OwningTeamId,
                 Team = db.Teams.Where(t => t.Id == p.OwningTeamId).Select(t => new { t.Id, t.Name }).FirstOrDefault(),
             })
             .ToListAsync(ct);
@@ -66,7 +67,7 @@ internal sealed class ProjectService(
         var dtos = rows.Select(r => new ProjectDto(
             r.Id, r.Name, r.Slug, r.ProjectType,
             new TeamRefDto(r.Team?.Id ?? r.OwningTeamId, r.Team?.Name ?? string.Empty),
-            r.Description, InFlightWorkItems: 0, r.CreatedAt)).ToList();
+            r.Description, r.Repo, r.DefaultBranch, InFlightWorkItems: 0, r.CreatedAt)).ToList();
 
         return new PagedEnvelopeDto<ProjectDto>(dtos, new PageMeta(totalCount, page.Page, page.PageSize, page.SortBy, page.SortDir));
     }
@@ -92,6 +93,11 @@ internal sealed class ProjectService(
     {
         await authz.EnsureOperatorAsync(actingMemberId, "project:create", ct);
 
+        // Boundary validation for the optional code-source coordinates — parity with the
+        // upstream orchestrator's intake.codeSource schema (FEAT-008).
+        if (req.Repo is not null) CodeSourceValidator.ValidateRepo(req.Repo, fieldName: "repo");
+        if (req.DefaultBranch is not null) CodeSourceValidator.ValidateBranch(req.DefaultBranch, fieldName: "defaultBranch");
+
         await using var tx = await db.Database.BeginTransactionAsync(ct);
 
         if (!await db.Teams.AnyAsync(t => t.Id == req.OwningTeamId, ct))
@@ -111,6 +117,8 @@ internal sealed class ProjectService(
             ProjectType = req.ProjectType,
             OwningTeamId = req.OwningTeamId,
             Description = req.Description,
+            Repo = req.Repo,
+            DefaultBranch = req.DefaultBranch,
         };
         db.Projects.Add(project);
 
@@ -118,7 +126,13 @@ internal sealed class ProjectService(
         {
             ActingMemberId = actingMemberId,
             ProjectId = project.Id,
-            Details = new Dictionary<string, object?> { ["slug"] = req.Slug, ["projectType"] = req.ProjectType },
+            Details = new Dictionary<string, object?>
+            {
+                ["slug"] = req.Slug,
+                ["projectType"] = req.ProjectType,
+                ["repo"] = req.Repo,
+                ["defaultBranch"] = req.DefaultBranch,
+            },
         }, ct);
 
         await db.SaveChangesAsync(ct);
@@ -131,10 +145,17 @@ internal sealed class ProjectService(
     {
         await authz.EnsureOperatorAsync(actingMemberId, "project:update", ct);
 
+        // Boundary validation runs before any DB write — denials never mutate state.
+        if (req.Repo is not null) CodeSourceValidator.ValidateRepo(req.Repo, fieldName: "repo");
+        if (req.DefaultBranch is not null) CodeSourceValidator.ValidateBranch(req.DefaultBranch, fieldName: "defaultBranch");
+
         await using var tx = await db.Database.BeginTransactionAsync(ct);
 
         var project = await db.Projects.FirstOrDefaultAsync(p => p.Id == id, ct)
             ?? throw new NotFoundException("Project not found.");
+
+        var repoBefore = project.Repo;
+        var defaultBranchBefore = project.DefaultBranch;
 
         if (req.Name is not null && req.Name != project.Name)
         {
@@ -144,11 +165,26 @@ internal sealed class ProjectService(
         }
         if (req.Description is not null) project.Description = req.Description;
         if (req.ProjectType is not null) project.ProjectType = req.ProjectType;
+        if (req.Repo is not null) project.Repo = req.Repo;
+        if (req.DefaultBranch is not null) project.DefaultBranch = req.DefaultBranch;
+
+        var details = new Dictionary<string, object?>();
+        if (repoBefore != project.Repo)
+        {
+            details["repoBefore"] = repoBefore;
+            details["repoAfter"] = project.Repo;
+        }
+        if (defaultBranchBefore != project.DefaultBranch)
+        {
+            details["defaultBranchBefore"] = defaultBranchBefore;
+            details["defaultBranchAfter"] = project.DefaultBranch;
+        }
 
         await audit.WriteAsync(new AuditWriteRequest("Project", project.Id, "project:update", AuditOutcome.Granted)
         {
             ActingMemberId = actingMemberId,
             ProjectId = project.Id,
+            Details = details.Count > 0 ? details : null,
         }, ct);
 
         await db.SaveChangesAsync(ct);
@@ -200,7 +236,7 @@ internal sealed class ProjectService(
             .Where(predicate)
             .Select(p => new
             {
-                p.Id, p.Name, p.Slug, p.ProjectType, p.Description, p.CreatedAt, p.OwningTeamId,
+                p.Id, p.Name, p.Slug, p.ProjectType, p.Description, p.Repo, p.DefaultBranch, p.CreatedAt, p.OwningTeamId,
                 Team = db.Teams.Where(t => t.Id == p.OwningTeamId).Select(t => new { t.Id, t.Name }).FirstOrDefault(),
             })
             .FirstOrDefaultAsync(ct)
@@ -208,6 +244,6 @@ internal sealed class ProjectService(
         return new ProjectDto(
             row.Id, row.Name, row.Slug, row.ProjectType,
             new TeamRefDto(row.Team?.Id ?? row.OwningTeamId, row.Team?.Name ?? string.Empty),
-            row.Description, InFlightWorkItems: 0, row.CreatedAt);
+            row.Description, row.Repo, row.DefaultBranch, InFlightWorkItems: 0, row.CreatedAt);
     }
 }

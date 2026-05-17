@@ -285,19 +285,29 @@ Query: `page`, `pageSize`, `sortBy` ∈ {`name`, `createdAt`}, `sortDir`, `teamI
   "slug": "string — kebab-case",
   "projectType": "string",
   "owningTeamId": "uuid",
-  "description": "string — optional"
+  "description": "string — optional",
+  "repo": "string — optional, owner/name (FEAT-008)",
+  "defaultBranch": "string — optional, git branch shorthand (FEAT-008)"
 }
 ```
+
+`repo` and `defaultBranch` are forwarded to the lifecycle executor as `intake.codeSource.{repo, baseBranch}` on every work-item start. Both are validated at the DevHub boundary with rules that mirror the upstream orchestrator's `intake.codeSource` schema:
+- `repo` matches `^[A-Za-z0-9._-]+/[A-Za-z0-9._-]+$`; no scheme prefix, no `.git` suffix.
+- `defaultBranch` has no whitespace, no leading `/`, no `..`, no ASCII control chars.
+
+`ProjectDto` carries both fields in every response envelope (`null` when unset).
 
 | Code | Condition |
 |------|-----------|
 | 201 | Created |
-| 400 | Validation error |
+| 400 | Validation error (includes `repo` / `defaultBranch` rule violations) |
 | 409 | Slug/name collision; `projectType` has no binding |
 
 ##### GET /api/projects/{projectId}
 
 ##### PATCH /api/projects/{projectId}
+
+Accepts any subset of `{ name, description, projectType, repo, defaultBranch }`. Fields not present in the request body are left unchanged. `repo` and `defaultBranch` are validated with the same rules as on create; rejected values produce `400` with no DB write and a `Denied` audit entry. Changes to `repo` / `defaultBranch` are recorded in the `project:update` audit entry's `details` with `repoBefore` / `repoAfter` / `defaultBranchBefore` / `defaultBranchAfter` keys (only the keys for fields that actually changed).
 
 ##### DELETE /api/projects/{projectId} (soft delete)
 
@@ -802,3 +812,4 @@ Standard RFC 7807 fields (`type`, `title`, `status`, `detail`, `instance`) plus 
 ## Changelog
 
 - **2026-05-15** — Initial API specification. Defines the façade surface (auth, workspace CRUD, executor registry, work-items + checkpoints + streams, audit, notifications), the `{ data, meta }` envelope, RFC 7807 errors, JWT auth, project-scoped authorization rules, and the SSE pass-through pattern.
+- **2026-05-17 (FEAT-008 / T-057)** — `ProjectDto`, `CreateProjectRequest`, `UpdateProjectRequest` gained optional `repo` (max 140) and `defaultBranch` (max 200). Boundary validation parity with the upstream orchestrator's `intake.codeSource` schema; rejected values produce `400` with no DB write and a `Denied` audit entry. Update audit captures before/after for both fields when they change.
