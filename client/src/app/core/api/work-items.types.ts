@@ -20,6 +20,12 @@ export interface WorkItemSummaryDto {
   createdBy: MemberRef;
   /** Optional per-work-item branch override; falls back to project.defaultBranch (FEAT-008). */
   workBranch?: string | null;
+  /**
+   * The executor's current task identifier when the active checkpoint is per-task (FEAT-009).
+   * Cached on every transition; null when the executor doesn't surface a task or the contract
+   * is not per-task.
+   */
+  currentTaskId?: string | null;
 }
 
 export interface WorkItemDto extends WorkItemSummaryDto {
@@ -42,7 +48,16 @@ export interface StartWorkItemRequest {
   /** Optional per-work-item override of the project's defaultBranch (FEAT-008). */
   workBranch?: string;
 }
-export interface SignalRequest { outcome: string; payload?: unknown; }
+export interface SignalRequest {
+  outcome: string;
+  payload?: unknown;
+  /**
+   * Identifier of the task this signal targets (FEAT-009). Required by the executor when the
+   * active contract is per-task; DevHub forwards it verbatim. Omit when the contract is not
+   * per-task.
+   */
+  taskId?: string;
+}
 
 /**
  * PATCH payload for /api/projects/{pid}/work-items/{wid}. v1 surface is workBranch-only.
@@ -62,4 +77,9 @@ export interface CheckpointContractView {
   requiredRoleKey: string;
   allowedOutcomes: string[];
   state: 'active' | 'not-active';
+  /**
+   * When true, DevHub raises per-task pending rows (FEAT-009). T-070's review page swaps in
+   * the AssignmentConfirmPanel when this is true AND checkpointKey === 'assignment-confirmed'.
+   */
+  perTask?: boolean;
 }

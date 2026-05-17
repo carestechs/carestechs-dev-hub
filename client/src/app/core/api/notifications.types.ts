@@ -10,6 +10,8 @@ export interface PendingActionDto {
   checkpointKey: string;
   checkpointDisplayName: string;
   raisedAt: string;
+  /** Set when the active contract is per-task (FEAT-009). Disambiguates loop-back rows. */
+  taskId?: string | null;
 }
 
 /** Shape of one event delivered over the SSE stream. */
@@ -20,4 +22,6 @@ export interface PendingActionEvent {
   workItemId: string;
   checkpointKey: string;
   occurredAt: string;
+  /** Set when the active contract is per-task (FEAT-009). */
+  taskId?: string | null;
 }
