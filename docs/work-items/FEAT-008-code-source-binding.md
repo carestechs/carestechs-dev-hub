@@ -7,7 +7,7 @@
 | **ID** | FEAT-008 |
 | **Name** | Code-Source Binding (project repo + optional work branch) |
 | **Target Version** | v1 |
-| **Status** | Not Started |
+| **Status** | Completed (2026-05-17) |
 | **Priority** | High |
 | **Requested By** | Operator (orchestrator IMP-004 deprecation timer) |
 | **Date Created** | 2026-05-17 |

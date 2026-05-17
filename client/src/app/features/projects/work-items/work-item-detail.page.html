@@ -53,7 +53,7 @@
         </span>
       </div>
     </div>
-    <div class="mt-4 flex flex-wrap gap-x-6 gap-y-2 text-sm text-slate-500">
+    <div class="mt-4 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-slate-500">
       <div><span class="font-medium text-slate-700">Created by:</span> {{ wi.createdBy.displayName }}</div>
       <div><span class="font-medium text-slate-700">Created:</span> {{ wi.createdAt.slice(0, 10) }}</div>
       @if (wi.currentCheckpointKey) {
@@ -62,7 +62,37 @@
           <span class="font-mono bg-slate-100 rounded px-1.5 py-0.5">{{ wi.currentCheckpointKey }}</span>
         </div>
       }
+      <div class="flex items-center gap-2">
+        <span class="font-medium text-slate-700">Branch:</span>
+        @if (effectiveBranch().value; as b) {
+          <span class="font-mono">{{ b }}</span>
+          <span class="text-xs text-slate-400">
+            ({{ effectiveBranch().source === 'override' ? 'override' : 'project default' }})
+          </span>
+        } @else {
+          <span class="italic text-slate-400">(not set)</span>
+        }
+        @if (isOperator() && !branchEditOpen()) {
+          <button type="button" class="ml-1 text-sky-600 hover:underline text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300 rounded"
+                  (click)="openBranchEdit()">Edit</button>
+        }
+      </div>
     </div>
+
+    @if (branchEditOpen()) {
+      <form (ngSubmit)="submitBranch()" class="mt-4 flex flex-wrap items-center gap-2 text-sm">
+        <input type="text" [formControl]="branchControl" placeholder="leave empty to use project default"
+               class="border border-slate-300 focus:border-sky-500 focus:ring-2 focus:ring-sky-100 rounded-lg px-3 h-9 font-mono outline-none min-w-[260px]"
+               [class.border-red-500]="branchControl.invalid && (branchControl.touched || branchControl.dirty)" />
+        <app-button variant="primary" type="submit" [loading]="branchSaving()" [disabled]="branchSaving()">Save</app-button>
+        <app-button variant="secondary" type="button" [disabled]="branchSaving()" (clicked)="closeBranchEdit()">Cancel</app-button>
+        @if (branchInputError(); as msg) {
+          <span class="text-xs text-red-600 basis-full">{{ msg }}</span>
+        } @else if (branchError(); as err) {
+          <span class="text-xs text-red-600 basis-full">{{ err.title }}</span>
+        }
+      </form>
+    }
     <div class="mt-6 flex items-center gap-3">
       @if (canOpenReview()) {
         <app-button variant="primary" (clicked)="openReview()">Open review →</app-button>

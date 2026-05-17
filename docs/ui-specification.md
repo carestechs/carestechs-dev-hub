@@ -385,6 +385,7 @@ Generic, executor-agnostic surface. Renders title, status, executor metadata, si
 ```
 WorkItemDetailPage
 ├── WorkItemHeader (title, status badge, executor chip, "Open review" CTA)
+│   └── Metadata strip (created by/date, waiting on, Branch row with effective-branch label + operator-only Edit)
 ├── ExecutorStatePanel        # renders the opaque executorState as a key-value list
 ├── StreamFeed                # SSE pass-through, aria-live="polite"
 └── SignalHistoryList         # most-recent 20 signals + "Load more"
@@ -393,8 +394,14 @@ WorkItemDetailPage
 | Component | Data | API | Trigger |
 |-----------|------|-----|---------|
 | WorkItemHeader / ExecutorStatePanel | work item | `GET /api/projects/{id}/work-items/{wid}` | Page load |
+| WorkItemHeader / Branch row | project + work item | (data from existing GETs; `workBranch` ?? `project.defaultBranch` ?? "(not set)") | Page load |
+| WorkItemHeader / Branch edit | `PATCH /api/projects/{pid}/work-items/{wid}` | Operator submits the inline form (empty input clears the override) |
 | StreamFeed | stream events | `GET /api/projects/{id}/work-items/{wid}/stream` (SSE) | After initial fetch |
 | SignalHistoryList | signals | `GET /api/projects/{id}/work-items/{wid}/signals` | Page load |
+
+**Effective branch logic (FEAT-008)**
+
+The Branch row renders `workBranch ?? project.defaultBranch ?? '(not set)'` with a small label indicating the source: `(override)`, `(project default)`, or `(not set)`. Operators see an inline "Edit" button that opens a single-input form. Submitting an empty value sends `{ workBranch: "" }`, which the backend treats as "clear the override" — the row falls back to the project default. Editing does **not** re-forward to the executor; the value sent at start time is what the in-flight run uses.
 
 **Interactions**
 
@@ -618,3 +625,4 @@ Used in every list screen. Inputs: column defs (header, cell renderer, sortable)
 ## Changelog
 
 - **2026-05-15** — Initial UI specification. Defines the app shell, 14 screens (auth, home, project, lifecycle review, operator, audit, 5 admin, profile), the Modern Minimal design system compiled from the DDR profile, and shared components (`AppCard`, `AppButton`, `StreamFeed`, `CheckpointActionBar`, `LifecycleTimeline`).
+- **2026-05-17 (FEAT-008 / T-061 + T-062)** — Project create modal gained a "Code source" fieldset (Repo + Default branch). Project detail page surfaces both fields in the metadata strip with a GitHub link, an operator-only "Edit code source" affordance, and a soft amber warning banner when `repo` is null. Work item detail page gained a "Branch" row showing the effective branch (override / project default / not set) with an operator-only inline edit; empty submit clears the override.
