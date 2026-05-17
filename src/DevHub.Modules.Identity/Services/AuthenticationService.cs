@@ -76,9 +76,15 @@ internal sealed class AuthenticationService(
             .Select(m => new MembershipDto(m.ProjectId, m.ProjectSlug, m.Roles))
             .ToList();
 
+        // Workspace-scoped operator grant lives in WorkspaceRoleAssignment, not in any
+        // ProjectMembership — surface it explicitly so the SPA can derive isOperator
+        // without inspecting the (project-scoped) memberships list.
+        var isOperator = await memberships.IsOperatorAsync(memberId, ct);
+
         return new MeResponse(
             new MemberDto(member.Id, member.DisplayName, member.Email),
-            dtos);
+            dtos,
+            isOperator);
     }
 
     /// <summary>
