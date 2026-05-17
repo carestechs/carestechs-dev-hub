@@ -11,6 +11,7 @@ using DevHub.Contracts.Workspace;
 using DevHub.Modules.WorkItems.DTOs;
 using DevHub.Modules.WorkItems.Entities;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace DevHub.Modules.WorkItems.Services;
 
@@ -22,7 +23,8 @@ internal sealed class WorkItemsService(
     IMemberLookup members,
     IProjectLookup projects,
     IAuditWriter audit,
-    IPendingActionReconciler reconciler) : IWorkItemsService
+    IPendingActionReconciler reconciler,
+    ILogger<WorkItemsService> log) : IWorkItemsService
 {
     private const string StartCheckpointKey = "start";
     private const string CancelCheckpointKey = "cancel";
@@ -136,13 +138,32 @@ internal sealed class WorkItemsService(
         if (request.WorkBranch is not null)
             CodeSourceValidator.ValidateBranch(request.WorkBranch, fieldName: "workBranch");
 
+        // Build intake.codeSource from project + work item. Both repo + defaultBranch must
+        // be present on the project; partial coordinates would be invalid on the executor
+        // side, so omit the whole block and log for grep-ability (FEAT-008 / IMP-004
+        // deprecation timer).
+        CodeSourcePayload? codeSource = null;
+        if (!string.IsNullOrEmpty(project.Repo) && !string.IsNullOrEmpty(project.DefaultBranch))
+        {
+            codeSource = new CodeSourcePayload(
+                Repo: project.Repo,
+                BaseBranch: project.DefaultBranch,
+                WorkBranch: request.WorkBranch);
+        }
+        else
+        {
+            log.LogInformation(
+                "codeSourceMissing=true projectId={ProjectId} — orchestrator IMP-004 deprecation timer applies",
+                projectId);
+        }
+
         await using var tx = await db.Database.BeginTransactionAsync(ct);
 
         var marker = Guid.NewGuid().ToString("N");
         ExecutorStartResponse startResp;
         try
         {
-            startResp = await executorClient.StartAsync(descriptor, marker, request.Input, ct);
+            startResp = await executorClient.StartAsync(descriptor, marker, request.Input, codeSource, ct);
         }
         catch (ExecutorFailureException ex)
         {
