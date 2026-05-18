@@ -1,4 +1,5 @@
 using DevHub.TestHarness.FakeExecutor;
+using DevHub.TestHarness.FakeOrchestrator;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.Configuration;
@@ -24,20 +25,38 @@ public sealed class DevHubApiFactory : WebApplicationFactory<Program>
 
     /// When true, starts a <see cref="FakeExecutorHost"/> on a random local port and seeds
     /// the feature-delivery binding's <c>BaseUrl</c> to point at it. Required by every
-    /// FEAT-004 façade test.
+    /// FEAT-004 façade test. Mutually exclusive with <see cref="UseFakeOrchestrator"/>.
     public bool UseFakeExecutor { get; init; } = false;
+
+    /// <summary>
+    /// FEAT-010 / T-088: when true, starts a <see cref="FakeOrchestratorHost"/> on a random
+    /// local port and seeds the binding with <c>protocol="orchestrator"</c>. Mutually
+    /// exclusive with <see cref="UseFakeExecutor"/>.
+    /// </summary>
+    public bool UseFakeOrchestrator { get; init; } = false;
 
     private FakeExecutorHost? _fake;
     public FakeExecutorHost Fake => _fake
         ?? throw new InvalidOperationException("UseFakeExecutor must be true on the factory.");
 
+    private FakeOrchestratorHost? _fakeOrch;
+    public FakeOrchestratorHost FakeOrchestrator => _fakeOrch
+        ?? throw new InvalidOperationException("UseFakeOrchestrator must be true on the factory.");
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment("Production");
 
+        if (UseFakeExecutor && UseFakeOrchestrator)
+            throw new InvalidOperationException("UseFakeExecutor and UseFakeOrchestrator are mutually exclusive.");
+
         if (UseFakeExecutor)
         {
             _fake = FakeExecutorHost.StartAsync().GetAwaiter().GetResult();
+        }
+        if (UseFakeOrchestrator)
+        {
+            _fakeOrch = FakeOrchestratorHost.StartAsync().GetAwaiter().GetResult();
         }
 
         builder.ConfigureAppConfiguration((_, cfg) =>
@@ -56,22 +75,32 @@ public sealed class DevHubApiFactory : WebApplicationFactory<Program>
         });
         if (SeedFeatureDeliveryBinding)
         {
-            var baseUrlOverride = _fake?.BaseUrl;
+            var baseUrlOverride = _fake?.BaseUrl ?? _fakeOrch?.BaseUrl;
+            var protocolOverride = _fakeOrch is not null ? "orchestrator" : "devhub";
             builder.ConfigureServices(services =>
             {
                 services.AddHostedService(sp => new TestRegistrySeeder(
                     sp.GetRequiredService<IServiceScopeFactory>(),
-                    baseUrlOverride));
+                    baseUrlOverride,
+                    protocolOverride));
             });
         }
     }
 
     protected override void Dispose(bool disposing)
     {
-        if (disposing && _fake is not null)
+        if (disposing)
         {
-            _fake.DisposeAsync().AsTask().GetAwaiter().GetResult();
-            _fake = null;
+            if (_fake is not null)
+            {
+                _fake.DisposeAsync().AsTask().GetAwaiter().GetResult();
+                _fake = null;
+            }
+            if (_fakeOrch is not null)
+            {
+                _fakeOrch.DisposeAsync().AsTask().GetAwaiter().GetResult();
+                _fakeOrch = null;
+            }
         }
         base.Dispose(disposing);
     }
