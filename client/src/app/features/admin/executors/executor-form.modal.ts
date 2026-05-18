@@ -18,6 +18,7 @@ import type {
   CreateCheckpointContractRequest,
   CreateExecutorRequest,
   ExecutorDto,
+  ExecutorProtocol,
   ExecutorStatus,
   UpdateExecutorRequest,
 } from '../../../core/api/executor-registry.types';
@@ -62,6 +63,9 @@ export class ExecutorFormModal {
       validators: [Validators.required, Validators.maxLength(120)],
     }),
     status: new FormControl<ExecutorStatus>('Active', { nonNullable: true }),
+    // FEAT-010: default new registrations to the orchestrator path; legacy / test
+    // executors can flip to "devhub".
+    protocol: new FormControl<ExecutorProtocol>('orchestrator', { nonNullable: true }),
     contracts: new FormArray<FormGroup<ContractGroup>>([]),
   });
 
@@ -83,11 +87,15 @@ export class ExecutorFormModal {
           baseUrl: e.baseUrl,
           credentialsRef: e.credentialsRef,
           status: e.status,
+          protocol: e.protocol,
         });
         this.form.controls.key.disable({ emitEvent: false });
       } else {
         contracts.push(makeContractGroup());
-        this.form.reset({ key: '', displayName: '', baseUrl: '', credentialsRef: '', status: 'Active' });
+        this.form.reset({
+          key: '', displayName: '', baseUrl: '', credentialsRef: '',
+          status: 'Active', protocol: 'orchestrator',
+        });
         this.form.controls.key.enable({ emitEvent: false });
       }
       this.submittedFlag.set(false);
@@ -132,6 +140,7 @@ export class ExecutorFormModal {
         baseUrl: raw.baseUrl,
         credentialsRef: raw.credentialsRef,
         status: raw.status,
+        protocol: raw.protocol,
       };
       this.submitted.emit(body);
     } else {
@@ -141,6 +150,7 @@ export class ExecutorFormModal {
         baseUrl: raw.baseUrl,
         credentialsRef: raw.credentialsRef,
         checkpointContracts: parsedContracts,
+        protocol: raw.protocol,
       };
       this.submitted.emit(body);
     }

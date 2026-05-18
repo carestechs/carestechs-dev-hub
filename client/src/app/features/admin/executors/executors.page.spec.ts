@@ -15,11 +15,12 @@ describe('ExecutorsPage', () => {
     mock = TestBed.inject(HttpTestingController);
   });
 
-  function flushBootstrap(items: { id: string; key: string }[]) {
+  function flushBootstrap(items: { id: string; key: string; protocol?: 'devhub' | 'orchestrator' }[]) {
     mock.expectOne(r => r.url === '/api/admin/executors').flush({
       data: items.map(i => ({
         id: i.id, key: i.key, displayName: i.key, baseUrl: 'http://x', credentialsRef: 'EXEC_X',
         status: 'Active', checkpointContracts: [], createdAt: '2026-05-01T00:00:00Z',
+        protocol: i.protocol ?? 'devhub',
       })),
       meta: { totalCount: items.length, page: 1, pageSize: 20 },
     });
@@ -86,6 +87,63 @@ describe('ExecutorsPage', () => {
     fixture.detectChanges();
 
     expect((fixture.nativeElement as HTMLElement).textContent).toContain('new-exec');
+  });
+
+  it('list renders the protocol column with the value from each row (FEAT-010)', async () => {
+    const fixture = TestBed.createComponent(ExecutorsPage);
+    fixture.detectChanges();
+    flushBootstrap([
+      { id: 'e1', key: 'feature-delivery-v1', protocol: 'devhub' },
+      { id: 'e2', key: 'lifecycle-agent@0.4.0-manual', protocol: 'orchestrator' },
+    ]);
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
+    expect(text).toContain('devhub');
+    expect(text).toContain('orchestrator');
+  });
+
+  it('register POSTs the protocol field from the form (FEAT-010)', async () => {
+    const fixture = TestBed.createComponent(ExecutorsPage);
+    fixture.detectChanges();
+    flushBootstrap([]);
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const cmp = fixture.componentInstance as unknown as {
+      openRegister(): void;
+      onModalSubmit(r: unknown): Promise<void>;
+    };
+    cmp.openRegister();
+    fixture.detectChanges();
+    void cmp.onModalSubmit({
+      key: 'orch-1',
+      displayName: 'Orchestrator',
+      baseUrl: 'http://orchestrator-api:8000',
+      credentialsRef: 'ORCH_KEY',
+      checkpointContracts: [],
+      protocol: 'orchestrator',
+    });
+    await Promise.resolve();
+
+    const post = mock.expectOne(r => r.url === '/api/admin/executors' && r.method === 'POST');
+    expect(post.request.body).toEqual(jasmine.objectContaining({ protocol: 'orchestrator' }));
+    post.flush({ data: {
+      id: 'e3', key: 'orch-1', displayName: 'Orchestrator',
+      baseUrl: 'http://orchestrator-api:8000', credentialsRef: 'ORCH_KEY', status: 'Active',
+      checkpointContracts: [], createdAt: '2026-05-01T00:00:00Z', protocol: 'orchestrator',
+    } });
+    for (let i = 0; i < 6; i++) await Promise.resolve();
+    mock.expectOne(r => r.url === '/api/admin/executors').flush({
+      data: [{
+        id: 'e3', key: 'orch-1', displayName: 'Orchestrator',
+        baseUrl: 'http://orchestrator-api:8000', credentialsRef: 'ORCH_KEY', status: 'Active',
+        checkpointContracts: [], createdAt: '2026-05-01T00:00:00Z', protocol: 'orchestrator',
+      }],
+      meta: { totalCount: 1, page: 1, pageSize: 20 },
+    });
+    await fixture.whenStable();
   });
 
   it('surfaces a 409 from delete inside the confirm dialog', async () => {

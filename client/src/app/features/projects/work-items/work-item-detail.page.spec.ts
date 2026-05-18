@@ -331,4 +331,39 @@ describe('WorkItemDetailPage', () => {
     expect(text).toContain('feat/abc');
     expect(text).toContain('override');
   });
+
+  // ---------- FEAT-010 / T-087: executorRunId label ----------
+
+  it('header shows the executorRunId next to the marker when set (FEAT-010)', async () => {
+    const fixture = TestBed.createComponent(WorkItemDetailPage);
+    fixture.detectChanges();
+    flushProject();
+    await Promise.resolve(); await Promise.resolve();
+    flushWorkItem('p1', 'wi-1', 'feature-delivery-v1', 'WaitingOnCheckpoint', {
+      executorRunId: '00000000-0000-0000-0000-000000000abc',
+    });
+    flushSignals();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
+    expect(text).toContain('marker:');
+    expect(text).toContain('marker-1');
+    expect(text).toContain('run:');
+    expect(text).toContain('00000000-0000-0000-0000-000000000abc');
+  });
+
+  it('header omits the run label when executorRunId is absent', async () => {
+    const fixture = TestBed.createComponent(WorkItemDetailPage);
+    fixture.detectChanges();
+    flushProject();
+    await Promise.resolve(); await Promise.resolve();
+    flushWorkItem();  // no executorRunId in extras
+    flushSignals();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
+    expect(text).not.toContain('run:');
+  });
 });

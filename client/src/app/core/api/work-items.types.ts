@@ -26,6 +26,12 @@ export interface WorkItemSummaryDto {
    * is not per-task.
    */
   currentTaskId?: string | null;
+  /**
+   * The orchestrator's run id (FEAT-010). Populated after Start succeeds when the bound
+   * executor speaks the `'orchestrator'` protocol; null for devhub-protocol executors.
+   * Surfaced on the WorkItem detail header for cross-system debugging.
+   */
+  executorRunId?: string | null;
 }
 
 export interface WorkItemDto extends WorkItemSummaryDto {
