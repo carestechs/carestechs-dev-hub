@@ -7,7 +7,7 @@
 | **ID** | FEAT-010 |
 | **Name** | In-process Orchestrator Client (DevHub → carestechs-agent-orchestrator) |
 | **Target Version** | v1 |
-| **Status** | Not Started |
+| **Status** | Completed (2026-05-17) |
 | **Priority** | High |
 | **Requested By** | Operator (close the route-level gap between DevHub and its intended executor) |
 | **Date Created** | 2026-05-17 |

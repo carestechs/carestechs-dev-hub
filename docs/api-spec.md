@@ -376,6 +376,7 @@ Accepts any subset of `{ name, description, projectType, repo, defaultBranch }`.
   "displayName": "string",
   "baseUrl": "string — URL",
   "credentialsRef": "string — env-var/secret reference; never a literal",
+  "protocol": "devhub | orchestrator — optional; defaults to \"devhub\"",
   "checkpointContracts": [
     {
       "checkpointKey": "string",
@@ -387,6 +388,8 @@ Accepts any subset of `{ name, description, projectType, repo, defaultBranch }`.
   ]
 }
 ```
+
+The `protocol` field (FEAT-010; optional, defaults to `"devhub"`) selects which `IExecutorHttpClient` implementation DevHub uses to talk to this executor. `"devhub"` speaks DevHub's native wire shape; `"orchestrator"` translates calls to the carestechs-agent-orchestrator's `/api/v1/runs` API. See `docs/ARCHITECTURE.md` § Executor protocols for the in-process selection model.
 
 The `perTask` flag (FEAT-009; optional, defaults to `false`) opts the contract into per-task pending-row identity: DevHub keys `PendingActionSignal` rows by `(member, work_item, checkpoint, task_id)` rather than `(member, work_item, checkpoint)`. The executor advances `WorkItem.CurrentTaskId` between pauses; DevHub raises a distinct row per task discriminator. `assignment-confirmed` is the first user.
 
