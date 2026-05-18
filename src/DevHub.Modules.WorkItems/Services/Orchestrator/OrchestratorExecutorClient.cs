@@ -4,7 +4,6 @@ using System.Text;
 using System.Text.Json;
 using DevHub.Contracts.ApplicationErrors;
 using DevHub.Contracts.Executors;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
 namespace DevHub.Modules.WorkItems.Services.Orchestrator;
@@ -14,23 +13,20 @@ namespace DevHub.Modules.WorkItems.Services.Orchestrator;
 /// carestechs-agent-orchestrator's <c>/api/v1/runs</c> API.
 ///
 /// Outbound auth: <c>X-API-Key</c> header sourced from the executor's <c>CredentialsRef</c>.
-/// Run-id lookup: temporary EF query on <c>WorkItem.ExecutorRunId</c> keyed by
-/// <c>ExecutorCorrelationMarker</c>. T-086 replaces this with a <c>WorkItemRef</c> on the
-/// interface.
 /// </summary>
 internal sealed class OrchestratorExecutorClient(
     HttpClient http,
     IExecutorCredentialResolver creds,
-    WorkItemsDbContext db,
     ILogger<OrchestratorExecutorClient> log) : IExecutorHttpClient
 {
     public async Task<ExecutorStartResponse> StartAsync(
         ExecutorRegistrationDescriptor executor,
-        string correlationMarker,
+        WorkItemRef workItem,
         JsonElement input,
         CodeSourcePayload? codeSource,
         CancellationToken cancellationToken = default)
     {
+        var correlationMarker = workItem.Marker;
         // The orchestrator's CreateRunRequest expects { agentRef, intake: { workItem, codeSource? } }.
         // We synthesize the workItem from DevHub's marker + input.
         var workItemPayload = new
@@ -69,10 +65,11 @@ internal sealed class OrchestratorExecutorClient(
 
     public async Task<ExecutorFetchResponse> FetchStateAsync(
         ExecutorRegistrationDescriptor executor,
-        string correlationMarker,
+        WorkItemRef workItem,
         CancellationToken cancellationToken = default)
     {
-        var runId = await LookupRunIdAsync(correlationMarker, cancellationToken)
+        var correlationMarker = workItem.Marker;
+        var runId = workItem.ExecutorRunId
             ?? throw new NotFoundException($"No orchestrator run id for marker '{correlationMarker}'.");
 
         using var detailReq = NewRequest(HttpMethod.Get, executor, $"/api/v1/runs/{runId}");
@@ -115,14 +112,15 @@ internal sealed class OrchestratorExecutorClient(
 
     public async Task<ExecutorSignalResponse> SignalAsync(
         ExecutorRegistrationDescriptor executor,
-        string correlationMarker,
+        WorkItemRef workItem,
         string checkpointKey,
         string outcome,
         JsonElement? payload,
         string? taskId,
         CancellationToken cancellationToken = default)
     {
-        var runId = await LookupRunIdAsync(correlationMarker, cancellationToken)
+        var correlationMarker = workItem.Marker;
+        var runId = workItem.ExecutorRunId
             ?? throw new NotFoundException($"No orchestrator run id for marker '{correlationMarker}'.");
 
         // The orchestrator routes by `name`. DevHub's `checkpointKey` IS the signal name.
@@ -143,7 +141,7 @@ internal sealed class OrchestratorExecutorClient(
         await SendJsonAsync<JsonElement>(executor, req, correlationMarker, cancellationToken);
 
         // Refetch so DevHub gets the updated currentStatus / currentCheckpointKey.
-        var refreshed = await FetchStateAsync(executor, correlationMarker, cancellationToken);
+        var refreshed = await FetchStateAsync(executor, workItem, cancellationToken);
         return new ExecutorSignalResponse(
             refreshed.CurrentStatus, refreshed.CurrentCheckpointKey,
             refreshed.ExecutorState, HttpStatus: 200, refreshed.CurrentTaskId);
@@ -151,11 +149,11 @@ internal sealed class OrchestratorExecutorClient(
 
     public async Task<ExecutorStreamConnection> OpenStreamAsync(
         ExecutorRegistrationDescriptor executor,
-        string correlationMarker,
+        WorkItemRef workItem,
         CancellationToken cancellationToken = default)
     {
-        var runId = await LookupRunIdAsync(correlationMarker, cancellationToken)
-            ?? throw new NotFoundException($"No orchestrator run id for marker '{correlationMarker}'.");
+        var runId = workItem.ExecutorRunId
+            ?? throw new NotFoundException($"No orchestrator run id for marker '{workItem.Marker}'.");
 
         var req = NewRequest(HttpMethod.Get, executor, $"/api/v1/runs/{runId}/trace?follow=true");
         await AuthAsync(req, executor.Id, cancellationToken);
@@ -184,10 +182,11 @@ internal sealed class OrchestratorExecutorClient(
 
     public async Task CancelAsync(
         ExecutorRegistrationDescriptor executor,
-        string correlationMarker,
+        WorkItemRef workItem,
         CancellationToken cancellationToken = default)
     {
-        var runId = await LookupRunIdAsync(correlationMarker, cancellationToken)
+        var correlationMarker = workItem.Marker;
+        var runId = workItem.ExecutorRunId
             ?? throw new NotFoundException($"No orchestrator run id for marker '{correlationMarker}'.");
 
         using var req = NewRequest(HttpMethod.Post, executor, $"/api/v1/runs/{runId}/cancel");
@@ -204,18 +203,6 @@ internal sealed class OrchestratorExecutorClient(
     /// coupled.
     /// </summary>
     private static string ResolveAgentRef(ExecutorRegistrationDescriptor executor) => executor.Key;
-
-    /// <summary>
-    /// TEMPORARY — T-086 changes the interface to accept a WorkItemRef so the client
-    /// receives ExecutorRunId directly. Until then, look it up by correlation marker.
-    /// </summary>
-    private async Task<Guid?> LookupRunIdAsync(string correlationMarker, CancellationToken ct)
-    {
-        return await db.WorkItems.AsNoTracking()
-            .Where(w => w.ExecutorCorrelationMarker == correlationMarker)
-            .Select(w => w.ExecutorRunId)
-            .FirstOrDefaultAsync(ct);
-    }
 
     /// <summary>
     /// One-shot trace scan (no <c>follow</c>) returning every JSON record.

@@ -19,7 +19,7 @@ internal sealed class WorkItemsService(
     WorkItemsDbContext db,
     IProjectAuthorizationService authz,
     IExecutorRouter router,
-    IExecutorHttpClient executorClient,
+    IExecutorClientFactory clientFactory,
     IMemberLookup members,
     IProjectLookup projects,
     IAuditWriter audit,
@@ -78,7 +78,8 @@ internal sealed class WorkItemsService(
             r.ExecutorCorrelationMarker, r.CreatedAt,
             memberNames[r.CreatedByMemberId],
             r.WorkBranch,
-            r.CurrentTaskId)).ToList();
+            r.CurrentTaskId,
+            r.ExecutorRunId)).ToList();
 
         return new PagedEnvelopeDto<WorkItemSummaryDto>(dtos,
             new PageMeta(totalCount, page.Page, page.PageSize, page.SortBy, page.SortDir));
@@ -96,7 +97,9 @@ internal sealed class WorkItemsService(
 
         // Fetch latest state from the executor and refresh the cache opportunistically.
         // ExecutorFailureException propagates as 502 via the global handler.
-        var resp = await executorClient.FetchStateAsync(descriptor, wi.ExecutorCorrelationMarker, ct);
+        var executorClient = clientFactory.Resolve(descriptor);
+        var workItemRef = new WorkItemRef(wi.ExecutorCorrelationMarker, wi.ExecutorRunId);
+        var resp = await executorClient.FetchStateAsync(descriptor, workItemRef, ct);
 
         if (wi.CurrentStatus != resp.CurrentStatus
             || wi.CurrentCheckpointKey != resp.CurrentCheckpointKey
@@ -120,7 +123,8 @@ internal sealed class WorkItemsService(
                 : new MemberRefDto(createdBy.Id, createdBy.DisplayName),
             resp.ExecutorState,
             wi.WorkBranch,
-            resp.CurrentTaskId);
+            resp.CurrentTaskId,
+            wi.ExecutorRunId);
     }
 
     public async Task<WorkItemDto> StartAsync(
@@ -165,10 +169,14 @@ internal sealed class WorkItemsService(
         await using var tx = await db.Database.BeginTransactionAsync(ct);
 
         var marker = Guid.NewGuid().ToString("N");
+        var executorClient = clientFactory.Resolve(descriptor);
+        // ExecutorRunId is null pre-Start by definition; the start response surfaces it
+        // for orchestrator-protocol executors so we can persist it on the new row below.
+        var startRef = new WorkItemRef(marker, ExecutorRunId: null);
         ExecutorStartResponse startResp;
         try
         {
-            startResp = await executorClient.StartAsync(descriptor, marker, request.Input, codeSource, ct);
+            startResp = await executorClient.StartAsync(descriptor, startRef, request.Input, codeSource, ct);
         }
         catch (ExecutorFailureException ex)
         {
@@ -193,6 +201,7 @@ internal sealed class WorkItemsService(
             CurrentStatus = startResp.CurrentStatus,
             CurrentCheckpointKey = startResp.CurrentCheckpointKey,
             CurrentTaskId = startResp.CurrentTaskId,
+            ExecutorRunId = TryExtractRunId(startResp.ExecutorState),
             CreatedByMemberId = actingMemberId,
             WorkBranch = request.WorkBranch,
         };
@@ -228,7 +237,8 @@ internal sealed class WorkItemsService(
                 : new MemberRefDto(actor.Id, actor.DisplayName),
             startResp.ExecutorState,
             workItem.WorkBranch,
-            workItem.CurrentTaskId);
+            workItem.CurrentTaskId,
+            workItem.ExecutorRunId);
     }
 
     public async Task<WorkItemDto> UpdateAsync(
@@ -295,7 +305,8 @@ internal sealed class WorkItemsService(
                 : new MemberRefDto(createdBy.Id, createdBy.DisplayName),
             emptyState.RootElement.Clone(),
             wi.WorkBranch,
-            wi.CurrentTaskId);
+            wi.CurrentTaskId,
+            wi.ExecutorRunId);
     }
 
     public async Task CancelAsync(Guid projectId, Guid workItemId, Guid actingMemberId, CancellationToken ct)
@@ -315,7 +326,8 @@ internal sealed class WorkItemsService(
 
         try
         {
-            await executorClient.CancelAsync(descriptor, wi.ExecutorCorrelationMarker, ct);
+            var executorClient = clientFactory.Resolve(descriptor);
+            await executorClient.CancelAsync(descriptor, new WorkItemRef(wi.ExecutorCorrelationMarker, wi.ExecutorRunId), ct);
         }
         catch (ExecutorFailureException ex)
         {
@@ -371,4 +383,16 @@ internal sealed class WorkItemsService(
             ["executorCorrelationId"] = ex.CorrelationId,
             ["upstreamStatus"] = ex.UpstreamStatus,
         };
+
+    /// <summary>
+    /// FEAT-010: extracts the orchestrator's run id from <c>executorState.runId</c> when
+    /// present. Returns null for devhub-protocol executors (which don't surface a run id).
+    /// </summary>
+    private static Guid? TryExtractRunId(System.Text.Json.JsonElement state)
+    {
+        if (state.ValueKind != System.Text.Json.JsonValueKind.Object) return null;
+        if (!state.TryGetProperty("runId", out var idEl)) return null;
+        if (idEl.ValueKind != System.Text.Json.JsonValueKind.String) return null;
+        return Guid.TryParse(idEl.GetString(), out var runId) ? runId : null;
+    }
 }

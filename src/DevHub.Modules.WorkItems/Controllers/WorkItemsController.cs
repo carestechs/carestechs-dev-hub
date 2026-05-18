@@ -78,6 +78,6 @@ public sealed class WorkItemsController(
         var descriptor = await router.ResolveAsync(projectId, ct)
             ?? throw new ConflictException("Project has no executor bound.");
 
-        await streamForwarder.PipeAsync(HttpContext, descriptor, wi.ExecutorCorrelationMarker, ct);
+        await streamForwarder.PipeAsync(HttpContext, descriptor, new WorkItemRef(wi.ExecutorCorrelationMarker, wi.ExecutorRunId), ct);
     }
 }

@@ -17,7 +17,8 @@ public sealed record WorkItemSummaryDto(
     DateTimeOffset CreatedAt,
     MemberRefDto CreatedBy,
     string? WorkBranch,
-    string? CurrentTaskId = null);
+    string? CurrentTaskId = null,
+    Guid? ExecutorRunId = null);
 
 public sealed record WorkItemDto(
     Guid Id,
@@ -31,7 +32,8 @@ public sealed record WorkItemDto(
     MemberRefDto CreatedBy,
     JsonElement ExecutorState,
     string? WorkBranch,
-    string? CurrentTaskId = null);
+    string? CurrentTaskId = null,
+    Guid? ExecutorRunId = null);
 
 public sealed record CheckpointSignalDto(
     Guid Id,

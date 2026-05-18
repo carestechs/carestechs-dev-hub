@@ -7,12 +7,12 @@ namespace DevHub.Modules.WorkItems.Services;
 /// Owns the open-and-copy loop for SSE pass-through. Authorization happens at the controller
 /// BEFORE calling Pipe; on auth deny the upstream socket is never opened (AC-1).
 /// </summary>
-public sealed class WorkItemStreamForwarder(IExecutorHttpClient client)
+public sealed class WorkItemStreamForwarder(IExecutorClientFactory clientFactory)
 {
     public async Task PipeAsync(
         HttpContext ctx,
         ExecutorRegistrationDescriptor executor,
-        string correlationMarker,
+        WorkItemRef workItem,
         CancellationToken cancellationToken)
     {
         // Headers MUST be set BEFORE any body bytes are written.
@@ -22,7 +22,8 @@ public sealed class WorkItemStreamForwarder(IExecutorHttpClient client)
         ctx.Response.Headers["X-Accel-Buffering"] = "no";
         await ctx.Response.StartAsync(cancellationToken);
 
-        await using var conn = await client.OpenStreamAsync(executor, correlationMarker, cancellationToken);
+        var client = clientFactory.Resolve(executor);
+        await using var conn = await client.OpenStreamAsync(executor, workItem, cancellationToken);
 
         // 8 KiB buffer: large enough to avoid per-byte syscalls, small enough that a chunk
         // emitted by the executor flushes promptly.
