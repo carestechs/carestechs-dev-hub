@@ -14,4 +14,5 @@ public sealed class WorkItem : BaseEntity
     public required Guid CreatedByMemberId { get; set; }
     public string? WorkBranch { get; set; }
     public string? CurrentTaskId { get; set; }
+    public Guid? ExecutorRunId { get; set; }
 }
