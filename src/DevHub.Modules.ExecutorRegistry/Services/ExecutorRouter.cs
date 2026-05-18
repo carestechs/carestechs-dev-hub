@@ -45,7 +45,8 @@ internal sealed class ExecutorRouter(
 
     internal static ExecutorRegistrationDescriptor Map(ExecutorRegistration e) =>
         new(e.Id, e.Key, e.DisplayName, e.BaseUrl, e.Status,
-            e.CheckpointContracts.Select(Map).ToList());
+            e.CheckpointContracts.Select(Map).ToList(),
+            e.Protocol);
 
     internal static CheckpointContractDescriptor Map(CheckpointContract c) =>
         new(c.CheckpointKey, c.DisplayName, c.RequiredRoleKey, ParseOutcomes(c.AllowedOutcomesJson), c.PerTask);

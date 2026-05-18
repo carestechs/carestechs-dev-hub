@@ -200,6 +200,7 @@ Six modules own data; each owns its own `DbContext` and its own schema. Cross-mo
 | base_url | varchar(500) | Required | Executor's HTTP base URL |
 | credentials_ref | varchar(120) | Required | Reference to env-var/secret holding the executor credentials; **never stored as a literal** |
 | status | enum ExecutorStatus | Required, default `Active` | `Active`, `Paused`, `Retired` |
+| protocol | varchar(20) | Required, default `"devhub"` | FEAT-010: selects the `IExecutorHttpClient` implementation. `"devhub"` for DevHub-native protocol (FakeExecutor + legacy); `"orchestrator"` for the carestechs-agent-orchestrator's `/api/v1/runs` API. |
 | created_at | timestamptz | Required, Auto | |
 | updated_at | timestamptz | Required, Auto | |
 | deleted_at | timestamptz | Nullable | |
@@ -262,6 +263,7 @@ Six modules own data; each owns its own `DbContext` and its own schema. Cross-mo
 | current_checkpoint_key | varchar(60) | Nullable | Set when `current_status = WaitingOnCheckpoint` |
 | current_task_id | varchar(60) | Nullable | Identifier of the task the executor is currently on, when the active checkpoint is `per_task=true`. Cached from the executor's response on every transition; the executor's memory is authoritative. FEAT-009. |
 | work_branch | varchar(200) | Optional | Optional per-work-item override of the project's `default_branch`. Forwarded as `intake.codeSource.workBranch` on start; omitted (not sent as `null`) when unset. Same validation rules as `default_branch`. |
+| executor_run_id | UUID | Nullable | The orchestrator's `Run.id` for this work item (FEAT-010). Populated by `OrchestratorExecutorClient.StartAsync` when the bound executor speaks the `orchestrator` protocol; null for `devhub`-protocol executors. |
 | created_at | timestamptz | Required, Auto | |
 | created_by_member_id | UUID | Required | The member who started this work |
 | updated_at | timestamptz | Required, Auto | |
@@ -453,3 +455,4 @@ Conventional values: `Running`, `WaitingOnCheckpoint`, `Completed`, `Failed`, `C
 - **2026-05-15** — Initial data model compiled from DevHub stakeholder definition. Defines 12 entities across 6 modules (Workspace, Identity, ExecutorRegistry, WorkItems, Audit, Notifications), the soft-delete + append-only-audit policy, and the ID-only cross-module reference contract.
 - **2026-05-17 (FEAT-008 / T-055)** — `Project` gained optional `repo` (varchar 140) and `default_branch` (varchar 200). `WorkItem` gained optional `work_branch` (varchar 200). All three nullable; existing rows survive the migration. Validation rules mirror the orchestrator's `intake.codeSource` schema; values are forwarded on work-item start.
 - **2026-05-17 (FEAT-009 / T-064)** — `CheckpointContract` gained `per_task` (bool, default `false`). `WorkItem` gained `current_task_id` (nullable varchar 60). `PendingActionSignal` gained `task_id` (nullable varchar 60); active-row uniqueness rewritten to `(member_id, work_item_id, checkpoint_key, COALESCE(task_id, '<root>'))` where `dismissed_at IS NULL`. Existing rows survive (legacy `task_id = NULL` rows collide as a single sentinel — same behavior as today).
+- **2026-05-17 (FEAT-010 / T-084)** — `WorkItem` gained nullable `executor_run_id` (uuid). `ExecutorRegistration` gained `protocol` (varchar 20, default `"devhub"`). Drives the `IExecutorHttpClient` implementation selection (FEAT-010). Existing executor rows backfill to `"devhub"` so all legacy flows continue to use the existing `ExecutorHttpClient`.

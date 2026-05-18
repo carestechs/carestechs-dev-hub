@@ -6,4 +6,5 @@ public sealed record ExecutorRegistrationDescriptor(
     string DisplayName,
     string BaseUrl,
     ExecutorStatus Status,
-    IReadOnlyList<CheckpointContractDescriptor> Contracts);
+    IReadOnlyList<CheckpointContractDescriptor> Contracts,
+    string Protocol = "devhub");

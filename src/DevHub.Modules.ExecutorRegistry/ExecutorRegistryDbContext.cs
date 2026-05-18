@@ -22,6 +22,7 @@ public sealed class ExecutorRegistryDbContext(DbContextOptions<ExecutorRegistryD
             e.Property(x => x.BaseUrl).HasMaxLength(500).IsRequired();
             e.Property(x => x.CredentialsRef).HasMaxLength(120).IsRequired();
             e.Property(x => x.Status).HasConversion<string>().HasMaxLength(20).IsRequired();
+            e.Property(x => x.Protocol).HasMaxLength(20).HasDefaultValue("devhub");
             e.HasIndex(x => x.Key)
                 .IsUnique()
                 .HasFilter("\"deleted_at\" IS NULL");
