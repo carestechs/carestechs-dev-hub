@@ -127,6 +127,17 @@ DevHub is a single-deployable **modular monolith** that sits in front of one or 
 - **Responsibilities:** Owned outside this codebase. Expose start, checkpoint, fetch-state, and live-stream endpoints. Are completely unaware of projects, teams, members, or roles.
 - **Key Dependencies:** None on DevHub. DevHub holds their credentials; they hold nothing from DevHub beyond the correlation marker passed on every command.
 
+### Executor protocols (FEAT-010)
+
+DevHub talks to executors through `IExecutorHttpClient`. Two implementations ship today:
+
+- **`ExecutorHttpClient`** — speaks DevHub's native protocol (`POST /work-items`, `POST /work-items/{marker}/checkpoints/{key}/signal`, etc.). Used by the FakeExecutor in tests and any executor that adopts DevHub's wire shape.
+- **`OrchestratorExecutorClient`** — speaks the carestechs-agent-orchestrator's `/api/v1/runs` API. Translates DevHub's calls to the orchestrator's routes; maps `RunStatus` → `CurrentStatus`; derives `currentCheckpointKey` + `currentTaskId` from trace records; converts NDJSON trace to SSE inline.
+
+Selection happens per executor via `ExecutorRegistration.Protocol` (`"devhub"` or `"orchestrator"`; default `"devhub"`). `IExecutorClientFactory.Resolve(descriptor)` returns the right implementation. The `WorkItem` row carries both `ExecutorCorrelationMarker` (DevHub's id) and `ExecutorRunId` (the orchestrator's run id, populated after Start succeeds).
+
+The decision to live in-process — rather than as a sibling adapter service — is recorded in the FEAT-010 brief (§11).
+
 ## Data Flow
 
 **Member-initiated checkpoint action (the canonical path):**
@@ -185,3 +196,4 @@ v1 has **no** other planned external integrations. Notifications channels beyond
 ## Changelog
 
 - **2026-05-15** — Initial architecture draft, compiled from the `dotnet-angular-modular-monolith-docker-compose` profile and DevHub stakeholder definition. Defines module list (Workspace, Identity, ExecutorRegistry, WorkItems, Audit, Notifications), data flow for member checkpoint actions and streaming, and the security/authorization model.
+- **2026-05-17 (FEAT-010)** — Added `OrchestratorExecutorClient` as a second `IExecutorHttpClient` implementation; selection via `ExecutorRegistration.Protocol`. The original "Adapter service" framing was discarded in favor of an in-process class; brief §11 records the reasoning.
