@@ -55,6 +55,7 @@ export class ExecutorsPage {
     { id: 'key',          header: 'Key',          cell: e => e.key },
     { id: 'displayName',  header: 'Display name', cell: e => e.displayName },
     { id: 'baseUrl',      header: 'Base URL',     cell: e => e.baseUrl },
+    { id: 'protocol',     header: 'Protocol',     cell: e => e.protocol },
     { id: 'status',       header: 'Status',       cell: e => e.status },
     { id: 'contracts',    header: 'Contracts',    align: 'right', cell: e => e.checkpointContracts.length },
     { id: 'createdAt',    header: 'Created',      cell: e => e.createdAt.slice(0, 10) },
