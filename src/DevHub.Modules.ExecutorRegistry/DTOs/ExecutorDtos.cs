@@ -11,7 +11,8 @@ public sealed record ExecutorDto(
     string CredentialsRef,
     ExecutorStatus Status,
     IReadOnlyList<CheckpointContractDto> CheckpointContracts,
-    DateTimeOffset CreatedAt);
+    DateTimeOffset CreatedAt,
+    string Protocol = "devhub");
 
 public sealed record CheckpointContractDto(
     string CheckpointKey,
@@ -33,6 +34,10 @@ public sealed class CreateExecutorRequest
 
     [Required, MaxLength(120)]
     public string CredentialsRef { get; init; } = string.Empty;
+
+    /// <summary>FEAT-010: selects the IExecutorHttpClient impl. Default "devhub".</summary>
+    [MaxLength(20)]
+    public string? Protocol { get; init; }
 
     public IReadOnlyList<CreateCheckpointContractRequest> CheckpointContracts { get; init; } =
         Array.Empty<CreateCheckpointContractRequest>();
@@ -72,6 +77,10 @@ public sealed class UpdateExecutorRequest
     public string? CredentialsRef { get; init; }
 
     public ExecutorStatus? Status { get; init; }
+
+    /// <summary>FEAT-010: change the IExecutorHttpClient impl.</summary>
+    [MaxLength(20)]
+    public string? Protocol { get; init; }
 }
 
 public sealed class ReplaceContractsRequest

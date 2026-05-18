@@ -16,7 +16,7 @@ internal sealed class CheckpointSignalsService(
     WorkItemsDbContext db,
     IProjectAuthorizationService authz,
     IExecutorRouter router,
-    IExecutorHttpClient executorClient,
+    IExecutorClientFactory clientFactory,
     IMemberLookup members,
     IAuditWriter audit,
     IWorkItemsService workItemsService,
@@ -98,10 +98,12 @@ internal sealed class CheckpointSignalsService(
         db.CheckpointSignals.Add(signal);
 
         ExecutorSignalResponse signalResp;
+        var executorClient = clientFactory.Resolve(descriptor);
+        var workItemRef = new WorkItemRef(wi.ExecutorCorrelationMarker, wi.ExecutorRunId);
         try
         {
             signalResp = await executorClient.SignalAsync(
-                descriptor, wi.ExecutorCorrelationMarker, checkpointKey, request.Outcome, request.Payload, request.TaskId, ct);
+                descriptor, workItemRef, checkpointKey, request.Outcome, request.Payload, request.TaskId, ct);
         }
         catch (ExecutorFailureException ex)
         {
@@ -159,7 +161,8 @@ internal sealed class CheckpointSignalsService(
                 : new MemberRefDto(createdBy.Id, createdBy.DisplayName),
             signalResp.ExecutorState,
             wi.WorkBranch,
-            wi.CurrentTaskId);
+            wi.CurrentTaskId,
+            wi.ExecutorRunId);
     }
 
     public async Task<PagedEnvelopeDto<CheckpointSignalDto>> ListSignalsAsync(

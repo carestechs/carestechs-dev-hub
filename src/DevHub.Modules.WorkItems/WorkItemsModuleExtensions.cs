@@ -2,6 +2,7 @@ using DevHub.Contracts.Executors;
 using DevHub.Contracts.Persistence;
 using DevHub.Contracts.WorkItems;
 using DevHub.Modules.WorkItems.Services;
+using DevHub.Modules.WorkItems.Services.Orchestrator;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -22,12 +23,13 @@ public static class WorkItemsModuleExtensions
         });
         services.AddHostedService<MigrateOnStartup<WorkItemsDbContext>>();
 
-        // Typed HttpClient. Timeout applies to non-streaming calls; OpenStreamAsync uses
-        // HttpCompletionOption.ResponseHeadersRead so the body stream is independent.
-        services.AddHttpClient<IExecutorHttpClient, ExecutorHttpClient>(c =>
-        {
-            c.Timeout = TimeSpan.FromSeconds(30);
-        });
+        // FEAT-010: two IExecutorHttpClient implementations coexist. The factory picks
+        // by ExecutorRegistration.Protocol. Timeout applies to non-streaming calls;
+        // OpenStreamAsync uses HttpCompletionOption.ResponseHeadersRead so the body
+        // stream is independent.
+        services.AddHttpClient<ExecutorHttpClient>(c => c.Timeout = TimeSpan.FromSeconds(30));
+        services.AddHttpClient<OrchestratorExecutorClient>(c => c.Timeout = TimeSpan.FromSeconds(30));
+        services.AddScoped<IExecutorClientFactory, ExecutorClientFactory>();
 
         services.AddScoped<IWorkItemsService, WorkItemsService>();
         services.AddScoped<ICheckpointSignalsService, CheckpointSignalsService>();

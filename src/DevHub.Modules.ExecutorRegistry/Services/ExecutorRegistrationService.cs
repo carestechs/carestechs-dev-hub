@@ -91,6 +91,7 @@ internal sealed class ExecutorRegistrationService(
             BaseUrl = req.BaseUrl,
             CredentialsRef = req.CredentialsRef,
             Status = ExecutorStatus.Active,
+            Protocol = string.IsNullOrEmpty(req.Protocol) ? "devhub" : req.Protocol,
         };
         foreach (var c in req.CheckpointContracts)
         {
@@ -135,6 +136,7 @@ internal sealed class ExecutorRegistrationService(
         if (req.BaseUrl is not null) e.BaseUrl = req.BaseUrl;
         if (req.CredentialsRef is not null) e.CredentialsRef = req.CredentialsRef;
         if (req.Status is { } status) e.Status = status;
+        if (req.Protocol is not null) e.Protocol = req.Protocol;
 
         await audit.WriteAsync(new AuditWriteRequest("ExecutorRegistration", e.Id, "executor:update", AuditOutcome.Granted)
         {
@@ -222,5 +224,6 @@ internal sealed class ExecutorRegistrationService(
         new(e.Id, e.Key, e.DisplayName, e.BaseUrl, e.CredentialsRef, e.Status,
             e.CheckpointContracts.Select(c => new CheckpointContractDto(
                 c.CheckpointKey, c.DisplayName, c.RequiredRoleKey, ExecutorRouter.ParseOutcomes(c.AllowedOutcomesJson), c.PerTask)).ToList(),
-            e.CreatedAt);
+            e.CreatedAt,
+            e.Protocol);
 }

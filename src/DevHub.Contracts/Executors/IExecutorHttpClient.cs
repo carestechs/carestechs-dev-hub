@@ -15,19 +15,19 @@ public interface IExecutorHttpClient
 {
     Task<ExecutorStartResponse> StartAsync(
         ExecutorRegistrationDescriptor executor,
-        string correlationMarker,
+        WorkItemRef workItem,
         JsonElement input,
         CodeSourcePayload? codeSource,
         CancellationToken cancellationToken = default);
 
     Task<ExecutorFetchResponse> FetchStateAsync(
         ExecutorRegistrationDescriptor executor,
-        string correlationMarker,
+        WorkItemRef workItem,
         CancellationToken cancellationToken = default);
 
     Task<ExecutorSignalResponse> SignalAsync(
         ExecutorRegistrationDescriptor executor,
-        string correlationMarker,
+        WorkItemRef workItem,
         string checkpointKey,
         string outcome,
         JsonElement? payload,
@@ -36,11 +36,11 @@ public interface IExecutorHttpClient
 
     Task<ExecutorStreamConnection> OpenStreamAsync(
         ExecutorRegistrationDescriptor executor,
-        string correlationMarker,
+        WorkItemRef workItem,
         CancellationToken cancellationToken = default);
 
     Task CancelAsync(
         ExecutorRegistrationDescriptor executor,
-        string correlationMarker,
+        WorkItemRef workItem,
         CancellationToken cancellationToken = default);
 }

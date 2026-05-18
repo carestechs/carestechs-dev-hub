@@ -13,9 +13,10 @@ internal sealed class ExecutorHttpClient(
     ILogger<ExecutorHttpClient> log) : IExecutorHttpClient
 {
     public async Task<ExecutorStartResponse> StartAsync(
-        ExecutorRegistrationDescriptor executor, string correlationMarker, JsonElement input,
+        ExecutorRegistrationDescriptor executor, WorkItemRef workItem, JsonElement input,
         CodeSourcePayload? codeSource, CancellationToken ct = default)
     {
+        var correlationMarker = workItem.Marker;
         using var req = NewRequest(HttpMethod.Post, executor, correlationMarker, "/work-items");
         // Additive envelope: the existing { input, correlationMarker } body is byte-for-byte
         // unchanged when codeSource is null, keeping AC-6 (and the FakeExecutor smoke tests)
@@ -27,16 +28,18 @@ internal sealed class ExecutorHttpClient(
     }
 
     public async Task<ExecutorFetchResponse> FetchStateAsync(
-        ExecutorRegistrationDescriptor executor, string correlationMarker, CancellationToken ct = default)
+        ExecutorRegistrationDescriptor executor, WorkItemRef workItem, CancellationToken ct = default)
     {
+        var correlationMarker = workItem.Marker;
         using var req = NewRequest(HttpMethod.Get, executor, correlationMarker, $"/work-items/{correlationMarker}");
         return await SendJsonAsync<ExecutorFetchResponse>(executor, req, ct);
     }
 
     public async Task<ExecutorSignalResponse> SignalAsync(
-        ExecutorRegistrationDescriptor executor, string correlationMarker, string checkpointKey,
+        ExecutorRegistrationDescriptor executor, WorkItemRef workItem, string checkpointKey,
         string outcome, JsonElement? payload, string? taskId, CancellationToken ct = default)
     {
+        var correlationMarker = workItem.Marker;
         using var req = NewRequest(HttpMethod.Post, executor, correlationMarker,
             $"/work-items/{correlationMarker}/checkpoints/{Uri.EscapeDataString(checkpointKey)}/signal");
         // Omit (don't send null) when no taskId — matches the orchestrator's omit-don't-null
@@ -48,8 +51,9 @@ internal sealed class ExecutorHttpClient(
     }
 
     public async Task<ExecutorStreamConnection> OpenStreamAsync(
-        ExecutorRegistrationDescriptor executor, string correlationMarker, CancellationToken ct = default)
+        ExecutorRegistrationDescriptor executor, WorkItemRef workItem, CancellationToken ct = default)
     {
+        var correlationMarker = workItem.Marker;
         var req = NewRequest(HttpMethod.Get, executor, correlationMarker,
             $"/work-items/{correlationMarker}/stream");
         await AuthAsync(req, executor.Id, ct);
@@ -79,8 +83,9 @@ internal sealed class ExecutorHttpClient(
     }
 
     public async Task CancelAsync(
-        ExecutorRegistrationDescriptor executor, string correlationMarker, CancellationToken ct = default)
+        ExecutorRegistrationDescriptor executor, WorkItemRef workItem, CancellationToken ct = default)
     {
+        var correlationMarker = workItem.Marker;
         using var req = NewRequest(HttpMethod.Post, executor, correlationMarker,
             $"/work-items/{correlationMarker}/cancel");
         await AuthAsync(req, executor.Id, ct);
