@@ -58,6 +58,7 @@ Six modules own data; each owns its own `DbContext` and its own schema. Cross-mo
 **Business Rules:**
 - A project has exactly one owning team. Members from other teams may still hold a `ProjectMembership` (i.e. participate cross-team) but the *owning* team is singular.
 - `project_type` MUST resolve to an existing `ExecutorBinding` at creation time. Otherwise the project cannot start work.
+- **Bound executor protocol** is not stored on `Project`; it is projected at read time on single-project DTO loads (`Get`, `GetBySlug`, `Create`, `Update`) from the active `ExecutorBinding` for the project's `project_type` via the cross-module `IExecutorRouter` contract. List responses omit the projection by design (no per-row router call). Exposed to API consumers as `ProjectDto.boundExecutorProtocol`.
 
 ---
 
@@ -456,3 +457,4 @@ Conventional values: `Running`, `WaitingOnCheckpoint`, `Completed`, `Failed`, `C
 - **2026-05-17 (FEAT-008 / T-055)** — `Project` gained optional `repo` (varchar 140) and `default_branch` (varchar 200). `WorkItem` gained optional `work_branch` (varchar 200). All three nullable; existing rows survive the migration. Validation rules mirror the orchestrator's `intake.codeSource` schema; values are forwarded on work-item start.
 - **2026-05-17 (FEAT-009 / T-064)** — `CheckpointContract` gained `per_task` (bool, default `false`). `WorkItem` gained `current_task_id` (nullable varchar 60). `PendingActionSignal` gained `task_id` (nullable varchar 60); active-row uniqueness rewritten to `(member_id, work_item_id, checkpoint_key, COALESCE(task_id, '<root>'))` where `dismissed_at IS NULL`. Existing rows survive (legacy `task_id = NULL` rows collide as a single sentinel — same behavior as today).
 - **2026-05-17 (FEAT-010 / T-084)** — `WorkItem` gained nullable `executor_run_id` (uuid). `ExecutorRegistration` gained `protocol` (varchar 20, default `"devhub"`). Drives the `IExecutorHttpClient` implementation selection (FEAT-010). Existing executor rows backfill to `"devhub"` so all legacy flows continue to use the existing `ExecutorHttpClient`.
+- **2026-05-19 (IMP-001 / T-090)** — No schema change. `Project` documents a new *read-time projection*: `ProjectDto.boundExecutorProtocol` is resolved on single-project loads via `IExecutorRouter` from the active `ExecutorBinding` for the project's `project_type`; list responses pass `null` to avoid an N+1.

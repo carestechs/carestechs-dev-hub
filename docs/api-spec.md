@@ -719,6 +719,7 @@ Query: `page`, `pageSize`, `sortBy` (default `occurredAt`), `sortDir` (default `
 | description | string | Yes | |
 | inFlightWorkItems | int | No | Count of work items not in a terminal status |
 | createdAt | iso-8601 | No | |
+| boundExecutorProtocol | enum | Yes | `'devhub' \| 'orchestrator' \| null`. Resolved at read time from the active `ExecutorBinding` for the project's `projectType`. Populated on single-project endpoints (`GET /api/projects/{id}`, `GET /api/projects/by-slug/{slug}`, `POST /api/projects`, `PATCH /api/projects/{id}`). Always `null` on list responses (`GET /api/projects`) by design — list rows don't need the projection and the per-row router call would be an N+1. |
 
 ### ProjectMembershipDto
 
@@ -876,3 +877,4 @@ Standard RFC 7807 fields (`type`, `title`, `status`, `detail`, `instance`) plus 
 - **2026-05-17 (FEAT-009 / T-067)** — `PendingActionDto` + the SSE `PendingActionEvent` payload gained optional `taskId`. The reconciler keys per-task pending rows when the active contract has `perTask=true` (loop-back semantics: T-001 row dismissed, T-002 row raised when the executor advances `currentTaskId`); otherwise behavior is byte-for-byte unchanged.
 - **2026-05-17 (FEAT-009 / T-068)** — `SignalRequest` gained optional `taskId`, forwarded verbatim to the executor (omitted from the body when null). `assignment-confirmed` contracts (`perTask=true` + `checkpointKey="assignment-confirmed"`) require a non-empty `payload.assignee` at the DevHub boundary; rejected values produce `400` with no executor call. Audit details carry both `taskId` and `assignee` when present.
 - **2026-05-17 (FEAT-010 / T-086)** — `ExecutorDto`, `CreateExecutorRequest`, `UpdateExecutorRequest` gained optional `protocol` (defaults to `"devhub"`; valid values `"devhub"` and `"orchestrator"`). `WorkItemDto` + `WorkItemSummaryDto` gained `executorRunId` (nullable uuid). Internally, `IExecutorHttpClient` signature changed from `correlationMarker: string` to `workItem: WorkItemRef` so both protocol implementations can route by the right id. The new `IExecutorClientFactory` selects the implementation per request based on `descriptor.Protocol`.
+- **2026-05-19 (IMP-001 / T-090)** — `ProjectDto` gained `boundExecutorProtocol` (`'devhub' | 'orchestrator' | null`). Resolved at read time via `IExecutorRouter.ResolveAsync` and projected onto the DTO on single-project endpoints; always `null` on list responses by design (no N+1). No new endpoint, no migration, wire `StartWorkItemRequest` unchanged.

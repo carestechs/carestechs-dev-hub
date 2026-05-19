@@ -64,10 +64,14 @@ internal sealed class ProjectService(
             })
             .ToListAsync(ct);
 
+        // IMP-001: BoundExecutorProtocol is intentionally null on list rows — list
+        // doesn't open the Start Work modal, so the per-row IExecutorRouter call would
+        // be an N+1 with no consumer.
         var dtos = rows.Select(r => new ProjectDto(
             r.Id, r.Name, r.Slug, r.ProjectType,
             new TeamRefDto(r.Team?.Id ?? r.OwningTeamId, r.Team?.Name ?? string.Empty),
-            r.Description, r.Repo, r.DefaultBranch, InFlightWorkItems: 0, r.CreatedAt)).ToList();
+            r.Description, r.Repo, r.DefaultBranch, InFlightWorkItems: 0, r.CreatedAt,
+            BoundExecutorProtocol: null)).ToList();
 
         return new PagedEnvelopeDto<ProjectDto>(dtos, new PageMeta(totalCount, page.Page, page.PageSize, page.SortBy, page.SortDir));
     }
@@ -241,9 +245,11 @@ internal sealed class ProjectService(
             })
             .FirstOrDefaultAsync(ct)
             ?? throw new NotFoundException("Project not found.");
+        var descriptor = await router.ResolveAsync(row.Id, ct);
         return new ProjectDto(
             row.Id, row.Name, row.Slug, row.ProjectType,
             new TeamRefDto(row.Team?.Id ?? row.OwningTeamId, row.Team?.Name ?? string.Empty),
-            row.Description, row.Repo, row.DefaultBranch, InFlightWorkItems: 0, row.CreatedAt);
+            row.Description, row.Repo, row.DefaultBranch, InFlightWorkItems: 0, row.CreatedAt,
+            BoundExecutorProtocol: descriptor?.Protocol);
     }
 }
