@@ -364,6 +364,16 @@ ProjectHomePage
 | WorkItemTable | items | `GET /api/projects/{id}/work-items` (paginated, filters) | Page load + filter change |
 | StartWorkModal | (input shape — opaque to DevHub) | `POST /api/projects/{id}/work-items` | Submit |
 
+**StartWorkModal — Input (JSON) field (IMP-001).** The JSON textarea ships pre-filled with a per-protocol example payload that doubles as the `placeholder`. Selection is driven by `project.boundExecutorProtocol`:
+
+| Bound protocol | Example payload |
+|---|---|
+| `orchestrator` | `{ "task": "Describe the task to run" }` (matches the upstream `RunCreateRequest` intake shape) |
+| `devhub` | `{}` |
+| `null` (no active binding) | falls back to the `orchestrator` example |
+
+The textarea resets to the example each time the modal opens. Operators are expected to edit the placeholder before submitting; submitting the unedited example for an orchestrator-protocol executor is a valid request shape (the executor itself returns a validation error if the task description is unacceptable). The wire `StartWorkItemRequest` shape is unchanged — this is purely a UX hint.
+
 **States** per the global pattern. Additionally: 403 if the route guard finds the member is not on the project — redirects to `/projects` with a toast.
 
 **Interactions**
@@ -639,3 +649,4 @@ Used in every list screen. Inputs: column defs (header, cell renderer, sortable)
 - **2026-05-17 (FEAT-009 / T-070)** — Lifecycle review page gained `AssignmentConfirmPanel`, swapped in when the active contract has `perTask=true` AND `checkpointKey === 'assignment-confirmed'`. Project member picker + free-text fallback; submit forwards `payload.assignee` and `taskId` to the existing signal endpoint. Existing `CheckpointActionBar` continues to render for every other checkpoint.
 - **2026-05-17 (FEAT-009 / T-071 + T-072)** — Pending-action rows (home page + operator dashboard "Grouped by project") render a "— <taskId>" suffix and a `?taskId=` query param on the routerLink when the underlying contract is per-task; two distinct rows for the same work item + checkpoint but different tasks coexist during loop-backs. Work item detail page gained an "Assignments" sidebar reading `executorState.assignments` (sorted by taskId; absent when the map is empty).
 - **2026-05-17 (FEAT-010 / T-087)** — Executor admin form gained a **Protocol** dropdown (`orchestrator` / `devhub`), defaulting to `orchestrator` for new registrations. Executors list table shows the protocol column. WorkItem detail header shows the `executorRunId` next to the existing `marker` label when populated (orchestrator-protocol executors only), for cross-system debugging.
+- **2026-05-19 (IMP-001 / T-091)** — `StartWorkModal` now pre-fills (and placeholders) the JSON textarea with a per-protocol example payload selected from `project.boundExecutorProtocol`. `orchestrator` → `{ "task": "Describe the task to run" }`, `devhub` → `{}`, `null` falls back to the orchestrator example. Wire `StartWorkItemRequest` unchanged.

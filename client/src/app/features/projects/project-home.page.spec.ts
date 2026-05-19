@@ -52,12 +52,17 @@ describe('ProjectHomePage', () => {
     mock = TestBed.inject(HttpTestingController);
   }
 
-  function flushProject(id = 'a', slug = 'alpha') {
+  function flushProject(
+    id = 'a',
+    slug = 'alpha',
+    boundExecutorProtocol: 'devhub' | 'orchestrator' | null = null,
+  ) {
     mock.expectOne(`/api/projects/by-slug/${slug}`).flush({
       data: {
         id, name: slug.toUpperCase(), slug, projectType: 'feature-delivery',
         owningTeam: { id: 't', name: 'Engineering' },
         inFlightWorkItems: 0, createdAt: '2026-05-01T00:00:00Z',
+        boundExecutorProtocol,
       },
     });
   }
@@ -221,6 +226,28 @@ describe('ProjectHomePage', () => {
     expect(link).withContext('GitHub link should be rendered').not.toBeNull();
     expect(html.textContent).toContain('main');
     expect(html.textContent).not.toContain('No repo set on this project.');
+  });
+
+  it('forwards project.boundExecutorProtocol to <start-work-modal> (IMP-001)', async () => {
+    const fixture = TestBed.createComponent(ProjectHomePage);
+    fixture.detectChanges();
+    flushProject('p1', 'alpha', 'orchestrator');
+    await Promise.resolve(); await Promise.resolve();
+    flushWorkItems('p1', []);
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const modalEl = fixture.nativeElement.querySelector('start-work-modal') as HTMLElement;
+    // The page binds [protocol]="project()?.boundExecutorProtocol ?? null".
+    // After flush, the loaded ProjectDto has boundExecutorProtocol='orchestrator'.
+    // The bound textarea inside the (closed) modal isn't rendered, so we assert on
+    // the directive instance instead.
+    const debugEl = fixture.debugElement.query(
+      (el) => el.nativeElement === modalEl,
+    );
+    expect(debugEl).not.toBeNull();
+    const modalCmp = debugEl.componentInstance as { protocol: () => string | null };
+    expect(modalCmp.protocol()).toBe('orchestrator');
   });
 
   it('reloads when the slug param changes', async () => {

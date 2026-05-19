@@ -4,6 +4,8 @@
  * { data, meta } envelope before handing values back to components.
  */
 
+import type { ExecutorProtocol } from './executor-registry.types';
+
 export type MemberStatus = 'Active' | 'Suspended' | 'Invited';
 
 export interface TeamDto {
@@ -38,6 +40,12 @@ export interface ProjectDto {
   defaultBranch?: string;
   inFlightWorkItems: number;
   createdAt: string;
+  /**
+   * IMP-001. Resolved server-side from the active ExecutorBinding for this
+   * project's projectType. Populated on single-project loads; always `null`
+   * on list responses by design.
+   */
+  boundExecutorProtocol: ExecutorProtocol | null;
 }
 
 export interface ProjectMembershipDto {

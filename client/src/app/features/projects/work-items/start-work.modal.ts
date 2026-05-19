@@ -2,15 +2,28 @@ import {
   ChangeDetectionStrategy,
   Component,
   EventEmitter,
+  computed,
   effect,
   input,
   Output,
   signal,
 } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import type { ExecutorProtocol } from '../../../core/api/executor-registry.types';
 import type { StartWorkItemRequest } from '../../../core/api/work-items.types';
 import type { AppError } from '../../../core/errors/app-error';
 import { AppButton, AppErrorBanner, AppFormField, AppModal } from '../../../shared';
+
+// IMP-001. Static intake examples; the modal pre-fills the JSON textarea (and
+// its placeholder) with the entry that matches the bound executor's protocol.
+// Source of truth for each shape:
+//   - 'orchestrator' → carestechs-agent-orchestrator/src/app/modules/ai/schemas.py § RunCreateRequest
+//   - 'devhub'       → IExecutorHttpClient (FakeExecutor) — payload is opaque pass-through
+const EXAMPLE_PAYLOADS: Record<ExecutorProtocol, string> = {
+  devhub: '{}',
+  orchestrator: `{\n  "task": "Describe the task to run"\n}`,
+};
+const DEFAULT_PROTOCOL: ExecutorProtocol = 'orchestrator';
 
 @Component({
   selector: 'start-work-modal',
@@ -23,6 +36,8 @@ export class StartWorkModal {
   readonly open = input<boolean>(false);
   readonly working = input<boolean>(false);
   readonly serverError = input<AppError | null>(null);
+  /** IMP-001. Bound executor's protocol; drives which example payload pre-fills the textarea. */
+  readonly protocol = input<ExecutorProtocol | null>(null);
 
   @Output() readonly submitted = new EventEmitter<StartWorkItemRequest>();
   @Output() readonly cancelled = new EventEmitter<void>();
@@ -40,11 +55,14 @@ export class StartWorkModal {
 
   protected readonly submittedFlag = signal(false);
   protected readonly jsonError = signal<string | null>(null);
+  protected readonly exampleJson = computed(
+    () => EXAMPLE_PAYLOADS[this.protocol() ?? DEFAULT_PROTOCOL],
+  );
 
   constructor() {
     effect(() => {
       if (!this.open()) return;
-      this.form.reset({ title: '', inputJson: '{}' });
+      this.form.reset({ title: '', inputJson: this.exampleJson() });
       this.submittedFlag.set(false);
       this.jsonError.set(null);
     });

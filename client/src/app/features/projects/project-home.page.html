@@ -182,6 +182,7 @@
   [open]="modalOpen()"
   [working]="modalWorking()"
   [serverError]="modalError()"
+  [protocol]="project()?.boundExecutorProtocol ?? null"
   (submitted)="onStartSubmitted($event)"
   (cancelled)="onStartCancelled()"
 />

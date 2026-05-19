@@ -14,7 +14,8 @@ public sealed record ProjectDto(
     string? Repo,
     string? DefaultBranch,
     int InFlightWorkItems,
-    DateTimeOffset CreatedAt);
+    DateTimeOffset CreatedAt,
+    string? BoundExecutorProtocol);
 
 public sealed class CreateProjectRequest
 {
