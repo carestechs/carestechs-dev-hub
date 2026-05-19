@@ -7,7 +7,7 @@
 | **ID** | IMP-001 |
 | **Name** | Per-protocol example payload hint in Start Work modal |
 | **Type** | Developer Experience |
-| **Status** | Proposed |
+| **Status** | Completed |
 | **Priority** | Low |
 | **Proposed By** | Operator feedback (2026-05-19) — "can we have an example of the input request as a hint/placeholder?" |
 | **Date Created** | 2026-05-19 |
