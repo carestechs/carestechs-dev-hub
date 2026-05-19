@@ -11,6 +11,7 @@ const PROJECT: ProjectDto = {
   description: undefined,
   inFlightWorkItems: 3,
   createdAt: '2026-05-01T00:00:00Z',
+  boundExecutorProtocol: null,
 };
 
 describe('ProjectCard', () => {
