@@ -25,6 +25,7 @@ services:
       OperatorSeed__Email:       "${OperatorSeed__Email}"
       OperatorSeed__DisplayName: "${OperatorSeed__DisplayName}"
       OperatorSeed__Password:    "${OperatorSeed__Password}"
+      ORCHESTRATOR_API_KEY: "${ORCHESTRATOR_API_KEY}"
       ASPNETCORE_URLS: "http://+:8080"
       ASPNETCORE_ENVIRONMENT: "Production"
     healthcheck:
