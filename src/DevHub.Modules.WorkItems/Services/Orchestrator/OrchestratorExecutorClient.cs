@@ -12,7 +12,7 @@ namespace DevHub.Modules.WorkItems.Services.Orchestrator;
 /// FEAT-010 (T-085): <see cref="IExecutorHttpClient"/> implementation against the
 /// carestechs-agent-orchestrator's <c>/api/v1/runs</c> API.
 ///
-/// Outbound auth: <c>X-API-Key</c> header sourced from the executor's <c>CredentialsRef</c>.
+/// Outbound auth: <c>Authorization: Bearer &lt;token&gt;</c> header sourced from the executor's <c>CredentialsRef</c>.
 /// </summary>
 internal sealed class OrchestratorExecutorClient(
     HttpClient http,
@@ -28,13 +28,14 @@ internal sealed class OrchestratorExecutorClient(
     {
         var correlationMarker = workItem.Marker;
         // The orchestrator's CreateRunRequest expects { agentRef, intake: { workItem, codeSource? } }.
-        // We synthesize the workItem from DevHub's marker + input.
-        var workItemPayload = new
-        {
-            id = correlationMarker,
-            kind = "DEVHUB",
-            content = input.ValueKind == JsonValueKind.Undefined ? "{}" : input.GetRawText(),
-        };
+        // The orchestrator's RunIntakeWorkItem requires:
+        //   id    — matches ^[A-Z]+-\d+(-[a-z0-9-]+)?$ (e.g. FEAT-100, BUG-5-slug)
+        //   kind  — one of FEAT, BUG, IMP
+        //   content — opaque string (typically the markdown brief body)
+        // Honor input.id / input.kind / input.content when the caller supplies them in
+        // that exact shape; otherwise synthesize defaults from the marker (a hex string)
+        // that satisfy the validators.
+        var workItemPayload = BuildIntakeWorkItem(input, correlationMarker);
         object intake = codeSource is null
             ? new { workItem = workItemPayload }
             : new { workItem = workItemPayload, codeSource };
@@ -128,13 +129,13 @@ internal sealed class OrchestratorExecutorClient(
         // the orchestrator doesn't use it directly.
         _ = outcome;
 
-        // The orchestrator's SignalCreateRequest body shape.
-        var body = new
-        {
-            name = checkpointKey,
-            taskId,
-            payload = payload ?? JsonDocument.Parse("{}").RootElement,
-        };
+        // The orchestrator's SignalCreateRequest body shape. taskId must be omitted (not
+        // serialized as JSON null) when there's no per-task discriminator — its pydantic
+        // model rejects null with "Input should be a valid string".
+        var payloadElement = payload ?? JsonDocument.Parse("{}").RootElement;
+        object body = taskId is null
+            ? new { name = checkpointKey, payload = payloadElement }
+            : new { name = checkpointKey, taskId, payload = payloadElement };
 
         using var req = NewRequest(HttpMethod.Post, executor, $"/api/v1/runs/{runId}/signals");
         req.Content = JsonContent.Create(body);
@@ -204,6 +205,54 @@ internal sealed class OrchestratorExecutorClient(
     /// </summary>
     private static string ResolveAgentRef(ExecutorRegistrationDescriptor executor) => executor.Key;
 
+    private static readonly System.Text.RegularExpressions.Regex IntakeIdRe =
+        new("^[A-Z]+-\\d+(-[a-z0-9-]+)?$", System.Text.RegularExpressions.RegexOptions.Compiled);
+
+    private static readonly HashSet<string> IntakeKinds = new(StringComparer.Ordinal) { "FEAT", "BUG", "IMP" };
+
+    /// <summary>
+    /// Build the orchestrator's <c>RunIntakeWorkItem</c> sub-object. Pulls
+    /// <c>id</c>/<c>kind</c>/<c>content</c> from the caller's input when present and valid;
+    /// otherwise synthesizes defaults from the correlation marker so the orchestrator's
+    /// pydantic validators accept the payload.
+    /// </summary>
+    private static object BuildIntakeWorkItem(JsonElement input, string correlationMarker)
+    {
+        string? id = null;
+        string? kind = null;
+        string? content = null;
+        if (input.ValueKind == JsonValueKind.Object)
+        {
+            if (input.TryGetProperty("id", out var idEl) && idEl.ValueKind == JsonValueKind.String)
+            {
+                var candidate = idEl.GetString();
+                if (!string.IsNullOrEmpty(candidate) && IntakeIdRe.IsMatch(candidate)) id = candidate;
+            }
+            if (input.TryGetProperty("kind", out var kindEl) && kindEl.ValueKind == JsonValueKind.String)
+            {
+                var candidate = kindEl.GetString();
+                if (!string.IsNullOrEmpty(candidate) && IntakeKinds.Contains(candidate)) kind = candidate;
+            }
+            if (input.TryGetProperty("content", out var contentEl) && contentEl.ValueKind == JsonValueKind.String)
+                content = contentEl.GetString();
+        }
+        kind ??= "FEAT";
+        if (id is null)
+        {
+            // Synthesize a stable, regex-compliant id from the marker. Take the first 8
+            // hex chars (or the whole marker if shorter) and treat as a base-16 integer;
+            // that gives "FEAT-<positive-int>".
+            var seed = correlationMarker.Replace("-", "");
+            if (seed.Length > 8) seed = seed[..8];
+            if (!long.TryParse(seed, System.Globalization.NumberStyles.HexNumber,
+                               System.Globalization.CultureInfo.InvariantCulture, out var n))
+                n = Math.Abs(correlationMarker.GetHashCode());
+            id = $"{kind}-{n}";
+        }
+        content ??= input.ValueKind == JsonValueKind.Undefined ? "{}" : input.GetRawText();
+        return new { id, kind, content };
+    }
+
     /// <summary>
     /// One-shot trace scan (no <c>follow</c>) returning every JSON record.
     /// </summary>
@@ -260,8 +309,7 @@ internal sealed class OrchestratorExecutorClient(
         var token = await creds.ResolveAsync(executorId, ct);
         if (!string.IsNullOrEmpty(token))
         {
-            // Orchestrator's auth is X-API-Key, not Bearer.
-            req.Headers.TryAddWithoutValidation("X-API-Key", token);
+            req.Headers.TryAddWithoutValidation("Authorization", $"Bearer {token}");
         }
         // NEVER log the resolved value.
     }

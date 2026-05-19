@@ -26,9 +26,13 @@ internal static class CheckpointDerivation
     {
         if (string.IsNullOrEmpty(nodeName)) return null;
 
-        // Hand-mapped exceptions first.
+        // Hand-mapped exceptions first. Names match the lifecycle-agent bootstrap
+        // registrations (carestechs-agent-orchestrator/src/app/modules/ai/executors/bootstrap.py).
         switch (nodeName)
         {
+            case "request_implementation": return "implementation-complete";
+            case "human_review_implementation": return "review-completed";
+            // Legacy 0.3.0 aliases (kept for back-compat with older agent versions).
             case "wait_for_implementation": return "implementation-complete";
             case "confirm_review": return "review-completed";
         }
