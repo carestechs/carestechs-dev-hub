@@ -131,6 +131,8 @@ Do not:
 
 Generate tasks in three phases:
 
+> **Cross-system / contract bugs — first investigation step.** When the bug crosses a system boundary (an external API, a protocol, an NDJSON / JSON schema, a file format, an executor's response shape, a message queue payload, an SDK), the first investigation step MUST be **"verify the contract empirically against the producer."** Read the producer's authoritative source (its schema definitions, its own serialization tests, its OpenAPI doc), capture a real sample of the on-the-wire payload, and confirm the code-under-test's reader matches. The whole class of "silent shape mismatch" bugs — where both sides are wrong consistently and existing tests pass against a self-consistent fiction — is invisible without this step. Don't trust comments, type names, or harness fixtures that claim to mirror the producer; verify against the producer itself.
+
 ### Phase 1: Investigation
 
 ```
@@ -364,6 +366,8 @@ After Claude generates tasks, verify:
 
 - [ ] Investigation tasks come before fix tasks
 - [ ] Root cause is identified, not just symptoms treated
+- [ ] For cross-system / contract bugs: the investigation includes an explicit "verify the contract against the producer's authoritative source" step (schema, OpenAPI, producer-side tests, or a captured real payload) — not just an inspection of the consumer side
+- [ ] If the bug involves a test harness or fake/mock of an external system: the investigation verifies the harness matches the real producer's output shape, not just the consumer's expected input shape
 - [ ] Fix addresses root cause, not workaround
 - [ ] Test would catch this bug if it regressed
 - [ ] Boundary conditions are tested
