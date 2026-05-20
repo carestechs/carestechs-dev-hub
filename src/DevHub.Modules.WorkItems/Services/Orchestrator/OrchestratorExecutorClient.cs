@@ -95,12 +95,15 @@ internal sealed class OrchestratorExecutorClient(
                     runId, nodeName ?? "(null)");
         }
 
-        // One trace scan for assignments + currentTaskId — fetched as JSON, parsed
-        // record-by-record by the projection helper.
+        // One trace scan for assignments + currentTaskId (latest step's
+        // `data.nodeInputs.taskId`) — fetched as JSON, parsed record-by-record by the
+        // projection helpers. Trace records are wrapped in {"kind":"...","data":{...}}
+        // per the orchestrator's serialization contract (see ExecutorStateProjection
+        // xmldoc for citations).
         var traceRecords = await ScanTraceAsync(executor, runId, correlationMarker, cancellationToken);
         var assignments = ExecutorStateProjection.ParseAssignmentsFromTrace(traceRecords);
         if (currentTaskId is null && status == "WaitingOnCheckpoint")
-            currentTaskId = ExecutorStateProjection.LatestSignalTaskId(traceRecords);
+            currentTaskId = ExecutorStateProjection.LatestStepTaskId(traceRecords);
 
         var stopReason = detail.TryGetProperty("stopReason", out var sr) && sr.ValueKind == JsonValueKind.String
             ? sr.GetString() : null;
