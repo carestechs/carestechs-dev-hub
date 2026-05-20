@@ -1,11 +1,13 @@
-# Bug Report: BUG-001 — Orchestrator-protocol `currentTaskId` never populated
+# Bug Report: BUG-001 — Orchestrator-protocol trace contract mismatch
+
+> **Scope expanded 2026-05-19.** Originally filed as "currentTaskId never populated." T-093 investigation surfaced a wider mismatch — DevHub's trace-parsing helpers (`ParseAssignmentsFromTrace`, `LatestSignalTaskId`) read a flat record shape and the wrong `kind` discriminator, while the real orchestrator emits NDJSON wrapped under `data` with kind names `step` / `operator_signal`. Both projections (currentTaskId AND assignments) are silently broken against the real orchestrator. The FakeOrchestrator harness has the same flat shape, so existing tests pass.
 
 ## 1. Identity
 
 | Field | Value |
 |-------|-------|
 | **ID** | BUG-001 |
-| **Summary** | `WorkItem.CurrentTaskId` stays `null` for orchestrator-protocol executors, even when the orchestrator is paused on a per-task checkpoint. |
+| **Summary** | DevHub's orchestrator-trace parsing layer (`ExecutorStateProjection`) reads a flat record shape and the wrong `kind` values; the real orchestrator wraps every record under `data` and uses `step` / `operator_signal` as kind names. Visible symptoms: `WorkItem.CurrentTaskId` always `null` and `executorState.assignments` always empty for orchestrator-protocol projects with per-task contracts. |
 | **Severity** | High |
 | **Status** | Reported |
 | **Reported By** | E2E smoke (out-of-repo script, 2026-05-18) — operator observed every transition log entry as "(no task)" while the orchestrator was looping over two distinct tasks. |
@@ -103,11 +105,33 @@ Smoke transition log (operator-supplied):
 
 ### Observations
 
-- The fix shape is constrained by what the orchestrator exposes. Three options, in increasing cost:
-  1. **DevHub-side, trace-scanning.** Fetch the *latest* `StepDto` from the trace (it has full `nodeInputs`) and read `nodeInputs.taskId`. Cost: one extra trace read per fetch (or extend the existing trace scan to also collect this).
-  2. **DevHub-side, step-endpoint.** If the orchestrator has a "get step N" endpoint that returns full `StepDto`, fetch just the `lastStep.id`'s detail.
-  3. **Orchestrator-side change.** Extend `LastStepSummary` (or `RunDetailDto`) to surface `currentTaskId` directly. Cleanest contract but cross-repo coordination.
-- Recommended starting hypothesis: **Option 1**, since it stays inside DevHub and reuses the trace fetch we already make for the assignments projection. The trace is fetched once per `FetchStateAsync` already.
+#### T-093 investigation findings (2026-05-19)
+
+Verified the original symptom against `main` AND uncovered a deeper schema mismatch in DevHub's trace-parsing layer.
+
+**Finding 1 — original symptom still present.** `OrchestratorExecutorClient.cs:102-103` falls back to `ExecutorStateProjection.LatestSignalTaskId`. `LastStepSummary` (orchestrator `schemas.py:60-66`) carries only `id`, `step_number`, `node_name`, `status` — confirmed; no `node_inputs`. The full `StepDto` (`schemas.py:85-95`) carries `node_inputs: dict[str, Any]`. `runtime_deterministic.py:246-248` injects `nodeInputs.taskId = LifecycleMemory.current_task_id` at dispatch, so the latest dispatched step's `nodeInputs.taskId` IS the awaited task id at a pause point.
+
+**Finding 2 — wider mismatch.** DevHub's `ExecutorStateProjection` was written against a flat record shape that the real orchestrator never emits. Concretely:
+
+| Aspect | DevHub reads (`ExecutorStateProjection.cs`) | Real orchestrator emits (`service.py:_serialize_trace_record`, `trace_jsonl.py:53-87`) |
+|---|---|---|
+| Wrapper | flat: `{kind, name, taskId, payload}` | wrapped: `{kind, data: {…full DTO fields by_alias…}}` |
+| Signal `kind` value | `"signal"` | `"operator_signal"` |
+| Step records | not read at all | `kind == "step"`, `data` includes `nodeInputs` |
+| Empirical evidence | n/a | `carestechs-agent-orchestrator/tests/test_cli_runs.py:246-256` asserts `{"kind":"step","data":{…"nodeInputs":{}…}}`; `tests/integration/test_lifecycle_anthropic_mocked.py:239` asserts `"kind":"operator_signal"` |
+
+Why hasn't end-to-end broken? The orchestrator routes per-task signals via its own in-memory `LifecycleMemory.current_task_id` — DevHub's payloads don't need to be right for happy-path completion. The defect surfaces only in DevHub's *projections* (`currentTaskId`, `executorState.assignments`). The FakeOrchestrator harness emits the same flat shape DevHub reads, so existing FEAT-010 / T-088 tests pass despite the production-side mismatch.
+
+**Finding 3 — assignments projection is also broken in production.** `ParseAssignmentsFromTrace` (`ExecutorStateProjection.cs:46-64`) filters on `kind == "signal"` and reads `rec.taskId` / `rec.payload.assignee` at the top level. Against the real orchestrator's `{"kind":"operator_signal","data":{"name":"assignment-confirmed","taskId":"…","payload":{"assignee":"…"}}}` shape, every record is discarded at the `kind` check. The "Assignments" sidebar (FEAT-009 T-071/T-072) is always empty for orchestrator-protocol projects.
+
+#### Fix shape
+
+Two halves now, not one:
+
+1. **Realign `ExecutorStateProjection` to the real shape.** Filter on `kind == "operator_signal"` for signal records; read `name` / `taskId` / `payload` off `rec.data.*`. Add `LatestStepTaskId(traceRecords)` reading `rec.data.nodeInputs.taskId` from the most recent `kind == "step"` record (BUG-001 original §6 Option 1 — now correctly shaped). Delete `LatestSignalTaskId` — it remains the wrong primitive even after the wrapping is fixed.
+2. **Realign the FakeOrchestrator harness to the real shape.** Update `TraceRecord` and the NDJSON emitter to wrap under `data` and use the real kind names. Update the 5 existing `new TraceRecord(...)` callsites accordingly. The harness is a fidelity tool, not an alternative reality.
+
+The orchestrator side is unchanged (Option 3 of the original "increasing cost" ladder is not used — the schema mismatch is fixable entirely on DevHub's side).
 
 ---
 
@@ -116,9 +140,11 @@ Smoke transition log (operator-supplied):
 | Entity / Component | How Affected | Reference |
 |--------------------|-------------|-----------|
 | `WorkItem.CurrentTaskId` | Always null when executor protocol is `"orchestrator"` and the active checkpoint is per-task | `docs/data-model.md` § WorkItem (FEAT-009 fields) |
-| `OrchestratorExecutorClient` | `FetchStateAsync` returns null `currentTaskId` due to incoming-signal-only fallback | `src/DevHub.Modules.WorkItems/Services/Orchestrator/OrchestratorExecutorClient.cs:83,102-103` |
-| `ExecutorStateProjection` | `LatestSignalTaskId` is wrong primitive for this need | `src/DevHub.Modules.WorkItems/Services/Orchestrator/ExecutorStateProjection.cs:71` |
-| `PendingActionSignal` | Per-task rows collapse to a single null-keyed row per checkpoint | `docs/data-model.md` § PendingActionSignal (FEAT-009) |
+| `OrchestratorExecutorClient` | `FetchStateAsync` returns null `currentTaskId` due to wrong-primitive fallback **and** wrong-shape parser | `src/DevHub.Modules.WorkItems/Services/Orchestrator/OrchestratorExecutorClient.cs:83,102-103` |
+| `ExecutorStateProjection.LatestSignalTaskId` | Wrong primitive (signal vs step) AND wrong shape (flat vs `{kind,data}`) AND wrong kind name (`signal` vs `operator_signal`) | `src/DevHub.Modules.WorkItems/Services/Orchestrator/ExecutorStateProjection.cs:71` |
+| `ExecutorStateProjection.ParseAssignmentsFromTrace` | Wrong shape (flat vs `{kind,data}`) AND wrong kind name. Always returns empty dict against the real orchestrator. **FEAT-009 "Assignments" sidebar is silently empty for orchestrator-protocol projects.** | `src/DevHub.Modules.WorkItems/Services/Orchestrator/ExecutorStateProjection.cs:46-64` |
+| `FakeOrchestrator` test harness | `TraceRecord` shape and NDJSON emitter mirror DevHub's wrong reader, masking the production bug from existing tests | `tests/DevHub.TestHarness/FakeOrchestrator/ScriptedRunResponses.cs:39-43`, `FakeOrchestratorHost.cs:154-171` |
+| `PendingActionSignal` | Per-task rows collapse to a single null-keyed row per checkpoint (downstream consequence of the `currentTaskId == null` symptom) | `docs/data-model.md` § PendingActionSignal (FEAT-009) |
 
 ---
 
@@ -128,8 +154,8 @@ Smoke transition log (operator-supplied):
 |-----------|------------|
 | **Users affected** | Any reviewer using a project whose executor speaks the orchestrator protocol with per-task contracts. Today: every orchestrator-backed project. |
 | **Feature affected** | FEAT-009 (Per-task assignment pause) when crossed with FEAT-010 (Orchestrator client). |
-| **Data impact** | No data corruption; missing/incorrect projection only. `WorkItem.CurrentTaskId` is `null` where it should be a task id. |
-| **Business impact** | Reviewer UX: per-task assignment screens can't distinguish which task is awaiting a decision; pending-row dedup is wrong. No revenue or compliance impact in v1 (no orchestrator-backed projects in prod yet). |
+| **Data impact** | No data corruption; missing/incorrect projection only. `WorkItem.CurrentTaskId` is `null` where it should be a task id; `executorState.assignments` is `{}` where it should map taskIds to assignees. |
+| **Business impact** | Reviewer UX: per-task assignment screens can't distinguish which task is awaiting a decision; pending-row dedup is wrong; the work-item "Assignments" sidebar is always empty. No revenue or compliance impact in v1 (no orchestrator-backed projects in prod yet). |
 
 ---
 
@@ -146,5 +172,6 @@ Smoke transition log (operator-supplied):
 
 ## 10. Notes
 
-- The fix is straightforward but should be paired with a regression test using the existing `FakeOrchestrator` harness — extend `ScriptedRunResponses` to include full `StepDto` records on the trace, and assert `FetchStateAsync` returns the right `currentTaskId` even when no signals have been delivered yet.
-- Until fixed, do not ship reviewer-facing per-task UI on top of orchestrator-protocol executors — the discriminator is missing.
+- The fix has two halves now: realign DevHub's parser to the real `{kind, data}` shape AND realign the FakeOrchestrator harness so the parser has something to read against. Regression tests must cover both projections (`currentTaskId` and `assignments`), and both binding states (per-task and root-level).
+- Until fixed, do not ship reviewer-facing per-task UI on top of orchestrator-protocol executors — the discriminator is missing AND the assignments map is empty.
+- Lesson worth capturing in the runbook for future executor protocols: a fidelity harness (`FakeOrchestrator`) that mirrors *DevHub's reader* rather than *the protocol's writer* will mask shape-mismatch bugs. The harness should be derivable from (or asserted against) the protocol's own integration tests.
