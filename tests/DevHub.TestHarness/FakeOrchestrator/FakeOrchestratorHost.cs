@@ -105,12 +105,12 @@ public sealed class FakeOrchestratorHost : IAsyncDisposable
             var body = await ReadBodyAsync(ctx);
 
             // Auto-append the signal as a trace record so subsequent fetches see it in
-            // ParseAssignmentsFromTrace / LatestSignalTaskId. Tests can also pre-seed
-            // TraceRecords directly for setup-only scenarios.
+            // ParseAssignmentsFromTrace. Tests can also pre-seed TraceRecords directly
+            // for setup-only scenarios.
             if (body.HasValue)
             {
                 var name = body.Value.TryGetProperty("name", out var n) && n.ValueKind == JsonValueKind.String
-                    ? n.GetString() : null;
+                    ? n.GetString() ?? string.Empty : string.Empty;
                 var taskId = body.Value.TryGetProperty("taskId", out var t) && t.ValueKind == JsonValueKind.String
                     ? t.GetString() : null;
                 object? payload = null;
@@ -118,7 +118,7 @@ public sealed class FakeOrchestratorHost : IAsyncDisposable
                 {
                     payload = JsonSerializer.Deserialize<JsonElement>(p.GetRawText());
                 }
-                marker.Owner!.Scripted.TraceRecords.Add(new TraceRecord("signal", name, taskId, payload));
+                marker.Owner!.Scripted.TraceRecords.Add(TraceRecord.OperatorSignal(name, taskId, payload));
             }
 
             ctx.Response.StatusCode = marker.Owner!.Scripted.SignalHttpStatusCode;
@@ -158,13 +158,9 @@ public sealed class FakeOrchestratorHost : IAsyncDisposable
             ctx.Response.Headers["Cache-Control"] = "no-cache";
             foreach (var rec in marker.Owner!.Scripted.TraceRecords)
             {
-                var json = JsonSerializer.Serialize(new
-                {
-                    kind = rec.Kind,
-                    name = rec.Name,
-                    taskId = rec.TaskId,
-                    payload = rec.Payload,
-                });
+                // BUG-001 / T-095: real orchestrator wraps every record as
+                // {"kind":"...","data":{...}} — see service.py § _serialize_trace_record.
+                var json = JsonSerializer.Serialize(new { kind = rec.Kind, data = rec.Data });
                 var bytes = Encoding.UTF8.GetBytes(json + "\n");
                 await ctx.Response.Body.WriteAsync(bytes, ctx.RequestAborted);
                 await ctx.Response.Body.FlushAsync(ctx.RequestAborted);

@@ -32,12 +32,43 @@ public sealed class ScriptedRunResponses
 public sealed record LastStepDto(Guid Id, int StepNumber, string NodeName, string Status);
 
 /// <summary>
-/// Orchestrator-style trace record. Field names match what
-/// <c>OrchestratorExecutorClient</c> reads (see
-/// <c>../carestechs-agent-orchestrator/src/app/modules/ai/trace.py</c>).
+/// BUG-001 / T-095: mirrors the orchestrator's on-the-wire NDJSON shape, which is
+/// <c>{"kind":"...","data":{...DTO fields by alias...}}</c> per
+/// <c>carestechs-agent-orchestrator/src/app/modules/ai/service.py</c>
+/// §<c>_serialize_trace_record</c>. Use the static factories
+/// (<see cref="Step"/>, <see cref="OperatorSignal"/>) instead of constructing directly —
+/// they pre-fill the camelCase fields the orchestrator emits via pydantic
+/// <c>by_alias=True</c>.
+///
+/// Empirical reference shapes:
+/// <list type="bullet">
+///   <item><c>tests/test_cli_runs.py:246-256</c> — <c>{"kind":"step","data":{"id":..., "stepNumber":..., "nodeName":..., "status":..., "nodeInputs":{...}}}</c></item>
+///   <item><c>tests/integration/test_lifecycle_anthropic_mocked.py:239</c> — <c>"kind":"operator_signal"</c> lines</item>
+/// </list>
 /// </summary>
-public sealed record TraceRecord(
-    string Kind,            // "signal" | "step" | etc.
-    string? Name = null,    // for signals: "assignment-confirmed", "brief-confirmed", ...
-    string? TaskId = null,
-    object? Payload = null);
+public sealed record TraceRecord(string Kind, object Data)
+{
+    /// <summary><c>kind="step"</c> with the <c>StepDto</c> subset DevHub reads.</summary>
+    public static TraceRecord Step(string nodeName, string status = "completed", string? taskId = null, int stepNumber = 1)
+        => new("step", new
+        {
+            id = Guid.NewGuid(),
+            stepNumber,
+            nodeName,
+            status,
+            nodeInputs = taskId is null ? new object() : new { taskId },
+        });
+
+    /// <summary><c>kind="operator_signal"</c> with the <c>RunSignalDto</c> subset DevHub reads.</summary>
+    public static TraceRecord OperatorSignal(string name, string? taskId = null, object? payload = null)
+        => new("operator_signal", new
+        {
+            id = Guid.NewGuid(),
+            runId = Guid.NewGuid(),
+            name,
+            taskId,
+            payload = payload ?? new { },
+            receivedAt = DateTimeOffset.UtcNow,
+            dedupeKey = Guid.NewGuid().ToString("N"),
+        });
+}
