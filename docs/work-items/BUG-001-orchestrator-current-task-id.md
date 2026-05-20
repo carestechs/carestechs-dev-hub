@@ -9,7 +9,7 @@
 | **ID** | BUG-001 |
 | **Summary** | DevHub's orchestrator-trace parsing layer (`ExecutorStateProjection`) reads a flat record shape and the wrong `kind` values; the real orchestrator wraps every record under `data` and uses `step` / `operator_signal` as kind names. Visible symptoms: `WorkItem.CurrentTaskId` always `null` and `executorState.assignments` always empty for orchestrator-protocol projects with per-task contracts. |
 | **Severity** | High |
-| **Status** | Reported |
+| **Status** | Resolved |
 | **Reported By** | E2E smoke (out-of-repo script, 2026-05-18) — operator observed every transition log entry as "(no task)" while the orchestrator was looping over two distinct tasks. |
 | **Date Reported** | 2026-05-18 |
 | **Date First Observed** | 2026-05-18 (first cross-system smoke after FEAT-010 merged) |
@@ -175,3 +175,8 @@ The orchestrator side is unchanged (Option 3 of the original "increasing cost" l
 - The fix has two halves now: realign DevHub's parser to the real `{kind, data}` shape AND realign the FakeOrchestrator harness so the parser has something to read against. Regression tests must cover both projections (`currentTaskId` and `assignments`), and both binding states (per-task and root-level).
 - Until fixed, do not ship reviewer-facing per-task UI on top of orchestrator-protocol executors — the discriminator is missing AND the assignments map is empty.
 - Lesson worth capturing in the runbook for future executor protocols: a fidelity harness (`FakeOrchestrator`) that mirrors *DevHub's reader* rather than *the protocol's writer* will mask shape-mismatch bugs. The harness should be derivable from (or asserted against) the protocol's own integration tests.
+
+**Regression tests added (T-096):**
+- Unit: `tests/DevHub.Modules.WorkItems.Tests/ExecutorStateProjectionTests.cs` — 13 tests covering `LatestStepTaskId` and `ParseAssignmentsFromTrace` against the realigned `{kind, data}` shape. Includes a guard (`ParseAssignmentsFromTrace_ignores_legacy_flat_signal_kind_anti_pattern`) that the pre-fix flat-shape records produce an empty assignments map — readmitting them would re-introduce the silent-mismatch class of bug.
+- Integration: `tests/DevHub.Modules.WorkItems.Tests/OrchestratorCurrentTaskIdTests.cs` — runs the BUG-001 §2 scenario through DevHub's public API (paused on `confirm_assignment` for `T-001` then `T-002` with **zero signals delivered**) and asserts `currentTaskId` tracks the latest step's `nodeInputs.taskId` on every fetch. Manual sanity-check (one-time, not committed): reverting the `kind == "step"` filter in `LatestStepTaskId` causes this test to fail with `Expected "T-001", found <null>` — the exact symptom from the original bug report.
+- Assignments projection: `OrchestratorExecutorClientTests.Fetch_assembles_assignments_map_from_trace_signals` (already existed) continues to pass under the realigned shape — pre-existing test coverage now actually exercises the production code path.

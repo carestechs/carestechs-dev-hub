@@ -174,9 +174,9 @@ public class OrchestratorExecutorClientTests : IAsyncLifetime
         // Pre-seed two assignment-confirmed signals + one unrelated signal.
         _factory.FakeOrchestrator.Scripted.TraceRecords.AddRange(new[]
         {
-            new TraceRecord("signal", "assignment-confirmed", "T-001", new { assignee = "Alice" }),
-            new TraceRecord("signal", "assignment-confirmed", "T-002", new { assignee = "Bob" }),
-            new TraceRecord("signal", "tasks-confirmed", "T-001", null),  // ignored
+            TraceRecord.OperatorSignal("assignment-confirmed", "T-001", new { assignee = "Alice" }),
+            TraceRecord.OperatorSignal("assignment-confirmed", "T-002", new { assignee = "Bob" }),
+            TraceRecord.OperatorSignal("tasks-confirmed", "T-001"),  // ignored — wrong name
         });
 
         var get = await _operator.GetAsync($"/api/projects/{_projectId}/work-items/{workItemId}");
