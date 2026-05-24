@@ -44,6 +44,8 @@ export class StreamFeed implements OnDestroy {
     effect(() => {
       const url = this.streamUrl();
       this.close();
+      this.events.set([]);
+      this.nextId = 0;
       if (url) this.open(url);
     });
     this.destroyRef.onDestroy(() => this.close());
@@ -52,6 +54,8 @@ export class StreamFeed implements OnDestroy {
   protected reconnect(): void {
     const url = this.streamUrl();
     this.close();
+    this.events.set([]);
+    this.nextId = 0;
     if (url) this.open(url);
   }
 
@@ -79,7 +83,7 @@ export class StreamFeed implements OnDestroy {
       }
     };
     this.source.onerror = () => {
-      this.connected.set(false);
+      this.close();
       this.errored.set(true);
     };
   }
