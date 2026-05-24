@@ -196,6 +196,20 @@ public class ExecutorStateProjectionTests
     }
 
     [Fact]
+    public void BuildSteps_marks_active_for_pending_status_matching_checkpoint()
+    {
+        var trace = Trace(
+            """{"kind":"step","data":{"stepNumber":1,"nodeName":"load_work_item","status":"completed","nodeInputs":{}}}""",
+            """{"kind":"step","data":{"stepNumber":2,"nodeName":"confirm_brief","status":"pending","nodeInputs":{}}}"""
+        );
+        var steps = ExecutorStateProjection.BuildSteps(trace, "brief-confirmed");
+        steps.Should().HaveCount(2);
+
+        steps[0].GetProperty("status").GetString().Should().Be("completed");
+        steps[1].GetProperty("status").GetString().Should().Be("active");
+    }
+
+    [Fact]
     public void BuildSteps_includes_nodeResult_with_memory_patch_stripped()
     {
         var trace = Trace(

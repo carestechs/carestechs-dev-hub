@@ -88,6 +88,7 @@ export interface ExecutorStep {
   label: string;
   stepNumber: number;
   status: 'completed' | 'active' | 'pending' | 'failed';
+  nodeInputs: Record<string, unknown> | null;
   nodeResult: Record<string, unknown> | null;
 }
 
