@@ -6,6 +6,8 @@ import { WorkItemsService } from '../../../core/api/work-items.service';
 import type {
   CheckpointContractView,
   CheckpointSignalDto,
+  ExecutorStep,
+  LifecycleExecutorState,
   WorkItemDto,
 } from '../../../core/api/work-items.types';
 import { WorkspaceService } from '../../../core/api/workspace.service';
@@ -14,14 +16,18 @@ import { AuthService } from '../../../core/auth/auth.service';
 import type { AppError } from '../../../core/errors/app-error';
 import { ActiveStepArtefactPanel } from './components/active-step-artefact-panel';
 import { AssignmentConfirmPanel, type AssignmentConfirmSubmit } from './components/assignment-confirm-panel';
+import { BriefReviewPanel } from './components/brief-review-panel';
 import { CheckpointActionBar, type SubmittedOutcome } from './components/checkpoint-action-bar';
 import { DecisionHistoryList } from './components/decision-history-list';
+import { FinalReviewPanel } from './components/final-review-panel';
+import { ImplementationReviewPanel } from './components/implementation-review-panel';
 import { LifecycleTimeline, type TimelineStep } from './components/lifecycle-timeline';
+import type { PanelSubmit } from './components/panel-submit';
+import { PlanReviewPanel } from './components/plan-review-panel';
 import { StreamFeed } from './components/stream-feed';
+import { TaskListReviewPanel } from './components/task-list-review-panel';
 
 type ErrorKind = 'forbidden' | 'not-found' | 'other';
-
-interface ExecutorStep { key: string; label?: string; artefact?: unknown; }
 
 const TERMINAL_STATUSES = new Set(['Completed', 'Failed', 'Cancelled']);
 
@@ -35,6 +41,11 @@ const TERMINAL_STATUSES = new Set(['Completed', 'Failed', 'Cancelled']);
     DecisionHistoryList,
     CheckpointActionBar,
     AssignmentConfirmPanel,
+    BriefReviewPanel,
+    TaskListReviewPanel,
+    PlanReviewPanel,
+    ImplementationReviewPanel,
+    FinalReviewPanel,
     StreamFeed,
   ],
   templateUrl: './review.page.html',
@@ -63,36 +74,41 @@ export class ReviewPage {
   // is per-task + assignment-confirmed. Fetched lazily on contract resolution.
   protected readonly memberships = signal<ProjectMembershipDto[]>([]);
 
-  protected readonly isAssignmentConfirmCheckpoint = computed(() => {
-    const c = this.contract();
-    return c !== null && c.perTask === true && c.checkpointKey === 'assignment-confirmed';
+  protected readonly lifecycleState = computed<LifecycleExecutorState | null>(() => {
+    const wi = this.workItem();
+    if (!wi || !wi.executorState || typeof wi.executorState !== 'object') return null;
+    const s = wi.executorState as Record<string, unknown>;
+    if (!Array.isArray(s['steps'])) return null;
+    return s as unknown as LifecycleExecutorState;
   });
 
-  // Build the timeline by merging executorState.steps with signals.
+  // Build the timeline from executorState.steps — only checkpoint steps (key !== null).
   protected readonly timeline = computed<TimelineStep[]>(() => {
+    const ls = this.lifecycleState();
     const wi = this.workItem();
-    if (!wi) return [];
-    const steps = readExecutorSteps(wi.executorState);
-    if (steps.length === 0) return [];
+    if (!ls || !wi) return [];
     const signalsByKey = new Map<string, CheckpointSignalDto>();
     for (const s of this.signals()) {
       signalsByKey.set(s.checkpointKey, s);
     }
-    return steps.map(step => {
-      const signal = signalsByKey.get(step.key);
-      const isActive = wi.currentCheckpointKey === step.key && wi.currentStatus === 'WaitingOnCheckpoint';
-      let state: TimelineStep['state'] = 'pending';
-      if (signal) state = signal.outcome === 'reject' ? 'rejected' : 'approved';
-      if (isActive) state = 'active';
-      return {
-        key: step.key,
-        label: step.label ?? step.key,
-        state,
-        signal: signal
-          ? { signaledBy: signal.signaledBy.displayName, signaledAt: signal.signaledAt, outcome: signal.outcome }
-          : null,
-      };
-    });
+    return ls.steps
+      .filter((step): step is ExecutorStep & { key: string } => step.key !== null)
+      .map(step => {
+        const signal = signalsByKey.get(step.key);
+        let state: TimelineStep['state'] = 'pending';
+        if (step.status === 'completed' || signal) {
+          state = signal?.outcome === 'reject' ? 'rejected' : 'approved';
+        }
+        if (step.status === 'active') state = 'active';
+        return {
+          key: step.key,
+          label: step.label,
+          state,
+          signal: signal
+            ? { signaledBy: signal.signaledBy.displayName, signaledAt: signal.signaledAt, outcome: signal.outcome }
+            : null,
+        };
+      });
   });
 
   protected readonly activeStepKey = computed(() => {
@@ -105,11 +121,21 @@ export class ReviewPage {
   protected readonly displayedStepKey = computed(() => this.selectedStepKey() ?? this.activeStepKey());
 
   protected readonly displayedArtefact = computed(() => {
-    const wi = this.workItem();
+    const ls = this.lifecycleState();
     const key = this.displayedStepKey();
-    if (!wi || !key) return null;
-    const steps = readExecutorSteps(wi.executorState);
-    return steps.find(s => s.key === key)?.artefact ?? null;
+    if (!ls || !key) return null;
+    // Find the checkpoint step and the step immediately before it (the generation step).
+    // The artefact to display is the preceding step's nodeResult (LLM output).
+    const allSteps = ls.steps;
+    const checkpointIdx = allSteps.findIndex(s => s.key === key);
+    if (checkpointIdx < 0) return null;
+    // For completed checkpoint steps, use their own nodeResult (contains signal payload).
+    // For active checkpoint steps, use the preceding step's nodeResult (LLM artefact).
+    const checkpoint = allSteps[checkpointIdx];
+    if (checkpoint.status === 'active' && checkpointIdx > 0) {
+      return allSteps[checkpointIdx - 1].nodeResult ?? null;
+    }
+    return checkpoint.nodeResult ?? null;
   });
 
   protected readonly hasActiveCheckpoint = computed(() => {
@@ -252,6 +278,26 @@ export class ReviewPage {
     }
   }
 
+  protected async onPanelSubmitted(action: PanelSubmit): Promise<void> {
+    const p = this.project();
+    const wi = this.workItem();
+    if (!p || !wi || !wi.currentCheckpointKey) return;
+    this.submitting.set(action.outcome);
+    this.submitError.set(null);
+    try {
+      const idem = newIdempotencyKey();
+      await this.workItems.signal(
+        p.id, wi.id, wi.currentCheckpointKey,
+        { outcome: action.outcome, payload: action.payload, taskId: action.taskId ?? undefined },
+        idem);
+      await this.refetchOnly(p.id, wi.id);
+    } catch (e: unknown) {
+      this.submitError.set(toAppError(e, 'Could not submit signal'));
+    } finally {
+      this.submitting.set(null);
+    }
+  }
+
   protected copyCorrelationId(): void {
     const err = this.submitError();
     const raw = err ? JSON.stringify(err) : '';
@@ -295,14 +341,6 @@ export class ReviewPage {
     });
     this.errorKind.set('other');
   }
-}
-
-function readExecutorSteps(state: unknown): ExecutorStep[] {
-  if (state && typeof state === 'object' && 'steps' in (state as Record<string, unknown>)) {
-    const v = (state as Record<string, unknown>)['steps'];
-    if (Array.isArray(v)) return v as ExecutorStep[];
-  }
-  return [];
 }
 
 function newIdempotencyKey(): string {

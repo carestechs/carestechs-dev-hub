@@ -82,21 +82,61 @@
           <button type="button" class="mt-2 text-sky-600 hover:underline text-xs" (click)="copyCorrelationId()">Copy details</button>
         </div>
       }
-      @if (isAssignmentConfirmCheckpoint()) {
-        <assignment-confirm-panel
-          [memberships]="memberships()"
-          [currentTaskId]="wi.currentTaskId ?? null"
-          [canAct]="callerHasRole()"
-          [working]="submitting() !== null"
-          (submitted)="onAssignmentSubmitted($event)" />
-      } @else {
-        <checkpoint-action-bar
-          [allowedOutcomes]="c.allowedOutcomes"
-          [requiredRoleKey]="c.requiredRoleKey"
-          [canAct]="callerHasRole()"
-          [working]="submitting() !== null"
-          [submittingOutcome]="submitting()"
-          (submitted)="onActionSubmitted($event)" />
+      @switch (wi.currentCheckpointKey) {
+        @case ('brief-confirmed') {
+          <brief-review-panel
+            [artefact]="displayedArtefact()"
+            [canAct]="callerHasRole()"
+            [working]="submitting() !== null"
+            (submitted)="onPanelSubmitted($event)" />
+        }
+        @case ('tasks-confirmed') {
+          <task-list-review-panel
+            [artefact]="displayedArtefact()"
+            [canAct]="callerHasRole()"
+            [working]="submitting() !== null"
+            (submitted)="onPanelSubmitted($event)" />
+        }
+        @case ('assignment-confirmed') {
+          <assignment-confirm-panel
+            [memberships]="memberships()"
+            [currentTaskId]="wi.currentTaskId ?? null"
+            [canAct]="callerHasRole()"
+            [working]="submitting() !== null"
+            (submitted)="onAssignmentSubmitted($event)" />
+        }
+        @case ('plan-confirmed') {
+          <plan-review-panel
+            [artefact]="displayedArtefact()"
+            [currentTaskId]="wi.currentTaskId ?? null"
+            [canAct]="callerHasRole()"
+            [working]="submitting() !== null"
+            (submitted)="onPanelSubmitted($event)" />
+        }
+        @case ('implementation-complete') {
+          <implementation-review-panel
+            [currentTaskId]="wi.currentTaskId ?? null"
+            [workBranch]="wi.workBranch ?? null"
+            [canAct]="callerHasRole()"
+            [working]="submitting() !== null"
+            (submitted)="onPanelSubmitted($event)" />
+        }
+        @case ('review-completed') {
+          <final-review-panel
+            [currentTaskId]="wi.currentTaskId ?? null"
+            [canAct]="callerHasRole()"
+            [working]="submitting() !== null"
+            (submitted)="onPanelSubmitted($event)" />
+        }
+        @default {
+          <checkpoint-action-bar
+            [allowedOutcomes]="c.allowedOutcomes"
+            [requiredRoleKey]="c.requiredRoleKey"
+            [canAct]="callerHasRole()"
+            [working]="submitting() !== null"
+            [submittingOutcome]="submitting()"
+            (submitted)="onActionSubmitted($event)" />
+        }
       }
     } @else if (!hasActiveCheckpoint()) {
       <div role="status" class="mt-6 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-lg p-3 text-sm">

@@ -132,29 +132,36 @@ The `AssignmentConfirmPanel` (FEAT-009) is the first example of this pattern —
 
 ## 6. Key Entities and Business Rules
 
-### Artefact shapes per checkpoint (expected — to be verified in investigation)
+### Artefact shapes per checkpoint (verified — T-097 investigation, 2026-05-24)
 
-| Checkpoint Key | Expected Artefact Shape | Source |
-|---|---|---|
-| `brief-confirmed` | `{ kind: "markdown", title: string, type: string, body: string }` | Agent's brief generation node output |
-| `tasks-confirmed` | `{ kind: "task-list", tasks: [{ id: string, title: string, description: string }] }` | Agent's task breakdown node output |
-| `assignment-confirmed` | N/A (operator-initiated — no agent artefact) | Signal payload carries `{ assignee, taskId }` |
-| `plan-confirmed` | `{ kind: "markdown", body: string, taskId: string }` | Agent's plan generation node output |
-| `implementation-complete` | `{ kind: "implementation", summary: string, branch?: string, pr?: string, diff?: object }` | Agent's implementation node output |
-| `review-completed` | `{ kind: "review", verdict: string, findings: string, taskId: string }` | Agent's review node output |
+The artefact data the operator reviews at each human checkpoint lives in the `nodeResult` of the **preceding LLM/generation step** in the trace. Human checkpoint steps themselves have `nodeResult: null` while paused (waiting for the operator's signal); after signal delivery, their `nodeResult` carries the operator's signal payload.
 
-**These shapes are expectations, not contracts.** The investigation task (T-100) will verify what the orchestrator's trace actually emits per node type and adjust the panel implementations accordingly. The panels must degrade gracefully (fall back to `ArtefactFallback`) when the artefact shape doesn't match expectations.
+| Checkpoint Key | Artefact Source (preceding step) | `nodeResult` Shape | Schema Reference |
+|---|---|---|---|
+| `brief-confirmed` | `load_work_item` step (LLM) | `{ work_item_id: string, title: string, summary: string }` | `LoadWorkItemResult` (`lifecycle_schemas.py`) |
+| `tasks-confirmed` | `generate_tasks` step (LLM) | `{ tasks: [{ id, title, executor, description, acceptance_criteria, complexity, depends_on, files_hint }] }` | `GenerateTasksResult` (`lifecycle_schemas.py`) |
+| `assignment-confirmed` | No preceding generation step | N/A (operator-initiated — operator picks assignee) | — |
+| `plan-confirmed` | `generate_plan` step (composite LLM+engine) | `{ task_id: string, plan_markdown: string }` | `GeneratePlanResult` (`lifecycle_schemas.py`) |
+| `implementation-complete` | No preceding generation step | N/A (operator signals when implementation is done; payload carries `{ commitSha?, prUrl?, summary? }`) | — |
+| `review-completed` | No preceding generation step in manual variant | N/A (operator reviews code; payload carries `{ verdict: "pass"\|"fail", feedback? }`) | — |
 
-### `executorState.steps` array structure
+**`__memory_patch`** is stripped from `nodeResult` in the projection (T-098) — it's an internal runtime concern and can be large. The frontend never sees it.
+
+**Graceful degradation:** panels must handle `nodeResult: null` (active checkpoint, not yet signaled), missing fields (schema evolution), and unexpected shapes (fallback to `ArtefactFallback`).
+
+### `executorState.steps` array structure (implemented — T-098)
+
+The `steps` array includes **all** `kind == "step"` trace records (LLM steps, engine steps, and human checkpoint steps), ordered by appearance in the trace. Human checkpoint steps have a non-null `key` (derived via `CheckpointDerivation`); internal steps (LLM, engine) have `key: null`. The frontend reads artefact data from the preceding step's `nodeResult` for each checkpoint panel.
 
 ```json
 {
   "runId": "uuid",
   "agentRef": "lifecycle-agent@0.4.0-manual",
   "steps": [
-    { "key": "brief-confirmed", "nodeName": "confirm_brief", "label": "Brief Review", "stepNumber": 1, "status": "completed", "artefact": { ... } },
-    { "key": "tasks-confirmed", "nodeName": "confirm_tasks", "label": "Task List", "stepNumber": 2, "status": "completed", "artefact": { ... } },
-    { "key": "assignment-confirmed", "nodeName": "confirm_assignment", "label": "Task Assignment", "stepNumber": 3, "status": "active", "artefact": null }
+    { "key": null, "nodeName": "load_work_item", "label": "load_work_item", "stepNumber": 1, "status": "completed", "nodeResult": { "work_item_id": "FEAT-1", "title": "Add CSV export", "summary": "..." } },
+    { "key": "brief-confirmed", "nodeName": "confirm_brief", "label": "Brief Review", "stepNumber": 2, "status": "completed", "nodeResult": { "signalName": "brief-confirmed", "title": "Add CSV export", "type": "FEAT" } },
+    { "key": null, "nodeName": "generate_tasks", "label": "generate_tasks", "stepNumber": 3, "status": "completed", "nodeResult": { "tasks": [{ "id": "T-1", "title": "..." }] } },
+    { "key": "tasks-confirmed", "nodeName": "confirm_tasks", "label": "Task List", "stepNumber": 4, "status": "active", "nodeResult": null }
   ],
   "assignments": { "T-001": "Alice" },
   "stopReason": null

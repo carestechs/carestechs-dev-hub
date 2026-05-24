@@ -51,7 +51,7 @@ internal sealed class OrchestratorExecutorClient(
         var execState = ExecutorStateProjection.Build(
             runId,
             ResolveAgentRef(executor),
-            lastStep: null,
+            steps: new List<JsonElement>(),
             assignments: new Dictionary<string, string>(),
             stopReason: null);
 
@@ -95,21 +95,21 @@ internal sealed class OrchestratorExecutorClient(
                     runId, nodeName ?? "(null)");
         }
 
-        // One trace scan for assignments + currentTaskId (latest step's
-        // `data.nodeInputs.taskId`) — fetched as JSON, parsed record-by-record by the
-        // projection helpers. Trace records are wrapped in {"kind":"...","data":{...}}
-        // per the orchestrator's serialization contract (see ExecutorStateProjection
-        // xmldoc for citations).
+        // One trace scan for assignments + currentTaskId + steps array (FEAT-011).
+        // Trace records are wrapped in {"kind":"...","data":{...}} per the
+        // orchestrator's serialization contract (see ExecutorStateProjection xmldoc).
         var traceRecords = await ScanTraceAsync(executor, runId, correlationMarker, cancellationToken);
         var assignments = ExecutorStateProjection.ParseAssignmentsFromTrace(traceRecords);
         if (currentTaskId is null && status == "WaitingOnCheckpoint")
             currentTaskId = ExecutorStateProjection.LatestStepTaskId(traceRecords);
 
+        var steps = ExecutorStateProjection.BuildSteps(traceRecords, checkpointKey);
+
         var stopReason = detail.TryGetProperty("stopReason", out var sr) && sr.ValueKind == JsonValueKind.String
             ? sr.GetString() : null;
 
         var execState = ExecutorStateProjection.Build(
-            runId, ResolveAgentRef(executor), lastStep, assignments, stopReason);
+            runId, ResolveAgentRef(executor), steps, assignments, stopReason);
 
         return new ExecutorFetchResponse(status, checkpointKey, execState, currentTaskId);
     }

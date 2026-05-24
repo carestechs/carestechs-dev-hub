@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FEAT-011 Lifecycle Checkpoint Panels — DevHub</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700&display=swap" rel="stylesheet" />
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            heading: ["Poppins", "sans-serif"],
+            sans: ["Inter", "sans-serif"],
+          },
+        },
+      },
+    };
+  </script>
+</head>
+
+<body class="bg-slate-50 font-sans text-slate-700 min-h-screen">
+
+  <header class="bg-white border-b border-slate-200 px-6 py-4">
+    <h1 class="text-lg font-heading font-semibold text-slate-900">
+      FEAT-011 Lifecycle Checkpoint Panels
+      <span class="text-sm font-normal font-sans text-slate-500 ml-2">
+        — T-099 Brief, T-100 Task List, T-101 Plan, T-102 Implementation, T-103 Final Review
+      </span>
+    </h1>
+    <p class="text-sm text-slate-500 mt-1">
+      Each panel replaces the generic CheckpointActionBar when its checkpoint key is active.
+      Shown here in isolation; in production they render inside the review page action section.
+    </p>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-6 py-8 space-y-16">
+
+    <!-- ================================================================ -->
+    <!-- T-099: Brief Review Panel -->
+    <!-- ================================================================ -->
+    <section>
+      <h2 class="text-sm font-medium uppercase tracking-wider text-slate-500 mb-6 flex items-center gap-2">
+        <span class="w-2 h-2 rounded-full bg-sky-500"></span>
+        T-099: Brief Review Panel
+        <span class="font-mono text-xs bg-slate-100 rounded px-1.5 py-0.5">brief-confirmed</span>
+      </h2>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+
+        <!-- State: Active (operator can review + confirm/reject) -->
+        <div>
+          <p class="text-xs text-slate-400 mb-3 text-center uppercase tracking-wider">Active — Operator reviewing</p>
+          <div class="bg-white rounded-xl shadow-sm p-6 space-y-5">
+            <div class="flex items-center gap-2 text-sm text-slate-500">
+              <span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+              Waiting on your review
+            </div>
+
+            <!-- Brief content -->
+            <div class="border border-slate-200 rounded-lg p-4 bg-slate-50">
+              <h4 class="text-xs font-medium text-slate-400 uppercase tracking-wider mb-3">Generated Brief</h4>
+              <div class="prose prose-sm prose-slate max-w-none">
+                <p>Add CSV export functionality to the work items list. The operator should be able to download a filtered view of work items as a .csv file from the project home page. The export includes title, status, checkpoint, assignee, and timestamps.</p>
+                <p><strong>Scope:</strong> Backend endpoint + frontend download button. No scheduled/recurring exports in v1.</p>
+              </div>
+            </div>
+
+            <!-- Editable fields -->
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-medium text-slate-700 mb-1">Title</label>
+                <input type="text" value="Add CSV export to work items list"
+                  class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:border-sky-500 focus:ring-2 focus:ring-sky-100 outline-none" />
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-slate-700 mb-1">Type</label>
+                <select class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:border-sky-500 focus:ring-2 focus:ring-sky-100 outline-none bg-white">
+                  <option selected>FEAT</option>
+                  <option>BUG</option>
+                  <option>IMP</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="flex items-center gap-3 pt-2">
+              <button class="bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg px-4 py-2 text-sm font-medium transition flex items-center gap-1.5">
+                <span class="text-base">✓</span> Confirm Brief
+              </button>
+              <button class="bg-white border border-red-300 text-red-600 hover:bg-red-50 rounded-lg px-4 py-2 text-sm font-medium transition flex items-center gap-1.5">
+                <span class="text-base">✗</span> Reject
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- State: Reject expanded -->
+        <div>
+          <p class="text-xs text-slate-400 mb-3 text-center uppercase tracking-wider">Reject — Feedback textarea</p>
+          <div class="bg-white rounded-xl shadow-sm p-6 space-y-5">
+            <div class="flex items-center gap-2 text-sm text-slate-500">
+              <span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+              Waiting on your review
+            </div>
+
+            <div class="border border-slate-200 rounded-lg p-4 bg-slate-50">
+              <h4 class="text-xs font-medium text-slate-400 uppercase tracking-wider mb-3">Generated Brief</h4>
+              <div class="prose prose-sm prose-slate max-w-none">
+                <p>Add CSV export functionality to the work items list...</p>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-medium text-slate-700 mb-1">Title</label>
+                <input type="text" value="Add CSV export to work items list"
+                  class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:border-sky-500 focus:ring-2 focus:ring-sky-100 outline-none" />
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-slate-700 mb-1">Type</label>
+                <select class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:border-sky-500 focus:ring-2 focus:ring-sky-100 outline-none bg-white">
+                  <option selected>FEAT</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Feedback textarea (expanded) -->
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1">Feedback for the agent</label>
+              <textarea rows="3" placeholder="Describe what needs to change..."
+                class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:border-sky-500 focus:ring-2 focus:ring-sky-100 outline-none resize-none">The scope should also include PDF export, not just CSV. Please also mention the file size limit.</textarea>
+            </div>
+
+            <div class="flex items-center gap-3 pt-2">
+              <button class="bg-red-500 hover:bg-red-600 text-white rounded-lg px-4 py-2 text-sm font-medium transition flex items-center gap-1.5">
+                <span class="text-base">✗</span> Send Rejection
+              </button>
+              <button class="text-slate-500 hover:text-slate-700 text-sm">Cancel</button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ================================================================ -->
+    <!-- T-100: Task List Review Panel -->
+    <!-- ================================================================ -->
+    <section>
+      <h2 class="text-sm font-medium uppercase tracking-wider text-slate-500 mb-6 flex items-center gap-2">
+        <span class="w-2 h-2 rounded-full bg-sky-500"></span>
+        T-100: Task List Review Panel
+        <span class="font-mono text-xs bg-slate-100 rounded px-1.5 py-0.5">tasks-confirmed</span>
+      </h2>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+
+        <!-- State: Active — editable task list -->
+        <div>
+          <p class="text-xs text-slate-400 mb-3 text-center uppercase tracking-wider">Active — Operator curating</p>
+          <div class="bg-white rounded-xl shadow-sm p-6 space-y-5">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2 text-sm text-slate-500">
+                <span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+                Review and curate the task list
+              </div>
+              <span class="text-xs text-slate-400">3 tasks</span>
+            </div>
+
+            <!-- Task list -->
+            <div class="space-y-3">
+              <!-- Task 1 -->
+              <div class="border border-slate-200 rounded-lg p-4 bg-white hover:shadow-sm transition group">
+                <div class="flex items-start justify-between gap-3">
+                  <div class="flex-1">
+                    <div class="flex items-center gap-2 mb-1">
+                      <span class="font-mono text-xs bg-sky-100 text-sky-700 rounded px-1.5 py-0.5">T-1</span>
+                      <input type="text" value="Add CSV endpoint to WorkItemsController"
+                        class="flex-1 text-sm font-medium text-slate-900 border-0 border-b border-transparent hover:border-slate-300 focus:border-sky-500 outline-none px-0 py-0.5 bg-transparent" />
+                    </div>
+                    <input type="text" value="New GET /api/projects/{pid}/work-items/export endpoint returning CSV content."
+                      class="w-full text-sm text-slate-600 border-0 border-b border-transparent hover:border-slate-300 focus:border-sky-500 outline-none px-0 py-0.5 bg-transparent" />
+                  </div>
+                  <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition">
+                    <button class="text-slate-400 hover:text-slate-600 p-1" title="Move up">↑</button>
+                    <button class="text-slate-400 hover:text-slate-600 p-1" title="Move down">↓</button>
+                    <button class="text-red-400 hover:text-red-600 p-1" title="Remove">✕</button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Task 2 -->
+              <div class="border border-slate-200 rounded-lg p-4 bg-white hover:shadow-sm transition group">
+                <div class="flex items-start justify-between gap-3">
+                  <div class="flex-1">
+                    <div class="flex items-center gap-2 mb-1">
+                      <span class="font-mono text-xs bg-sky-100 text-sky-700 rounded px-1.5 py-0.5">T-2</span>
+                      <input type="text" value="CSV formatting service"
+                        class="flex-1 text-sm font-medium text-slate-900 border-0 border-b border-transparent hover:border-slate-300 focus:border-sky-500 outline-none px-0 py-0.5 bg-transparent" />
+                    </div>
+                    <input type="text" value="Service that maps WorkItemDto list to CSV rows with headers."
+                      class="w-full text-sm text-slate-600 border-0 border-b border-transparent hover:border-slate-300 focus:border-sky-500 outline-none px-0 py-0.5 bg-transparent" />
+                  </div>
+                  <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition">
+                    <button class="text-slate-400 hover:text-slate-600 p-1">↑</button>
+                    <button class="text-slate-400 hover:text-slate-600 p-1">↓</button>
+                    <button class="text-red-400 hover:text-red-600 p-1">✕</button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Task 3 -->
+              <div class="border border-slate-200 rounded-lg p-4 bg-white hover:shadow-sm transition group">
+                <div class="flex items-start justify-between gap-3">
+                  <div class="flex-1">
+                    <div class="flex items-center gap-2 mb-1">
+                      <span class="font-mono text-xs bg-sky-100 text-sky-700 rounded px-1.5 py-0.5">T-3</span>
+                      <input type="text" value="Download button on project home"
+                        class="flex-1 text-sm font-medium text-slate-900 border-0 border-b border-transparent hover:border-slate-300 focus:border-sky-500 outline-none px-0 py-0.5 bg-transparent" />
+                    </div>
+                    <input type="text" value="Add 'Export CSV' button to the project home work-items toolbar."
+                      class="w-full text-sm text-slate-600 border-0 border-b border-transparent hover:border-slate-300 focus:border-sky-500 outline-none px-0 py-0.5 bg-transparent" />
+                  </div>
+                  <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition">
+                    <button class="text-slate-400 hover:text-slate-600 p-1">↑</button>
+                    <button class="text-slate-400 hover:text-slate-600 p-1">↓</button>
+                    <button class="text-red-400 hover:text-red-600 p-1">✕</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Add task -->
+            <button class="w-full border-2 border-dashed border-slate-300 rounded-lg py-2.5 text-sm text-slate-500 hover:text-sky-600 hover:border-sky-300 transition">
+              + Add task
+            </button>
+
+            <!-- Actions -->
+            <div class="flex items-center gap-3 pt-2">
+              <button class="bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg px-4 py-2 text-sm font-medium transition flex items-center gap-1.5">
+                <span class="text-base">✓</span> Confirm Task List
+              </button>
+              <button class="bg-white border border-red-300 text-red-600 hover:bg-red-50 rounded-lg px-4 py-2 text-sm font-medium transition flex items-center gap-1.5">
+                <span class="text-base">✗</span> Reject
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- State: Add task inline form expanded -->
+        <div>
+          <p class="text-xs text-slate-400 mb-3 text-center uppercase tracking-wider">Add task — Inline form</p>
+          <div class="bg-white rounded-xl shadow-sm p-6 space-y-5">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2 text-sm text-slate-500">
+                <span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+                Review and curate the task list
+              </div>
+              <span class="text-xs text-slate-400">3 tasks + 1 new</span>
+            </div>
+
+            <div class="space-y-3">
+              <div class="border border-slate-200 rounded-lg p-4 bg-white text-sm text-slate-600">
+                <span class="font-mono text-xs bg-sky-100 text-sky-700 rounded px-1.5 py-0.5 mr-2">T-1</span>
+                Add CSV endpoint to WorkItemsController
+              </div>
+              <div class="border border-slate-200 rounded-lg p-4 bg-white text-sm text-slate-600">
+                <span class="font-mono text-xs bg-sky-100 text-sky-700 rounded px-1.5 py-0.5 mr-2">T-2</span>
+                CSV formatting service
+              </div>
+              <div class="border border-slate-200 rounded-lg p-4 bg-white text-sm text-slate-600">
+                <span class="font-mono text-xs bg-sky-100 text-sky-700 rounded px-1.5 py-0.5 mr-2">T-3</span>
+                Download button on project home
+              </div>
+
+              <!-- New task form -->
+              <div class="border-2 border-sky-300 rounded-lg p-4 bg-sky-50/50 space-y-3">
+                <div>
+                  <label class="block text-xs font-medium text-slate-500 mb-1">Title</label>
+                  <input type="text" placeholder="Task title..."
+                    value="Integration test for CSV export"
+                    class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:border-sky-500 focus:ring-2 focus:ring-sky-100 outline-none" />
+                </div>
+                <div>
+                  <label class="block text-xs font-medium text-slate-500 mb-1">Description</label>
+                  <input type="text" placeholder="Brief description..."
+                    value="End-to-end test hitting the export endpoint with filter params."
+                    class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:border-sky-500 focus:ring-2 focus:ring-sky-100 outline-none" />
+                </div>
+                <div class="flex items-center gap-2">
+                  <button class="bg-sky-500 hover:bg-sky-600 text-white rounded-lg px-3 py-1.5 text-sm font-medium transition">Add</button>
+                  <button class="text-slate-500 hover:text-slate-700 text-sm">Cancel</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ================================================================ -->
+    <!-- T-101: Plan Review Panel -->
+    <!-- ================================================================ -->
+    <section>
+      <h2 class="text-sm font-medium uppercase tracking-wider text-slate-500 mb-6 flex items-center gap-2">
+        <span class="w-2 h-2 rounded-full bg-sky-500"></span>
+        T-101: Plan Review Panel
+        <span class="font-mono text-xs bg-slate-100 rounded px-1.5 py-0.5">plan-confirmed</span>
+      </h2>
+
+      <div class="max-w-3xl">
+        <p class="text-xs text-slate-400 mb-3 text-center uppercase tracking-wider">Active — Operator reviewing plan for current task</p>
+        <div class="bg-white rounded-xl shadow-sm p-6 space-y-5">
+          <!-- Task context -->
+          <div class="flex items-center gap-3 text-sm">
+            <span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+            <span class="text-slate-500">Plan for task</span>
+            <span class="font-mono bg-sky-100 text-sky-700 rounded px-1.5 py-0.5 text-xs">T-1</span>
+            <span class="font-medium text-slate-700">Add CSV endpoint to WorkItemsController</span>
+          </div>
+
+          <!-- Plan content -->
+          <div class="border border-slate-200 rounded-lg p-5 bg-slate-50">
+            <h4 class="text-xs font-medium text-slate-400 uppercase tracking-wider mb-3">Generated Plan</h4>
+            <div class="prose prose-sm prose-slate max-w-none">
+              <h3 class="text-sm font-semibold text-slate-800">Implementation Plan</h3>
+              <ol class="text-sm space-y-2">
+                <li><strong>Create <code>CsvExportService</code></strong> in <code>DevHub.Modules.WorkItems/Services/</code> — accepts a list of <code>WorkItemSummaryDto</code> and returns a <code>Stream</code> of CSV content with headers: title, status, checkpoint, assignee, createdAt.</li>
+                <li><strong>Add <code>ExportAsync</code> action</strong> to <code>WorkItemsController</code> — <code>GET /api/projects/{pid}/work-items/export</code>. Accepts the same query params as the list endpoint (status filter, pagination). Returns <code>text/csv</code> with <code>Content-Disposition: attachment</code>.</li>
+                <li><strong>Authorization</strong> — reuse the existing <code>workitem:list</code> check. No new role required.</li>
+                <li><strong>Unit test</strong> for <code>CsvExportService</code> — verify header row, field escaping (commas, quotes), empty list.</li>
+              </ol>
+            </div>
+          </div>
+
+          <!-- Actions -->
+          <div class="flex items-center gap-3 pt-2">
+            <button class="bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg px-4 py-2 text-sm font-medium transition flex items-center gap-1.5">
+              <span class="text-base">✓</span> Confirm Plan
+            </button>
+            <button class="bg-white border border-red-300 text-red-600 hover:bg-red-50 rounded-lg px-4 py-2 text-sm font-medium transition flex items-center gap-1.5">
+              <span class="text-base">✗</span> Reject
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================================================================ -->
+    <!-- T-102: Implementation Review Panel -->
+    <!-- ================================================================ -->
+    <section>
+      <h2 class="text-sm font-medium uppercase tracking-wider text-slate-500 mb-6 flex items-center gap-2">
+        <span class="w-2 h-2 rounded-full bg-sky-500"></span>
+        T-102: Implementation Review Panel
+        <span class="font-mono text-xs bg-slate-100 rounded px-1.5 py-0.5">implementation-complete</span>
+      </h2>
+
+      <div class="max-w-3xl">
+        <p class="text-xs text-slate-400 mb-3 text-center uppercase tracking-wider">Active — Operator signals implementation is done</p>
+        <div class="bg-white rounded-xl shadow-sm p-6 space-y-5">
+          <!-- Task context -->
+          <div class="flex items-center gap-3 text-sm">
+            <span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+            <span class="text-slate-500">Implementation for task</span>
+            <span class="font-mono bg-sky-100 text-sky-700 rounded px-1.5 py-0.5 text-xs">T-1</span>
+            <span class="font-medium text-slate-700">Add CSV endpoint to WorkItemsController</span>
+          </div>
+
+          <!-- Branch info -->
+          <div class="flex items-center gap-4 text-sm bg-slate-50 border border-slate-200 rounded-lg px-4 py-3">
+            <div>
+              <span class="text-slate-500">Branch:</span>
+              <span class="font-mono text-sky-600 ml-1">feat/csv-export</span>
+            </div>
+            <span class="text-slate-300">|</span>
+            <div class="text-slate-500">
+              The agent is waiting for you to signal that implementation is complete.
+            </div>
+          </div>
+
+          <!-- Signal form -->
+          <div class="space-y-4">
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1">Summary <span class="text-slate-400 font-normal">(optional)</span></label>
+              <textarea rows="3" placeholder="Brief summary of what you implemented..."
+                class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:border-sky-500 focus:ring-2 focus:ring-sky-100 outline-none resize-none">Added CsvExportService and the /export endpoint. All unit tests pass. PR #42 is open.</textarea>
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-medium text-slate-700 mb-1">Commit SHA <span class="text-slate-400 font-normal">(optional)</span></label>
+                <input type="text" placeholder="abc123..."
+                  value="a1b2c3d"
+                  class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm font-mono focus:border-sky-500 focus:ring-2 focus:ring-sky-100 outline-none" />
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-slate-700 mb-1">PR URL <span class="text-slate-400 font-normal">(optional)</span></label>
+                <input type="text" placeholder="https://github.com/..."
+                  value="https://github.com/carestechs/dev-hub/pull/42"
+                  class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:border-sky-500 focus:ring-2 focus:ring-sky-100 outline-none" />
+              </div>
+            </div>
+          </div>
+
+          <!-- Actions -->
+          <div class="flex items-center gap-3 pt-2">
+            <button class="bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg px-4 py-2 text-sm font-medium transition flex items-center gap-1.5">
+              <span class="text-base">✓</span> Mark Complete
+            </button>
+            <button class="bg-white border border-amber-300 text-amber-700 hover:bg-amber-50 rounded-lg px-4 py-2 text-sm font-medium transition flex items-center gap-1.5">
+              <span class="text-base">↺</span> Request Changes
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================================================================ -->
+    <!-- T-103: Final Review Panel -->
+    <!-- ================================================================ -->
+    <section>
+      <h2 class="text-sm font-medium uppercase tracking-wider text-slate-500 mb-6 flex items-center gap-2">
+        <span class="w-2 h-2 rounded-full bg-sky-500"></span>
+        T-103: Final Review Panel
+        <span class="font-mono text-xs bg-slate-100 rounded px-1.5 py-0.5">review-completed</span>
+      </h2>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+
+        <!-- State: Active — operator reviewing -->
+        <div>
+          <p class="text-xs text-slate-400 mb-3 text-center uppercase tracking-wider">Active — Operator reviewing</p>
+          <div class="bg-white rounded-xl shadow-sm p-6 space-y-5">
+            <!-- Task context -->
+            <div class="flex items-center gap-3 text-sm">
+              <span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+              <span class="text-slate-500">Final review for task</span>
+              <span class="font-mono bg-sky-100 text-sky-700 rounded px-1.5 py-0.5 text-xs">T-1</span>
+              <span class="font-medium text-slate-700">Add CSV endpoint to WorkItemsController</span>
+            </div>
+
+            <!-- Review context -->
+            <div class="text-sm text-slate-600 bg-slate-50 border border-slate-200 rounded-lg p-4">
+              <p class="mb-2">Review the implementation against the approved plan. This is the final gate before the task is marked done.</p>
+              <p class="text-slate-500">Approving will mark task T-1 as done and advance to the next task's assignment (if any remain).</p>
+            </div>
+
+            <!-- Actions -->
+            <div class="flex items-center gap-3 pt-2">
+              <button class="bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg px-4 py-2 text-sm font-medium transition flex items-center gap-1.5">
+                <span class="text-base">✓</span> Approve
+              </button>
+              <button class="bg-white border border-red-300 text-red-600 hover:bg-red-50 rounded-lg px-4 py-2 text-sm font-medium transition flex items-center gap-1.5">
+                <span class="text-base">✗</span> Reject
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- State: Reject expanded -->
+        <div>
+          <p class="text-xs text-slate-400 mb-3 text-center uppercase tracking-wider">Reject — Feedback</p>
+          <div class="bg-white rounded-xl shadow-sm p-6 space-y-5">
+            <div class="flex items-center gap-3 text-sm">
+              <span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+              <span class="text-slate-500">Final review for task</span>
+              <span class="font-mono bg-sky-100 text-sky-700 rounded px-1.5 py-0.5 text-xs">T-1</span>
+            </div>
+
+            <div class="text-sm text-slate-600 bg-slate-50 border border-slate-200 rounded-lg p-4">
+              Rejecting will send the task back for re-implementation. Provide feedback so the agent knows what to fix.
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1">Feedback</label>
+              <textarea rows="3" placeholder="What needs to change..."
+                class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:border-sky-500 focus:ring-2 focus:ring-sky-100 outline-none resize-none">The CSV export is missing the "assignee" column. Also, commas in titles are not being escaped properly — row 3 breaks the CSV structure.</textarea>
+            </div>
+
+            <div class="flex items-center gap-3 pt-2">
+              <button class="bg-red-500 hover:bg-red-600 text-white rounded-lg px-4 py-2 text-sm font-medium transition flex items-center gap-1.5">
+                <span class="text-base">✗</span> Send Rejection
+              </button>
+              <button class="text-slate-500 hover:text-slate-700 text-sm">Cancel</button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ================================================================ -->
+    <!-- Shared states: Read-only + Fallback -->
+    <!-- ================================================================ -->
+    <section>
+      <h2 class="text-sm font-medium uppercase tracking-wider text-slate-500 mb-6 flex items-center gap-2">
+        <span class="w-2 h-2 rounded-full bg-slate-400"></span>
+        Shared States
+        <span class="text-xs text-slate-400 font-normal normal-case tracking-normal">— applies to all panels</span>
+      </h2>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+
+        <!-- Read-only (no role) -->
+        <div>
+          <p class="text-xs text-slate-400 mb-3 text-center uppercase tracking-wider">Read-only — User lacks required role</p>
+          <div class="bg-white rounded-xl shadow-sm p-6 space-y-5">
+            <div class="border border-slate-200 rounded-lg p-4 bg-slate-50">
+              <h4 class="text-xs font-medium text-slate-400 uppercase tracking-wider mb-3">Generated Brief</h4>
+              <div class="prose prose-sm prose-slate max-w-none">
+                <p>Add CSV export functionality to the work items list...</p>
+              </div>
+            </div>
+            <div class="bg-amber-50 border border-amber-200 text-amber-800 rounded-lg p-3 text-sm">
+              You need the <span class="font-mono bg-amber-100 rounded px-1">operator</span> role on this project to act on this checkpoint.
+            </div>
+          </div>
+        </div>
+
+        <!-- Artefact fallback (unexpected shape) -->
+        <div>
+          <p class="text-xs text-slate-400 mb-3 text-center uppercase tracking-wider">Fallback — Artefact shape not recognized</p>
+          <div class="bg-white rounded-xl shadow-sm p-6 space-y-5">
+            <div class="border border-slate-200 rounded-lg p-4 bg-slate-50">
+              <h4 class="text-xs font-medium text-slate-400 uppercase tracking-wider mb-3">Artefact (raw)</h4>
+              <pre class="text-xs text-slate-600 font-mono whitespace-pre-wrap overflow-x-auto">{
+  "unexpectedField": "some value",
+  "data": [1, 2, 3]
+}</pre>
+            </div>
+            <div class="flex items-center gap-3 pt-2">
+              <button class="bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg px-4 py-2 text-sm font-medium transition">
+                ✓ Confirm
+              </button>
+              <button class="bg-white border border-red-300 text-red-600 hover:bg-red-50 rounded-lg px-4 py-2 text-sm font-medium transition">
+                ✗ Reject
+              </button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="border-t border-slate-200 bg-white px-6 py-4 mt-12">
+    <p class="text-xs text-slate-400 text-center">
+      FEAT-011 Mockup — lifecycle-agent@0.4.0-manual checkpoint panels.
+      All panels render inside the review page's action section, replacing the generic CheckpointActionBar.
+    </p>
+  </footer>
+
+</body>
+</html>
