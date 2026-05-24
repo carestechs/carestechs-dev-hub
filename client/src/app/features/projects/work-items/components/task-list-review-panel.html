@@ -1,0 +1,129 @@
+<section class="bg-white rounded-xl shadow-sm p-6">
+  <h3 class="text-base font-semibold mb-1">Review task list</h3>
+  <p class="text-sm text-slate-500 mb-4">
+    Review, reorder, add, or remove tasks before confirming.
+  </p>
+
+  <!-- Task cards -->
+  <div class="space-y-3 mb-4">
+    @for (task of editableTasks(); track task.id; let i = $index; let first = $first; let last = $last) {
+      <div class="group border border-slate-200 rounded-lg p-4 hover:shadow-sm transition-shadow">
+        <div class="flex items-start gap-3">
+          <!-- Reorder / remove buttons (visible on hover) -->
+          <div class="flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity pt-0.5">
+            <button type="button"
+                    class="text-slate-400 hover:text-slate-700 text-xs disabled:opacity-30"
+                    [disabled]="disabled() || first"
+                    (click)="moveUp(i)"
+                    title="Move up">&#9650;</button>
+            <button type="button"
+                    class="text-slate-400 hover:text-slate-700 text-xs disabled:opacity-30"
+                    [disabled]="disabled() || last"
+                    (click)="moveDown(i)"
+                    title="Move down">&#9660;</button>
+          </div>
+
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-2 mb-1">
+              <span class="font-mono text-xs bg-slate-100 text-slate-600 rounded px-1.5 py-0.5 shrink-0">{{ task.id }}</span>
+              <button type="button"
+                      class="ml-auto text-xs text-red-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity"
+                      [disabled]="disabled()"
+                      (click)="removeTask(i)">Remove</button>
+            </div>
+            <input type="text" autocomplete="off"
+                   [value]="task.title"
+                   (input)="updateTitle(i, $any($event.target).value)"
+                   [disabled]="disabled()"
+                   placeholder="Task title"
+                   class="block w-full border border-slate-200 focus:border-sky-500 focus:ring-2 focus:ring-sky-100 rounded-lg px-3 h-9 outline-none disabled:bg-slate-50 text-sm mb-1" />
+            <textarea rows="2"
+                      [value]="task.description ?? ''"
+                      (input)="updateDescription(i, $any($event.target).value)"
+                      [disabled]="disabled()"
+                      placeholder="Description (optional)"
+                      class="block w-full border border-slate-200 focus:border-sky-500 focus:ring-2 focus:ring-sky-100 rounded-lg px-3 py-2 outline-none disabled:bg-slate-50 text-xs text-slate-600"></textarea>
+          </div>
+        </div>
+      </div>
+    }
+
+    @if (editableTasks().length === 0) {
+      <p class="text-sm text-slate-400 text-center py-4">No tasks in the list.</p>
+    }
+  </div>
+
+  <!-- Add task -->
+  @if (adding()) {
+    <div class="border border-dashed border-sky-300 rounded-lg p-4 mb-4 bg-sky-50/50">
+      <label class="block text-sm font-medium text-slate-700 mb-1">New task title</label>
+      <input type="text" autocomplete="off"
+             [value]="newTitle()"
+             (input)="newTitle.set($any($event.target).value)"
+             [disabled]="disabled()"
+             placeholder="Task title"
+             class="block w-full border border-slate-300 focus:border-sky-500 focus:ring-2 focus:ring-sky-100 rounded-lg px-3 h-9 outline-none disabled:bg-slate-50 text-sm mb-2" />
+      <label class="block text-sm font-medium text-slate-700 mb-1">Description (optional)</label>
+      <textarea rows="2"
+                [value]="newDescription()"
+                (input)="newDescription.set($any($event.target).value)"
+                [disabled]="disabled()"
+                placeholder="Task description"
+                class="block w-full border border-slate-300 focus:border-sky-500 focus:ring-2 focus:ring-sky-100 rounded-lg px-3 py-2 outline-none disabled:bg-slate-50 text-xs mb-2"></textarea>
+      <div class="flex items-center gap-2">
+        <button type="button"
+                class="text-sm text-slate-500 hover:text-slate-700 px-3 h-9"
+                (click)="toggleAdd()">Cancel</button>
+        <button type="button"
+                class="bg-sky-500 disabled:bg-slate-300 disabled:cursor-not-allowed text-white text-sm font-medium px-4 h-9 rounded-lg hover:bg-sky-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
+                [disabled]="!canAdd()"
+                (click)="addTask()">Add</button>
+      </div>
+    </div>
+  } @else {
+    <button type="button"
+            class="text-sm text-sky-500 hover:text-sky-700 mb-4 disabled:text-slate-400"
+            [disabled]="disabled()"
+            (click)="toggleAdd()">
+      + Add task
+    </button>
+  }
+
+  @if (rejecting()) {
+    <label class="block text-sm font-medium text-slate-700 mb-1">Feedback</label>
+    <textarea rows="3"
+              [value]="feedback()"
+              (input)="feedback.set($any($event.target).value)"
+              [disabled]="working()"
+              placeholder="Explain why this task list should be revised..."
+              class="block w-full border border-slate-300 focus:border-sky-500 focus:ring-2 focus:ring-sky-100 rounded-lg px-3 py-2 outline-none disabled:bg-slate-50 text-sm mb-4"></textarea>
+    <div class="flex items-center justify-end gap-2">
+      <button type="button"
+              class="text-sm text-slate-500 hover:text-slate-700 px-3 h-10"
+              [disabled]="working()"
+              (click)="toggleReject()">Cancel</button>
+      <button type="button"
+              class="bg-red-500 disabled:bg-slate-300 disabled:cursor-not-allowed text-white text-sm font-medium px-4 h-10 rounded-lg hover:bg-red-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-300"
+              [disabled]="!canReject()"
+              (click)="onReject()">
+        @if (working()) { Submitting... } @else { Reject task list }
+      </button>
+    </div>
+  } @else {
+    <div class="flex items-center justify-end gap-2">
+      @if (!canAct()) {
+        <span class="text-xs text-slate-500 mr-auto">You don't have the role required for this action.</span>
+      }
+      <button type="button"
+              class="text-sm text-red-500 hover:text-red-700 px-3 h-10"
+              [disabled]="disabled()"
+              (click)="toggleReject()">Reject</button>
+      <button type="button"
+              class="bg-sky-500 disabled:bg-slate-300 disabled:cursor-not-allowed text-white text-sm font-medium px-4 h-10 rounded-lg hover:bg-sky-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
+              [disabled]="!canSubmit()"
+              (click)="onConfirm()">
+        @if (working()) { Submitting... } @else { Confirm task list }
+      </button>
+    </div>
+  }
+</section>

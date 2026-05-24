@@ -16,10 +16,16 @@ import { AuthService } from '../../../core/auth/auth.service';
 import type { AppError } from '../../../core/errors/app-error';
 import { ActiveStepArtefactPanel } from './components/active-step-artefact-panel';
 import { AssignmentConfirmPanel, type AssignmentConfirmSubmit } from './components/assignment-confirm-panel';
+import { BriefReviewPanel } from './components/brief-review-panel';
 import { CheckpointActionBar, type SubmittedOutcome } from './components/checkpoint-action-bar';
 import { DecisionHistoryList } from './components/decision-history-list';
+import { FinalReviewPanel } from './components/final-review-panel';
+import { ImplementationReviewPanel } from './components/implementation-review-panel';
 import { LifecycleTimeline, type TimelineStep } from './components/lifecycle-timeline';
+import type { PanelSubmit } from './components/panel-submit';
+import { PlanReviewPanel } from './components/plan-review-panel';
 import { StreamFeed } from './components/stream-feed';
+import { TaskListReviewPanel } from './components/task-list-review-panel';
 
 type ErrorKind = 'forbidden' | 'not-found' | 'other';
 
@@ -35,6 +41,11 @@ const TERMINAL_STATUSES = new Set(['Completed', 'Failed', 'Cancelled']);
     DecisionHistoryList,
     CheckpointActionBar,
     AssignmentConfirmPanel,
+    BriefReviewPanel,
+    TaskListReviewPanel,
+    PlanReviewPanel,
+    ImplementationReviewPanel,
+    FinalReviewPanel,
     StreamFeed,
   ],
   templateUrl: './review.page.html',
@@ -62,11 +73,6 @@ export class ReviewPage {
   // FEAT-009 / T-070: memberships fed to AssignmentConfirmPanel when the active contract
   // is per-task + assignment-confirmed. Fetched lazily on contract resolution.
   protected readonly memberships = signal<ProjectMembershipDto[]>([]);
-
-  protected readonly isAssignmentConfirmCheckpoint = computed(() => {
-    const c = this.contract();
-    return c !== null && c.perTask === true && c.checkpointKey === 'assignment-confirmed';
-  });
 
   protected readonly lifecycleState = computed<LifecycleExecutorState | null>(() => {
     const wi = this.workItem();
@@ -267,6 +273,26 @@ export class ReviewPage {
       await this.refetchOnly(p.id, wi.id);
     } catch (e: unknown) {
       this.submitError.set(toAppError(e, 'Could not submit assignment'));
+    } finally {
+      this.submitting.set(null);
+    }
+  }
+
+  protected async onPanelSubmitted(action: PanelSubmit): Promise<void> {
+    const p = this.project();
+    const wi = this.workItem();
+    if (!p || !wi || !wi.currentCheckpointKey) return;
+    this.submitting.set(action.outcome);
+    this.submitError.set(null);
+    try {
+      const idem = newIdempotencyKey();
+      await this.workItems.signal(
+        p.id, wi.id, wi.currentCheckpointKey,
+        { outcome: action.outcome, payload: action.payload, taskId: action.taskId ?? undefined },
+        idem);
+      await this.refetchOnly(p.id, wi.id);
+    } catch (e: unknown) {
+      this.submitError.set(toAppError(e, 'Could not submit signal'));
     } finally {
       this.submitting.set(null);
     }
