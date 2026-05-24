@@ -1,13 +1,21 @@
 import { ChangeDetectionStrategy, Component, EventEmitter, Output, computed, input, signal } from '@angular/core';
+import { MarkdownRenderer } from './markdown-renderer';
 import type { PanelSubmit } from './panel-submit';
+
+interface CurrentTask {
+  id?: string;
+  title?: string;
+}
 
 @Component({
   selector: 'implementation-review-panel',
   standalone: true,
+  imports: [MarkdownRenderer],
   templateUrl: './implementation-review-panel.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ImplementationReviewPanel {
+  readonly artefact = input<unknown>(null);
   readonly currentTaskId = input<string | null>(null);
   readonly workBranch = input<string | null>(null);
   readonly canAct = input<boolean>(false);
@@ -20,6 +28,26 @@ export class ImplementationReviewPanel {
   protected readonly commitSha = signal('');
   protected readonly prUrl = signal('');
   protected readonly feedback = signal('');
+
+  protected readonly currentTask = computed<CurrentTask>(() => {
+    const raw = this.artefact();
+    if (!raw || typeof raw !== 'object') return {};
+    const obj = raw as Record<string, unknown>;
+    const ct = obj['currentTask'];
+    if (!ct || typeof ct !== 'object') return {};
+    const t = ct as Record<string, unknown>;
+    return {
+      id: typeof t['id'] === 'string' ? t['id'] : undefined,
+      title: typeof t['title'] === 'string' ? t['title'] : undefined,
+    };
+  });
+
+  protected readonly planMarkdown = computed(() => {
+    const raw = this.artefact();
+    if (!raw || typeof raw !== 'object') return '';
+    const obj = raw as Record<string, unknown>;
+    return typeof obj['planMarkdown'] === 'string' ? obj['planMarkdown'] : '';
+  });
 
   protected readonly canComplete = computed(() =>
     this.canAct() && !this.working());

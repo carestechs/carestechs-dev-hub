@@ -115,6 +115,7 @@
         }
         @case ('implementation-complete') {
           <implementation-review-panel
+            [artefact]="displayedArtefact()"
             [currentTaskId]="wi.currentTaskId ?? null"
             [workBranch]="wi.workBranch ?? null"
             [canAct]="callerHasRole()"
@@ -123,6 +124,7 @@
         }
         @case ('review-completed') {
           <final-review-panel
+            [artefact]="displayedArtefact()"
             [currentTaskId]="wi.currentTaskId ?? null"
             [canAct]="callerHasRole()"
             [working]="submitting() !== null"

@@ -2,9 +2,9 @@ import { ChangeDetectionStrategy, Component, EventEmitter, Output, computed, inp
 import { MarkdownRenderer } from './markdown-renderer';
 import type { PanelSubmit } from './panel-submit';
 
-interface PlanArtefact {
-  plan_markdown?: string;
-  task_id?: string;
+interface CurrentTask {
+  id?: string;
+  title?: string;
 }
 
 @Component({
@@ -25,20 +25,28 @@ export class PlanReviewPanel {
   protected readonly rejecting = signal(false);
   protected readonly feedback = signal('');
 
-  protected readonly parsed = computed<PlanArtefact>(() => {
+  protected readonly planMarkdown = computed(() => {
     const raw = this.artefact();
-    if (raw && typeof raw === 'object') {
-      const obj = raw as Record<string, unknown>;
-      return {
-        plan_markdown: typeof obj['plan_markdown'] === 'string' ? obj['plan_markdown'] : undefined,
-        task_id: typeof obj['task_id'] === 'string' ? obj['task_id'] : undefined,
-      };
-    }
-    return {};
+    if (!raw || typeof raw !== 'object') return '';
+    const obj = raw as Record<string, unknown>;
+    return typeof obj['planMarkdown'] === 'string' ? obj['planMarkdown'] : '';
+  });
+
+  protected readonly currentTask = computed<CurrentTask>(() => {
+    const raw = this.artefact();
+    if (!raw || typeof raw !== 'object') return {};
+    const obj = raw as Record<string, unknown>;
+    const ct = obj['currentTask'];
+    if (!ct || typeof ct !== 'object') return {};
+    const t = ct as Record<string, unknown>;
+    return {
+      id: typeof t['id'] === 'string' ? t['id'] : undefined,
+      title: typeof t['title'] === 'string' ? t['title'] : undefined,
+    };
   });
 
   protected readonly taskLabel = computed(() =>
-    this.parsed().task_id ?? this.currentTaskId() ?? null);
+    this.currentTask().id ?? this.currentTaskId() ?? null);
 
   protected readonly canSubmit = computed(() =>
     this.canAct() && !this.working());
