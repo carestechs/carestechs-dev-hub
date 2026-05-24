@@ -21,7 +21,11 @@ import { AppButton, AppErrorBanner, AppFormField, AppModal } from '../../../shar
 //   - 'devhub'       → IExecutorHttpClient (FakeExecutor) — payload is opaque pass-through
 const EXAMPLE_PAYLOADS: Record<ExecutorProtocol, string> = {
   devhub: '{}',
-  orchestrator: `{\n  "task": "Describe the task to run"\n}`,
+  orchestrator: `{
+  "id": "FEAT-001",
+  "kind": "FEAT",
+  "content": "# Feature Brief\\n\\nDescribe the work item here.\\n\\n## Acceptance Criteria\\n\\n- [ ] Criterion 1"
+}`,
 };
 const DEFAULT_PROTOCOL: ExecutorProtocol = 'orchestrator';
 
