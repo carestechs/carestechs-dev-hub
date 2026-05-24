@@ -1,8 +1,11 @@
 <section class="bg-white rounded-xl shadow-sm p-6">
   <h3 class="text-base font-semibold mb-1">Final review</h3>
   <p class="text-sm text-slate-500 mb-4">
-    @if (currentTaskId(); as t) {
-      Final review for task <span class="font-mono text-xs bg-slate-100 rounded px-1.5 py-0.5">{{ t }}</span>.
+    @if (currentTask().id; as tid) {
+      Final review for task <span class="font-mono text-xs bg-sky-100 text-sky-700 rounded px-1.5 py-0.5">{{ tid }}</span>
+      @if (currentTask().title; as title) {
+        — {{ title }}
+      }
     } @else {
       Complete the final review for this work item.
     }
@@ -10,10 +13,48 @@
 
   <div class="bg-sky-50 border border-sky-200 rounded-lg px-4 py-3 mb-4">
     <p class="text-sm text-sky-800">
-      Approving marks this task as done and advances the lifecycle to the next step.
+      Approving marks this task as done and advances the lifecycle to the next task.
       If the implementation needs further work, reject with feedback.
     </p>
   </div>
+
+  <!-- Plan for reference -->
+  @if (planMarkdown(); as plan) {
+    <details class="mb-4">
+      <summary class="text-sm font-medium text-slate-700 cursor-pointer mb-2">Approved plan (reference)</summary>
+      <div class="bg-slate-50 rounded-lg border border-slate-200 overflow-auto max-h-[24rem]">
+        <div class="px-5 py-4">
+          <markdown-renderer [source]="plan" />
+        </div>
+      </div>
+    </details>
+  }
+
+  <!-- Review history -->
+  @if (reviewHistory().length > 0) {
+    <details class="mb-4">
+      <summary class="text-sm font-medium text-slate-700 cursor-pointer mb-2">Prior reviews ({{ reviewHistory().length }})</summary>
+      <div class="space-y-2">
+        @for (r of reviewHistory(); track $index) {
+          <div class="bg-slate-50 rounded-lg border border-slate-200 px-4 py-3 text-sm">
+            <div class="flex items-center gap-2 mb-1">
+              @if (r.attempt) {
+                <span class="text-xs text-slate-400">Attempt {{ r.attempt }}</span>
+              }
+              @if (r.verdict === 'pass') {
+                <span class="text-xs bg-emerald-100 text-emerald-700 rounded-full px-2 py-0.5">pass</span>
+              } @else if (r.verdict === 'fail') {
+                <span class="text-xs bg-red-100 text-red-700 rounded-full px-2 py-0.5">fail</span>
+              }
+            </div>
+            @if (r.feedback) {
+              <p class="text-slate-600">{{ r.feedback }}</p>
+            }
+          </div>
+        }
+      </div>
+    </details>
+  }
 
   @if (rejecting()) {
     <label class="block text-sm font-medium text-slate-700 mb-1">Feedback</label>
@@ -21,7 +62,7 @@
               [value]="feedback()"
               (input)="feedback.set($any($event.target).value)"
               [disabled]="working()"
-              placeholder="Explain why this task should not be approved..."
+              placeholder="Explain what needs to change..."
               class="block w-full border border-slate-300 focus:border-sky-500 focus:ring-2 focus:ring-sky-100 rounded-lg px-3 py-2 outline-none disabled:bg-slate-50 text-sm mb-4"></textarea>
     <div class="flex items-center justify-end gap-2">
       <button type="button"

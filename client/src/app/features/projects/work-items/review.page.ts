@@ -120,27 +120,13 @@ export class ReviewPage {
   // can click a past step in the timeline to inspect its artefact.
   protected readonly displayedStepKey = computed(() => this.selectedStepKey() ?? this.activeStepKey());
 
-  // Maps each checkpoint to the specific node that produces its artefact.
-  private static readonly ARTEFACT_SOURCE: Record<string, string> = {
-    'brief-confirmed': 'load_work_item',
-    'tasks-confirmed': 'generate_tasks',
-    'plan-confirmed': 'generate_plan',
-  };
-
   protected readonly displayedArtefact = computed(() => {
     const ls = this.lifecycleState();
     const key = this.displayedStepKey();
     if (!ls || !key) return null;
-    const allSteps = ls.steps;
-    const checkpoint = allSteps.find(s => s.key === key);
+    const checkpoint = ls.steps.find(s => s.key === key);
     if (!checkpoint) return null;
-    if (checkpoint.status !== 'active') {
-      return checkpoint.nodeResult ?? null;
-    }
-    const sourceNode = ReviewPage.ARTEFACT_SOURCE[key];
-    if (!sourceNode) return null;
-    const source = allSteps.find(s => s.nodeName === sourceNode);
-    return source?.nodeResult ?? null;
+    return checkpoint.nodeInputs ?? null;
   });
 
   protected readonly hasActiveCheckpoint = computed(() => {

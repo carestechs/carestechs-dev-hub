@@ -2,11 +2,11 @@ import { ChangeDetectionStrategy, Component, EventEmitter, Output, computed, eff
 import { MarkdownRenderer } from './markdown-renderer';
 import type { PanelSubmit } from './panel-submit';
 
-interface BriefArtefact {
-  work_item_id?: string;
+interface WorkItemSummary {
+  id?: string;
+  type?: string;
   title?: string;
-  summary?: string;
-  source?: string;
+  path?: string;
 }
 
 @Component({
@@ -28,23 +28,30 @@ export class BriefReviewPanel {
   protected readonly type = signal<'FEAT' | 'BUG' | 'IMP'>('FEAT');
   protected readonly feedback = signal('');
 
-  protected readonly parsed = computed<BriefArtefact>(() => {
+  protected readonly briefContent = computed(() => {
     const raw = this.artefact();
-    if (raw && typeof raw === 'object') {
-      const obj = raw as Record<string, unknown>;
-      return {
-        work_item_id: typeof obj['work_item_id'] === 'string' ? obj['work_item_id'] : undefined,
-        title: typeof obj['title'] === 'string' ? obj['title'] : undefined,
-        summary: typeof obj['summary'] === 'string' ? obj['summary'] : undefined,
-        source: typeof obj['source'] === 'string' ? obj['source'] : undefined,
-      };
+    if (!raw || typeof raw !== 'object') return '';
+    const obj = raw as Record<string, unknown>;
+    const wi = obj['workItem'] as Record<string, unknown> | undefined;
+    if (wi && typeof wi === 'object' && typeof wi['content'] === 'string') {
+      return wi['content'];
     }
-    return {};
+    return '';
   });
 
-  protected readonly briefContent = computed(() => {
-    const p = this.parsed();
-    return p.summary ?? p.source ?? '';
+  protected readonly summary = computed<WorkItemSummary>(() => {
+    const raw = this.artefact();
+    if (!raw || typeof raw !== 'object') return {};
+    const obj = raw as Record<string, unknown>;
+    const s = obj['workItemSummary'];
+    if (!s || typeof s !== 'object') return {};
+    const sum = s as Record<string, unknown>;
+    return {
+      id: typeof sum['id'] === 'string' ? sum['id'] : undefined,
+      type: typeof sum['type'] === 'string' ? sum['type'] : undefined,
+      title: typeof sum['title'] === 'string' ? sum['title'] : undefined,
+      path: typeof sum['path'] === 'string' ? sum['path'] : undefined,
+    };
   });
 
   protected readonly canSubmit = computed(() =>
@@ -55,11 +62,10 @@ export class BriefReviewPanel {
 
   constructor() {
     effect(() => {
-      const p = this.parsed();
-      if (p.title) this.title.set(p.title);
-      const id = p.work_item_id ?? '';
-      if (id.startsWith('BUG')) this.type.set('BUG');
-      else if (id.startsWith('IMP')) this.type.set('IMP');
+      const s = this.summary();
+      if (s.title) this.title.set(s.title);
+      const t = s.type;
+      if (t === 'BUG' || t === 'IMP') this.type.set(t);
       else this.type.set('FEAT');
     });
   }

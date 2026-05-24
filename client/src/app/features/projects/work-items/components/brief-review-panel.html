@@ -1,27 +1,37 @@
 <section class="bg-white rounded-xl shadow-sm p-6">
   <h3 class="text-base font-semibold mb-1">Review brief</h3>
   <p class="text-sm text-slate-500 mb-5">
-    The agent synthesized this summary from your work item. You can adjust the title and type before confirming.
-    Rejecting will re-run the synthesis with your feedback.
-    @if (parsed().work_item_id; as wid) {
+    The agent synthesized a summary from your work item. Review the original content and the summary below.
+    You can adjust the title and type before confirming. Rejecting will re-run the synthesis with your feedback.
+    @if (summary().id; as wid) {
       <span class="ml-1 font-mono text-xs bg-slate-100 rounded px-1.5 py-0.5">{{ wid }}</span>
     }
   </p>
 
-  <!-- Brief content — the main thing the operator is reviewing -->
+  <!-- Original brief content from intake -->
   @if (briefContent(); as content) {
-    <div class="mb-5 bg-slate-50 rounded-lg border border-slate-200 overflow-auto max-h-[32rem]">
-      <div class="px-5 py-4">
-        <markdown-renderer [source]="content" />
+    <details class="mb-4" open>
+      <summary class="text-sm font-medium text-slate-700 cursor-pointer mb-2">Original brief</summary>
+      <div class="bg-slate-50 rounded-lg border border-slate-200 overflow-auto max-h-[28rem]">
+        <div class="px-5 py-4">
+          <markdown-renderer [source]="content" />
+        </div>
       </div>
-    </div>
-  } @else {
-    <div class="mb-5 bg-slate-50 rounded-lg border border-slate-200 p-5 text-sm text-slate-400 italic">
-      No brief content available in the artefact.
+    </details>
+  }
+
+  <!-- LLM-synthesized summary -->
+  @if (summary().title) {
+    <div class="mb-4 bg-sky-50 rounded-lg border border-sky-200 p-4">
+      <h4 class="text-xs font-medium text-sky-600 uppercase tracking-wider mb-2">Agent summary</h4>
+      <p class="text-sm text-slate-700"><span class="font-medium">Title:</span> {{ summary().title }}</p>
+      @if (summary().type) {
+        <p class="text-sm text-slate-700"><span class="font-medium">Type:</span> {{ summary().type }}</p>
+      }
     </div>
   }
 
-  <!-- Title + type corrections (secondary) -->
+  <!-- Title + type corrections -->
   <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
     <div class="sm:col-span-2">
       <label class="block text-sm font-medium text-slate-700 mb-1">Title</label>
@@ -51,7 +61,7 @@
               [value]="feedback()"
               (input)="feedback.set($any($event.target).value)"
               [disabled]="working()"
-              placeholder="Describe what needs to change in the brief..."
+              placeholder="Describe what needs to change in the synthesis..."
               class="block w-full border border-slate-300 focus:border-sky-500 focus:ring-2 focus:ring-sky-100 rounded-lg px-3 py-2 outline-none disabled:bg-slate-50 text-sm mb-4"></textarea>
 
     <div class="flex items-center justify-end gap-2">
