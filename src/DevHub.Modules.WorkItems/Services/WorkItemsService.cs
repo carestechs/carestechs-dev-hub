@@ -101,9 +101,10 @@ internal sealed class WorkItemsService(
         var workItemRef = new WorkItemRef(wi.ExecutorCorrelationMarker, wi.ExecutorRunId);
         var resp = await executorClient.FetchStateAsync(descriptor, workItemRef, ct);
 
-        if (wi.CurrentStatus != resp.CurrentStatus
+        var stateChanged = wi.CurrentStatus != resp.CurrentStatus
             || wi.CurrentCheckpointKey != resp.CurrentCheckpointKey
-            || wi.CurrentTaskId != resp.CurrentTaskId)
+            || wi.CurrentTaskId != resp.CurrentTaskId;
+        if (stateChanged)
         {
             await db.WorkItems
                 .Where(w => w.Id == workItemId)
@@ -111,6 +112,14 @@ internal sealed class WorkItemsService(
                     .SetProperty(w => w.CurrentStatus, resp.CurrentStatus)
                     .SetProperty(w => w.CurrentCheckpointKey, resp.CurrentCheckpointKey)
                     .SetProperty(w => w.CurrentTaskId, resp.CurrentTaskId), ct);
+
+            // Pull-trigger reconciliation: orchestrator transitions (e.g. Running →
+            // WaitingOnCheckpoint when a HumanExecutor parks) are not pushed to DevHub,
+            // so the pending-action inbox would stay empty until something else nudged
+            // the reconciler. Re-running here on every observed state change keeps the
+            // inbox honest at the cost of a fetch-time recompute. Replace with an
+            // executor-emitted event subscription when the orchestrator grows one.
+            await reconciler.RecomputeForWorkItemAsync(workItemId, ct);
         }
 
         var createdBy = await members.FindByIdAsync(wi.CreatedByMemberId, ct);
