@@ -1,47 +1,57 @@
 <section class="bg-white rounded-xl shadow-sm p-6">
   <h3 class="text-base font-semibold mb-1">Review brief</h3>
-  <p class="text-sm text-slate-500 mb-4">
-    Review the generated brief and confirm or reject it.
+  <p class="text-sm text-slate-500 mb-5">
+    Review the generated brief below. You can adjust the title and type before confirming.
+    To change the content, reject with feedback and the agent will regenerate.
     @if (parsed().work_item_id; as wid) {
       <span class="ml-1 font-mono text-xs bg-slate-100 rounded px-1.5 py-0.5">{{ wid }}</span>
     }
   </p>
 
-  <!-- Summary / source rendered as markdown -->
-  @if (markdownSource(); as md) {
-    <div class="mb-4 bg-slate-50 rounded-lg p-4 border border-slate-200">
-      <markdown-renderer [source]="md" />
+  <!-- Brief content — the main thing the operator is reviewing -->
+  @if (briefContent(); as content) {
+    <div class="mb-5 bg-slate-50 rounded-lg border border-slate-200 overflow-auto max-h-[32rem]">
+      <div class="px-5 py-4">
+        <markdown-renderer [source]="content" />
+      </div>
+    </div>
+  } @else {
+    <div class="mb-5 bg-slate-50 rounded-lg border border-slate-200 p-5 text-sm text-slate-400 italic">
+      No brief content available in the artefact.
     </div>
   }
 
-  <!-- Title field -->
-  <label class="block text-sm font-medium text-slate-700 mb-1">Title</label>
-  <input type="text" autocomplete="off"
-         [value]="title()"
-         (input)="title.set($any($event.target).value)"
-         [disabled]="working()"
-         placeholder="Work item title"
-         class="block w-full border border-slate-300 focus:border-sky-500 focus:ring-2 focus:ring-sky-100 rounded-lg px-3 h-10 outline-none disabled:bg-slate-50 mb-3" />
-
-  <!-- Type dropdown -->
-  <label class="block text-sm font-medium text-slate-700 mb-1">Type</label>
-  <select [value]="type()"
-          (change)="type.set($any($event.target).value)"
-          [disabled]="working()"
-          class="block w-full border border-slate-300 focus:border-sky-500 focus:ring-2 focus:ring-sky-100 rounded-lg px-3 h-10 outline-none disabled:bg-slate-50 mb-4">
-    <option value="FEAT">Feature (FEAT)</option>
-    <option value="BUG">Bug (BUG)</option>
-    <option value="IMP">Improvement (IMP)</option>
-  </select>
+  <!-- Title + type corrections (secondary) -->
+  <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+    <div class="sm:col-span-2">
+      <label class="block text-sm font-medium text-slate-700 mb-1">Title</label>
+      <input type="text" autocomplete="off"
+             [value]="title()"
+             (input)="title.set($any($event.target).value)"
+             [disabled]="working()"
+             placeholder="Work item title"
+             class="block w-full border border-slate-300 focus:border-sky-500 focus:ring-2 focus:ring-sky-100 rounded-lg px-3 h-10 outline-none disabled:bg-slate-50 text-sm" />
+    </div>
+    <div>
+      <label class="block text-sm font-medium text-slate-700 mb-1">Type</label>
+      <select [value]="type()"
+              (change)="type.set($any($event.target).value)"
+              [disabled]="working()"
+              class="block w-full border border-slate-300 focus:border-sky-500 focus:ring-2 focus:ring-sky-100 rounded-lg px-3 h-10 outline-none disabled:bg-slate-50 bg-white text-sm">
+        <option value="FEAT">Feature (FEAT)</option>
+        <option value="BUG">Bug (BUG)</option>
+        <option value="IMP">Improvement (IMP)</option>
+      </select>
+    </div>
+  </div>
 
   @if (rejecting()) {
-    <!-- Reject mode: feedback textarea -->
-    <label class="block text-sm font-medium text-slate-700 mb-1">Feedback</label>
+    <label class="block text-sm font-medium text-slate-700 mb-1">Feedback for the agent</label>
     <textarea rows="3"
               [value]="feedback()"
               (input)="feedback.set($any($event.target).value)"
               [disabled]="working()"
-              placeholder="Explain why this brief should be revised..."
+              placeholder="Describe what needs to change in the brief..."
               class="block w-full border border-slate-300 focus:border-sky-500 focus:ring-2 focus:ring-sky-100 rounded-lg px-3 py-2 outline-none disabled:bg-slate-50 text-sm mb-4"></textarea>
 
     <div class="flex items-center justify-end gap-2">
@@ -59,7 +69,6 @@
       </button>
     </div>
   } @else {
-    <!-- Confirm mode -->
     <div class="flex items-center justify-end gap-2">
       @if (!canAct()) {
         <span class="text-xs text-slate-500 mr-auto">You don't have the role required for this action.</span>

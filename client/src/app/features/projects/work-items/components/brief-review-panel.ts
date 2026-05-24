@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, EventEmitter, Output, computed, input, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, EventEmitter, Output, computed, effect, input, signal } from '@angular/core';
 import { MarkdownRenderer } from './markdown-renderer';
 import type { PanelSubmit } from './panel-submit';
 
@@ -27,34 +27,22 @@ export class BriefReviewPanel {
   protected readonly title = signal('');
   protected readonly type = signal<'FEAT' | 'BUG' | 'IMP'>('FEAT');
   protected readonly feedback = signal('');
-  private initialized = false;
 
   protected readonly parsed = computed<BriefArtefact>(() => {
     const raw = this.artefact();
     if (raw && typeof raw === 'object') {
       const obj = raw as Record<string, unknown>;
-      const result: BriefArtefact = {
+      return {
         work_item_id: typeof obj['work_item_id'] === 'string' ? obj['work_item_id'] : undefined,
         title: typeof obj['title'] === 'string' ? obj['title'] : undefined,
         summary: typeof obj['summary'] === 'string' ? obj['summary'] : undefined,
         source: typeof obj['source'] === 'string' ? obj['source'] : undefined,
       };
-
-      if (!this.initialized) {
-        this.initialized = true;
-        if (result.title) this.title.set(result.title);
-        const id = result.work_item_id ?? '';
-        if (id.startsWith('BUG')) this.type.set('BUG');
-        else if (id.startsWith('IMP')) this.type.set('IMP');
-        else this.type.set('FEAT');
-      }
-
-      return result;
     }
     return {};
   });
 
-  protected readonly markdownSource = computed(() => {
+  protected readonly briefContent = computed(() => {
     const p = this.parsed();
     return p.summary ?? p.source ?? '';
   });
@@ -65,11 +53,22 @@ export class BriefReviewPanel {
   protected readonly canReject = computed(() =>
     this.canAct() && !this.working() && this.feedback().trim().length > 0);
 
+  constructor() {
+    effect(() => {
+      const p = this.parsed();
+      if (p.title) this.title.set(p.title);
+      const id = p.work_item_id ?? '';
+      if (id.startsWith('BUG')) this.type.set('BUG');
+      else if (id.startsWith('IMP')) this.type.set('IMP');
+      else this.type.set('FEAT');
+    });
+  }
+
   protected onConfirm(): void {
     if (!this.canSubmit()) return;
     this.submitted.emit({
       outcome: 'confirmed',
-      payload: { title: this.title().trim(), type: this.type() },
+      payload: { workItem: { title: this.title().trim(), type: this.type() } },
     });
   }
 
