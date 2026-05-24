@@ -94,6 +94,8 @@ internal static class ExecutorStateProjection
 
             var nodeResult = data.TryGetProperty("nodeResult", out var nr) && nr.ValueKind == JsonValueKind.Object
                 ? StripMemoryPatch(nr) : (JsonElement?)null;
+            var nodeInputs = data.TryGetProperty("nodeInputs", out var ni) && ni.ValueKind == JsonValueKind.Object
+                ? ni : (JsonElement?)null;
 
             var sb = new StringBuilder();
             sb.Append('{');
@@ -107,6 +109,8 @@ internal static class ExecutorStateProjection
             sb.Append(stepNumber);
             sb.Append(",\"status\":");
             sb.Append(JsonSerializer.Serialize(status));
+            sb.Append(",\"nodeInputs\":");
+            sb.Append(nodeInputs.HasValue ? nodeInputs.Value.GetRawText() : "null");
             sb.Append(",\"nodeResult\":");
             sb.Append(nodeResult.HasValue ? nodeResult.Value.GetRawText() : "null");
             sb.Append('}');
