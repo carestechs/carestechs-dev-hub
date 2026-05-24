@@ -49,7 +49,7 @@ public sealed record LastStepDto(Guid Id, int StepNumber, string NodeName, strin
 public sealed record TraceRecord(string Kind, object Data)
 {
     /// <summary><c>kind="step"</c> with the <c>StepDto</c> subset DevHub reads.</summary>
-    public static TraceRecord Step(string nodeName, string status = "completed", string? taskId = null, int stepNumber = 1)
+    public static TraceRecord Step(string nodeName, string status = "completed", string? taskId = null, int stepNumber = 1, object? nodeResult = null)
         => new("step", new
         {
             id = Guid.NewGuid(),
@@ -57,6 +57,7 @@ public sealed record TraceRecord(string Kind, object Data)
             nodeName,
             status,
             nodeInputs = taskId is null ? new object() : new { taskId },
+            nodeResult,
         });
 
     /// <summary><c>kind="operator_signal"</c> with the <c>RunSignalDto</c> subset DevHub reads.</summary>

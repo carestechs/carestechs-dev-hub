@@ -77,6 +77,33 @@ export interface UpdateWorkItemRequest {
   workBranch?: string | null;
 }
 
+/**
+ * FEAT-011: a single step from executorState.steps, built from the orchestrator's
+ * trace records. Human checkpoint steps have a non-null key; internal steps
+ * (LLM, engine) have key: null.
+ */
+export interface ExecutorStep {
+  key: string | null;
+  nodeName: string;
+  label: string;
+  stepNumber: number;
+  status: 'completed' | 'active' | 'pending' | 'failed';
+  nodeResult: Record<string, unknown> | null;
+}
+
+/**
+ * FEAT-011: typed view of executorState for lifecycle-agent runs.
+ * The raw executorState is opaque (unknown); this type is for panels
+ * that understand the lifecycle-agent shape.
+ */
+export interface LifecycleExecutorState {
+  runId: string;
+  agentRef: string;
+  steps: ExecutorStep[];
+  assignments: Record<string, string>;
+  stopReason: string | null;
+}
+
 export interface CheckpointContractView {
   checkpointKey: string;
   displayName: string;

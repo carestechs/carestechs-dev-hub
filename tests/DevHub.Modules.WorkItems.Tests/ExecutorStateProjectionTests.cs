@@ -146,4 +146,135 @@ public class ExecutorStateProjectionTests
         );
         ExecutorStateProjection.ParseAssignmentsFromTrace(trace).Should().BeEmpty();
     }
+
+    // ---------------------------------------------------------------------
+    // BuildSteps (FEAT-011 / T-098)
+    // ---------------------------------------------------------------------
+
+    [Fact]
+    public void BuildSteps_empty_trace_returns_empty_list()
+    {
+        ExecutorStateProjection.BuildSteps(Array.Empty<JsonElement>(), null)
+            .Should().BeEmpty();
+    }
+
+    [Fact]
+    public void BuildSteps_extracts_steps_with_checkpoint_keys_and_labels()
+    {
+        var trace = Trace(
+            """{"kind":"step","data":{"stepNumber":1,"nodeName":"load_work_item","status":"completed","nodeInputs":{}}}""",
+            """{"kind":"step","data":{"stepNumber":2,"nodeName":"confirm_brief","status":"completed","nodeInputs":{}}}"""
+        );
+        var steps = ExecutorStateProjection.BuildSteps(trace, null);
+        steps.Should().HaveCount(2);
+
+        var s0 = steps[0];
+        s0.GetProperty("nodeName").GetString().Should().Be("load_work_item");
+        s0.GetProperty("key").ValueKind.Should().Be(JsonValueKind.Null);
+        s0.GetProperty("label").GetString().Should().Be("load_work_item");
+        s0.GetProperty("status").GetString().Should().Be("completed");
+
+        var s1 = steps[1];
+        s1.GetProperty("nodeName").GetString().Should().Be("confirm_brief");
+        s1.GetProperty("key").GetString().Should().Be("brief-confirmed");
+        s1.GetProperty("label").GetString().Should().Be("Brief Review");
+        s1.GetProperty("status").GetString().Should().Be("completed");
+    }
+
+    [Fact]
+    public void BuildSteps_marks_active_step_when_matching_checkpoint_key()
+    {
+        var trace = Trace(
+            """{"kind":"step","data":{"stepNumber":1,"nodeName":"confirm_brief","status":"completed","nodeInputs":{}}}""",
+            """{"kind":"step","data":{"stepNumber":2,"nodeName":"confirm_tasks","status":"dispatched","nodeInputs":{}}}"""
+        );
+        var steps = ExecutorStateProjection.BuildSteps(trace, "tasks-confirmed");
+        steps.Should().HaveCount(2);
+
+        steps[0].GetProperty("status").GetString().Should().Be("completed");
+        steps[1].GetProperty("status").GetString().Should().Be("active");
+    }
+
+    [Fact]
+    public void BuildSteps_includes_nodeResult_with_memory_patch_stripped()
+    {
+        var trace = Trace(
+            """{"kind":"step","data":{"stepNumber":1,"nodeName":"load_work_item","status":"completed","nodeInputs":{},"nodeResult":{"title":"CSV Export","work_item_id":"FEAT-1","summary":"Add CSV","__memory_patch":{"lifecycle.v1":{"workItem":{"id":"FEAT-1"}}}}}}"""
+        );
+        var steps = ExecutorStateProjection.BuildSteps(trace, null);
+        steps.Should().HaveCount(1);
+
+        var result = steps[0].GetProperty("nodeResult");
+        result.GetProperty("title").GetString().Should().Be("CSV Export");
+        result.GetProperty("work_item_id").GetString().Should().Be("FEAT-1");
+        result.GetProperty("summary").GetString().Should().Be("Add CSV");
+        result.TryGetProperty("__memory_patch", out _).Should().BeFalse();
+    }
+
+    [Fact]
+    public void BuildSteps_nodeResult_is_null_for_dispatched_steps_without_result()
+    {
+        var trace = Trace(
+            """{"kind":"step","data":{"stepNumber":1,"nodeName":"confirm_brief","status":"dispatched","nodeInputs":{}}}"""
+        );
+        var steps = ExecutorStateProjection.BuildSteps(trace, "brief-confirmed");
+        steps.Should().HaveCount(1);
+        steps[0].GetProperty("nodeResult").ValueKind.Should().Be(JsonValueKind.Null);
+    }
+
+    [Fact]
+    public void BuildSteps_ignores_non_step_records()
+    {
+        var trace = Trace(
+            """{"kind":"operator_signal","data":{"name":"brief-confirmed","taskId":"","payload":{}}}""",
+            """{"kind":"step","data":{"stepNumber":1,"nodeName":"confirm_brief","status":"completed","nodeInputs":{}}}""",
+            """{"kind":"executor_call","data":{"dispatchId":"abc","runId":"def","executorRef":"human:confirm_brief"}}"""
+        );
+        var steps = ExecutorStateProjection.BuildSteps(trace, null);
+        steps.Should().HaveCount(1);
+        steps[0].GetProperty("nodeName").GetString().Should().Be("confirm_brief");
+    }
+
+    [Fact]
+    public void BuildSteps_all_display_labels_are_mapped()
+    {
+        var trace = Trace(
+            """{"kind":"step","data":{"stepNumber":1,"nodeName":"confirm_brief","status":"completed","nodeInputs":{}}}""",
+            """{"kind":"step","data":{"stepNumber":2,"nodeName":"confirm_tasks","status":"completed","nodeInputs":{}}}""",
+            """{"kind":"step","data":{"stepNumber":3,"nodeName":"confirm_assignment","status":"completed","nodeInputs":{}}}""",
+            """{"kind":"step","data":{"stepNumber":4,"nodeName":"confirm_plan","status":"completed","nodeInputs":{}}}""",
+            """{"kind":"step","data":{"stepNumber":5,"nodeName":"request_implementation","status":"completed","nodeInputs":{}}}""",
+            """{"kind":"step","data":{"stepNumber":6,"nodeName":"human_review_implementation","status":"completed","nodeInputs":{}}}"""
+        );
+        var steps = ExecutorStateProjection.BuildSteps(trace, null);
+        steps.Should().HaveCount(6);
+
+        steps[0].GetProperty("label").GetString().Should().Be("Brief Review");
+        steps[1].GetProperty("label").GetString().Should().Be("Task List");
+        steps[2].GetProperty("label").GetString().Should().Be("Task Assignment");
+        steps[3].GetProperty("label").GetString().Should().Be("Plan Review");
+        steps[4].GetProperty("label").GetString().Should().Be("Implementation Review");
+        steps[5].GetProperty("label").GetString().Should().Be("Final Review");
+    }
+
+    // ---------------------------------------------------------------------
+    // Build (FEAT-011 / T-098 — updated signature)
+    // ---------------------------------------------------------------------
+
+    [Fact]
+    public void Build_produces_steps_array_in_output()
+    {
+        var trace = Trace(
+            """{"kind":"step","data":{"stepNumber":1,"nodeName":"confirm_brief","status":"completed","nodeInputs":{}}}"""
+        );
+        var steps = ExecutorStateProjection.BuildSteps(trace, null);
+        var result = ExecutorStateProjection.Build(
+            Guid.NewGuid(), "lifecycle-agent@0.4.0-manual",
+            steps, new Dictionary<string, string>(), null);
+
+        result.GetProperty("steps").GetArrayLength().Should().Be(1);
+        result.GetProperty("steps")[0].GetProperty("key").GetString().Should().Be("brief-confirmed");
+        result.GetProperty("assignments").EnumerateObject().Should().BeEmpty();
+        result.GetProperty("stopReason").ValueKind.Should().Be(JsonValueKind.Null);
+    }
 }
