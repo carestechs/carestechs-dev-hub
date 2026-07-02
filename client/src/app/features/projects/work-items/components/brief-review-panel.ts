@@ -73,16 +73,16 @@ export class BriefReviewPanel {
   protected onConfirm(): void {
     if (!this.canSubmit()) return;
     this.submitted.emit({
-      outcome: 'confirmed',
-      payload: { workItem: { title: this.title().trim(), type: this.type() } },
+      outcome: 'approve',
+      payload: { verdict: 'approve', workItem: { title: this.title().trim(), type: this.type() } },
     });
   }
 
   protected onReject(): void {
     if (!this.canReject()) return;
     this.submitted.emit({
-      outcome: 'rejected',
-      payload: { feedback: this.feedback().trim() },
+      outcome: 'approve',
+      payload: { verdict: 'reject', feedback: this.feedback().trim() },
     });
   }
 

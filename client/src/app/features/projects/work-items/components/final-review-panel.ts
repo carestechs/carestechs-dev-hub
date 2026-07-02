@@ -14,6 +14,12 @@ interface ReviewEntry {
   feedback?: string;
 }
 
+interface ImplementationRef {
+  prUrl?: string | null;
+  commitSha?: string | null;
+  summary?: string | null;
+}
+
 @Component({
   selector: 'final-review-panel',
   standalone: true,
@@ -52,6 +58,20 @@ export class FinalReviewPanel {
     return typeof obj['planMarkdown'] === 'string' ? obj['planMarkdown'] : '';
   });
 
+  protected readonly implementationRef = computed<ImplementationRef | null>(() => {
+    const raw = this.artefact();
+    if (!raw || typeof raw !== 'object') return null;
+    const obj = raw as Record<string, unknown>;
+    const ref = obj['implementationRef'];
+    if (!ref || typeof ref !== 'object') return null;
+    const r = ref as Record<string, unknown>;
+    return {
+      prUrl: typeof r['prUrl'] === 'string' ? r['prUrl'] : null,
+      commitSha: typeof r['commitSha'] === 'string' ? r['commitSha'] : null,
+      summary: typeof r['summary'] === 'string' ? r['summary'] : null,
+    };
+  });
+
   protected readonly reviewHistory = computed<ReviewEntry[]>(() => {
     const raw = this.artefact();
     if (!raw || typeof raw !== 'object') return [];
@@ -77,7 +97,7 @@ export class FinalReviewPanel {
   protected onApprove(): void {
     if (!this.canSubmit()) return;
     this.submitted.emit({
-      outcome: 'approved',
+      outcome: 'approve',
       payload: { verdict: 'pass' },
       taskId: this.currentTaskId(),
     });
@@ -86,7 +106,7 @@ export class FinalReviewPanel {
   protected onReject(): void {
     if (!this.canReject()) return;
     this.submitted.emit({
-      outcome: 'rejected',
+      outcome: 'approve',
       payload: { verdict: 'fail', feedback: this.feedback().trim() },
       taskId: this.currentTaskId(),
     });

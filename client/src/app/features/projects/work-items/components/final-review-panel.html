@@ -18,6 +18,31 @@
     </p>
   </div>
 
+  <!-- Implementation reference -->
+  @if (implementationRef(); as ref) {
+    <div class="bg-slate-50 border border-slate-200 rounded-lg px-4 py-3 mb-4 space-y-1">
+      @if (ref.prUrl) {
+        <div class="flex items-center gap-2">
+          <span class="text-xs font-medium text-slate-500 w-20 shrink-0">PR</span>
+          <a [href]="ref.prUrl" target="_blank" rel="noopener"
+             class="text-sm text-sky-600 hover:text-sky-800 underline truncate">{{ ref.prUrl }}</a>
+        </div>
+      }
+      @if (ref.commitSha) {
+        <div class="flex items-center gap-2">
+          <span class="text-xs font-medium text-slate-500 w-20 shrink-0">Commit</span>
+          <span class="font-mono text-xs text-slate-700">{{ ref.commitSha }}</span>
+        </div>
+      }
+      @if (ref.summary) {
+        <div class="flex items-start gap-2">
+          <span class="text-xs font-medium text-slate-500 w-20 shrink-0 pt-0.5">Summary</span>
+          <span class="text-sm text-slate-700">{{ ref.summary }}</span>
+        </div>
+      }
+    </div>
+  }
+
   <!-- Plan for reference -->
   @if (planMarkdown(); as plan) {
     <details class="mb-4">

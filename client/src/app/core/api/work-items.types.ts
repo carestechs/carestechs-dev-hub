@@ -32,6 +32,8 @@ export interface WorkItemSummaryDto {
    * Surfaced on the WorkItem detail header for cross-system debugging.
    */
   executorRunId?: string | null;
+  /** PR URL submitted at implementation-complete (FEAT-012). */
+  prUrl?: string | null;
 }
 
 export interface WorkItemDto extends WorkItemSummaryDto {
