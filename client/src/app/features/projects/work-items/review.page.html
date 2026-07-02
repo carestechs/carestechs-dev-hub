@@ -118,6 +118,7 @@
             [artefact]="displayedArtefact()"
             [currentTaskId]="wi.currentTaskId ?? null"
             [workBranch]="wi.workBranch ?? null"
+            [prUrl]="wi.prUrl ?? null"
             [canAct]="callerHasRole()"
             [working]="submitting() !== null"
             (submitted)="onPanelSubmitted($event)" />

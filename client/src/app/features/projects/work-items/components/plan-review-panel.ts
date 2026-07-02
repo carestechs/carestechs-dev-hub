@@ -57,8 +57,8 @@ export class PlanReviewPanel {
   protected onConfirm(): void {
     if (!this.canSubmit()) return;
     this.submitted.emit({
-      outcome: 'confirmed',
-      payload: {},
+      outcome: 'approve',
+      payload: { verdict: 'approve' },
       taskId: this.currentTaskId(),
     });
   }
@@ -66,8 +66,8 @@ export class PlanReviewPanel {
   protected onReject(): void {
     if (!this.canReject()) return;
     this.submitted.emit({
-      outcome: 'rejected',
-      payload: { feedback: this.feedback().trim() },
+      outcome: 'approve',
+      payload: { verdict: 'reject', feedback: this.feedback().trim() },
       taskId: this.currentTaskId(),
     });
   }

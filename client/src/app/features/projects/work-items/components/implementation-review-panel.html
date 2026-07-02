@@ -51,10 +51,10 @@
              class="block w-full border border-slate-300 focus:border-sky-500 focus:ring-2 focus:ring-sky-100 rounded-lg px-3 h-10 outline-none disabled:bg-slate-50 text-sm font-mono" />
     </div>
     <div>
-      <label class="block text-sm font-medium text-slate-700 mb-1">PR URL (optional)</label>
-      <input type="text" autocomplete="off"
-             [value]="prUrl()"
-             (input)="prUrl.set($any($event.target).value)"
+      <label class="block text-sm font-medium text-slate-700 mb-1">PR URL <span class="text-red-500">*</span></label>
+      <input type="url" autocomplete="off"
+             [value]="prUrlValue()"
+             (input)="prUrlValue.set($any($event.target).value)"
              [disabled]="working()"
              placeholder="https://github.com/..."
              class="block w-full border border-slate-300 focus:border-sky-500 focus:ring-2 focus:ring-sky-100 rounded-lg px-3 h-10 outline-none disabled:bg-slate-50 text-sm" />
@@ -94,7 +94,7 @@
               class="bg-emerald-500 disabled:bg-slate-300 disabled:cursor-not-allowed text-white text-sm font-medium px-4 h-10 rounded-lg hover:bg-emerald-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300"
               [disabled]="!canComplete()"
               (click)="onComplete()">
-        @if (working()) { Submitting... } @else { Mark complete }
+        @if (working()) { Submitting... } @else { Ready for review }
       </button>
     </div>
   }

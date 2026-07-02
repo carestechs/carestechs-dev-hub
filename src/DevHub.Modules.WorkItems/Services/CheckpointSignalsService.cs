@@ -128,6 +128,11 @@ internal sealed class CheckpointSignalsService(
         wi.CurrentCheckpointKey = signalResp.CurrentCheckpointKey;
         wi.CurrentTaskId = signalResp.CurrentTaskId;
 
+        // Persist prUrl from implementation-complete payload (FEAT-012).
+        var prUrl = checkpointKey == "implementation-complete" ? ExtractPrUrl(request.Payload) : null;
+        if (prUrl is not null)
+            wi.PrUrl = prUrl;
+
         await audit.WriteAsync(new AuditWriteRequest("CheckpointSignal", signal.Id, "checkpoint:signal", AuditOutcome.Granted)
         {
             ActingMemberId = actingMemberId,
@@ -142,6 +147,7 @@ internal sealed class CheckpointSignalsService(
                 ["executorResponseStatus"] = signalResp.HttpStatus,
                 ["taskId"] = request.TaskId,
                 ["assignee"] = assignee,
+                ["prUrl"] = prUrl,
             },
         }, ct);
 
@@ -162,7 +168,8 @@ internal sealed class CheckpointSignalsService(
             signalResp.ExecutorState,
             wi.WorkBranch,
             wi.CurrentTaskId,
-            wi.ExecutorRunId);
+            wi.ExecutorRunId,
+            wi.PrUrl);
     }
 
     public async Task<PagedEnvelopeDto<CheckpointSignalDto>> ListSignalsAsync(
@@ -218,5 +225,15 @@ internal sealed class CheckpointSignalsService(
         if (p.ValueKind != JsonValueKind.Object) return null;
         if (!p.TryGetProperty("assignee", out var a)) return null;
         return a.ValueKind == JsonValueKind.String ? a.GetString() : null;
+    }
+
+    private static string? ExtractPrUrl(JsonElement? payload)
+    {
+        if (payload is null) return null;
+        var p = payload.Value;
+        if (p.ValueKind != JsonValueKind.Object) return null;
+        if (!p.TryGetProperty("prUrl", out var u)) return null;
+        var val = u.ValueKind == JsonValueKind.String ? u.GetString() : null;
+        return string.IsNullOrWhiteSpace(val) ? null : val;
     }
 }

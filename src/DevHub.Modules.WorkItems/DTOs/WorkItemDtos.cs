@@ -18,7 +18,8 @@ public sealed record WorkItemSummaryDto(
     MemberRefDto CreatedBy,
     string? WorkBranch,
     string? CurrentTaskId = null,
-    Guid? ExecutorRunId = null);
+    Guid? ExecutorRunId = null,
+    string? PrUrl = null);
 
 public sealed record WorkItemDto(
     Guid Id,
@@ -33,7 +34,8 @@ public sealed record WorkItemDto(
     JsonElement ExecutorState,
     string? WorkBranch,
     string? CurrentTaskId = null,
-    Guid? ExecutorRunId = null);
+    Guid? ExecutorRunId = null,
+    string? PrUrl = null);
 
 public sealed record CheckpointSignalDto(
     Guid Id,

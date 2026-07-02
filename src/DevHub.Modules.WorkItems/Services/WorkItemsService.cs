@@ -79,7 +79,8 @@ internal sealed class WorkItemsService(
             memberNames[r.CreatedByMemberId],
             r.WorkBranch,
             r.CurrentTaskId,
-            r.ExecutorRunId)).ToList();
+            r.ExecutorRunId,
+            r.PrUrl)).ToList();
 
         return new PagedEnvelopeDto<WorkItemSummaryDto>(dtos,
             new PageMeta(totalCount, page.Page, page.PageSize, page.SortBy, page.SortDir));
@@ -133,7 +134,8 @@ internal sealed class WorkItemsService(
             resp.ExecutorState,
             wi.WorkBranch,
             resp.CurrentTaskId,
-            wi.ExecutorRunId);
+            wi.ExecutorRunId,
+            wi.PrUrl);
     }
 
     public async Task<WorkItemDto> StartAsync(
@@ -247,7 +249,8 @@ internal sealed class WorkItemsService(
             startResp.ExecutorState,
             workItem.WorkBranch,
             workItem.CurrentTaskId,
-            workItem.ExecutorRunId);
+            workItem.ExecutorRunId,
+            workItem.PrUrl);
     }
 
     public async Task<WorkItemDto> UpdateAsync(
@@ -315,7 +318,8 @@ internal sealed class WorkItemsService(
             emptyState.RootElement.Clone(),
             wi.WorkBranch,
             wi.CurrentTaskId,
-            wi.ExecutorRunId);
+            wi.ExecutorRunId,
+            wi.PrUrl);
     }
 
     public async Task CancelAsync(Guid projectId, Guid workItemId, Guid actingMemberId, CancellationToken ct)

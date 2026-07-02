@@ -13,6 +13,7 @@ public sealed class WorkItem : BaseEntity
     public string? CurrentCheckpointKey { get; set; }
     public required Guid CreatedByMemberId { get; set; }
     public string? WorkBranch { get; set; }
+    public string? PrUrl { get; set; }
     public string? CurrentTaskId { get; set; }
     public Guid? ExecutorRunId { get; set; }
 }

@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, EventEmitter, Output, computed, input, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, EventEmitter, Output, computed, effect, input, signal } from '@angular/core';
 import { MarkdownRenderer } from './markdown-renderer';
 import type { PanelSubmit } from './panel-submit';
 
@@ -18,6 +18,7 @@ export class ImplementationReviewPanel {
   readonly artefact = input<unknown>(null);
   readonly currentTaskId = input<string | null>(null);
   readonly workBranch = input<string | null>(null);
+  readonly prUrl = input<string | null>(null);
   readonly canAct = input<boolean>(false);
   readonly working = input<boolean>(false);
 
@@ -26,8 +27,15 @@ export class ImplementationReviewPanel {
   protected readonly requesting = signal(false);
   protected readonly summary = signal('');
   protected readonly commitSha = signal('');
-  protected readonly prUrl = signal('');
+  protected readonly prUrlValue = signal('');
   protected readonly feedback = signal('');
+
+  constructor() {
+    effect(() => {
+      const existing = this.prUrl();
+      if (existing) this.prUrlValue.set(existing);
+    });
+  }
 
   protected readonly currentTask = computed<CurrentTask>(() => {
     const raw = this.artefact();
@@ -50,7 +58,7 @@ export class ImplementationReviewPanel {
   });
 
   protected readonly canComplete = computed(() =>
-    this.canAct() && !this.working());
+    this.canAct() && !this.working() && this.prUrlValue().trim().length > 0);
 
   protected readonly canRequestChanges = computed(() =>
     this.canAct() && !this.working() && this.feedback().trim().length > 0);
@@ -60,12 +68,12 @@ export class ImplementationReviewPanel {
     const payload: Record<string, unknown> = {};
     const s = this.summary().trim();
     const c = this.commitSha().trim();
-    const p = this.prUrl().trim();
+    const p = this.prUrlValue().trim();
     if (s) payload['summary'] = s;
     if (c) payload['commitSha'] = c;
     if (p) payload['prUrl'] = p;
     this.submitted.emit({
-      outcome: 'complete',
+      outcome: 'approve',
       payload,
       taskId: this.currentTaskId(),
     });
@@ -74,8 +82,8 @@ export class ImplementationReviewPanel {
   protected onRequestChanges(): void {
     if (!this.canRequestChanges()) return;
     this.submitted.emit({
-      outcome: 'changes-requested',
-      payload: { feedback: this.feedback().trim() },
+      outcome: 'approve',
+      payload: { verdict: 'reject', feedback: this.feedback().trim() },
       taskId: this.currentTaskId(),
     });
   }
