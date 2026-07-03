@@ -6,7 +6,9 @@ using DevHub.Contracts.Pagination;
 using DevHub.Contracts.Validation;
 using DevHub.Modules.Workspace.DTOs;
 using DevHub.Modules.Workspace.Entities;
+using DevHub.Modules.Workspace.Exceptions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace DevHub.Modules.Workspace.Services;
 
@@ -25,7 +27,9 @@ internal sealed class ProjectService(
     IProjectAuthorizationService authz,
     IProjectMembershipQuery memberships,
     IExecutorRouter router,
-    IAuditWriter audit) : IProjectService
+    IAuditWriter audit,
+    IGitHubService gitHub,
+    ILogger<ProjectService> logger) : IProjectService
 {
     public async Task<PagedEnvelopeDto<ProjectDto>> ListAsync(
         PageRequest page, Guid? teamId, string? projectType, Guid callerMemberId, CancellationToken ct)
@@ -142,7 +146,35 @@ internal sealed class ProjectService(
         await db.SaveChangesAsync(ct);
         await tx.CommitAsync(ct);
 
-        return await LoadAsync(p => p.Id == project.Id, ct);
+        // Post-commit: attempt GitHub repo creation if requested.
+        List<string>? warnings = null;
+        if (req.CreateGitHubRepo)
+        {
+            var repoName = !string.IsNullOrWhiteSpace(req.RepoName)
+                ? req.RepoName
+                : SlugifyRepoName(req.Name);
+            try
+            {
+                var fullName = await gitHub.CreateRepoAsync(repoName, ct);
+                project.Repo = fullName;
+                await db.SaveChangesAsync(ct);
+
+                await audit.WriteAsync(new AuditWriteRequest("Project", project.Id, "project:github-repo-created", AuditOutcome.Granted)
+                {
+                    ActingMemberId = actingMemberId,
+                    ProjectId = project.Id,
+                    Details = new Dictionary<string, object?> { ["repo"] = fullName },
+                }, ct);
+            }
+            catch (GitHubApiException ex)
+            {
+                logger.LogWarning(ex, "GitHub repo creation failed for project {ProjectId} (repoName={RepoName})", project.Id, repoName);
+                warnings = ["githubRepoCreationFailed"];
+            }
+        }
+
+        var dto = await LoadAsync(p => p.Id == project.Id, ct);
+        return warnings is { Count: > 0 } ? dto with { Warnings = warnings } : dto;
     }
 
     public async Task<ProjectDto> UpdateAsync(Guid id, UpdateProjectRequest req, Guid actingMemberId, CancellationToken ct)
@@ -233,6 +265,11 @@ internal sealed class ProjectService(
         await db.SaveChangesAsync(ct);
         await tx.CommitAsync(ct);
     }
+
+    internal static string SlugifyRepoName(string projectName) =>
+        System.Text.RegularExpressions.Regex
+            .Replace(projectName.ToLowerInvariant(), @"[^a-z0-9]+", "-")
+            .Trim('-');
 
     private async Task<ProjectDto> LoadAsync(System.Linq.Expressions.Expression<Func<Project, bool>> predicate, CancellationToken ct)
     {

@@ -46,6 +46,8 @@ export interface ProjectDto {
    * on list responses by design.
    */
   boundExecutorProtocol: ExecutorProtocol | null;
+  /** Non-fatal warnings from project creation side-effects (e.g. GitHub repo creation failed). */
+  warnings?: string[];
 }
 
 export interface ProjectMembershipDto {
@@ -75,10 +77,12 @@ export interface CreateProjectRequest {
   projectType: string;
   owningTeamId: string;
   description?: string;
-  /** GitHub owner/name (FEAT-008). Validated server-side; do not include scheme or .git suffix. */
-  repo?: string;
   /** Default git branch (FEAT-008). No whitespace, no leading `/`, no `..`, no control chars. */
   defaultBranch?: string;
+  /** When true, DevHub creates a private GitHub repo under the configured org (FEAT-013). */
+  createGitHubRepo?: boolean;
+  /** Repo name override; defaults to slugified project name (FEAT-013). */
+  repoName?: string;
 }
 export interface UpdateProjectRequest {
   name?: string;

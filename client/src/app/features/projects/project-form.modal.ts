@@ -4,6 +4,7 @@ import {
   EventEmitter,
   effect,
   input,
+  OnInit,
   Output,
   signal,
 } from '@angular/core';
@@ -11,10 +12,13 @@ import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angula
 import type { CreateProjectRequest, TeamDto } from '../../core/api/workspace.types';
 import type { ExecutorBindingDto } from '../../core/api/executor-registry.types';
 import type { AppError } from '../../core/errors/app-error';
-import { branchErrorMessage, branchValidator, repoErrorMessage, repoValidator } from '../../core/validation/code-source-validators';
+import { branchErrorMessage, branchValidator } from '../../core/validation/code-source-validators';
 import { AppButton, AppErrorBanner, AppFormField, AppModal } from '../../shared';
+import { IntegrationsService } from '../../core/api/integrations.service';
 
 const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+
+const REPO_NAME_PATTERN = /^[a-z0-9][a-z0-9-]*$/;
 
 @Component({
   selector: 'project-form-modal',
@@ -23,7 +27,7 @@ const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
   templateUrl: './project-form.modal.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class ProjectFormModal {
+export class ProjectFormModal implements OnInit {
   readonly open = input<boolean>(false);
   readonly working = input<boolean>(false);
   readonly serverError = input<AppError | null>(null);
@@ -45,38 +49,54 @@ export class ProjectFormModal {
     projectType: new FormControl<string>('', { nonNullable: true, validators: [Validators.required] }),
     owningTeamId: new FormControl<string>('', { nonNullable: true, validators: [Validators.required] }),
     description: new FormControl<string>('', { nonNullable: true }),
-    repo: new FormControl<string>('', {
-      nonNullable: true,
-      validators: [Validators.maxLength(140), repoValidator],
-    }),
     defaultBranch: new FormControl<string>('', {
       nonNullable: true,
       validators: [Validators.maxLength(200), branchValidator],
     }),
+    repoName: new FormControl<string>('', {
+      nonNullable: true,
+      validators: [Validators.maxLength(100), Validators.pattern(REPO_NAME_PATTERN)],
+    }),
   });
 
   protected readonly submittedFlag = signal(false);
+  protected readonly githubConfigured = signal(false);
+  protected readonly createRepo = signal(false);
   private slugTouched = false;
+  private repoNameTouched = false;
 
-  constructor() {
+  constructor(private readonly integrations: IntegrationsService) {
     effect(() => {
       if (!this.open()) return;
       this.form.reset({
         name: '', slug: '', projectType: '', owningTeamId: '',
-        description: '', repo: '', defaultBranch: '',
+        description: '', defaultBranch: '', repoName: '',
       });
       this.submittedFlag.set(false);
+      this.createRepo.set(false);
       this.slugTouched = false;
+      this.repoNameTouched = false;
     });
 
     // Auto-derive slug from name until the user edits the slug directly.
     this.form.controls.name.valueChanges.subscribe(name => {
-      if (this.slugTouched) return;
-      this.form.controls.slug.setValue(this.slugify(name), { emitEvent: false });
+      if (!this.slugTouched)
+        this.form.controls.slug.setValue(this.slugify(name), { emitEvent: false });
+      if (!this.repoNameTouched)
+        this.form.controls.repoName.setValue(this.slugifyRepo(name), { emitEvent: false });
     });
     this.form.controls.slug.valueChanges.subscribe(() => {
       if (this.form.controls.slug.dirty) this.slugTouched = true;
     });
+    this.form.controls.repoName.valueChanges.subscribe(() => {
+      if (this.form.controls.repoName.dirty) this.repoNameTouched = true;
+    });
+  }
+
+  ngOnInit(): void {
+    this.integrations.getGitHubStatus()
+      .then(s => this.githubConfigured.set(s.configured))
+      .catch(() => this.githubConfigured.set(false));
   }
 
   protected nameError(): string | null {
@@ -102,10 +122,12 @@ export class ProjectFormModal {
     const c = this.form.controls.owningTeamId;
     return (c.touched || this.submittedFlag()) && c.invalid ? 'Owning team is required.' : null;
   }
-  protected repoError(): string | null {
-    const c = this.form.controls.repo;
+  protected repoNameError(): string | null {
+    const c = this.form.controls.repoName;
     if (!(c.touched || this.submittedFlag()) || c.valid) return null;
-    return repoErrorMessage(c.errors);
+    if (c.errors?.['maxlength']) return 'Name is too long (max 100 characters).';
+    if (c.errors?.['pattern']) return 'Use lowercase letters, digits, and hyphens only; must start with a letter or digit.';
+    return null;
   }
   protected defaultBranchError(): string | null {
     const c = this.form.controls.defaultBranch;
@@ -116,15 +138,16 @@ export class ProjectFormModal {
   protected onSubmit(): void {
     this.submittedFlag.set(true);
     if (this.form.invalid) { this.form.markAllAsTouched(); return; }
-    const { name, slug, projectType, owningTeamId, description, repo, defaultBranch } = this.form.getRawValue();
+    const { name, slug, projectType, owningTeamId, description, defaultBranch, repoName } = this.form.getRawValue();
     this.submitted.emit({
       name,
       slug,
       projectType,
       owningTeamId,
       description: description || undefined,
-      repo: repo || undefined,
       defaultBranch: defaultBranch || undefined,
+      createGitHubRepo: this.createRepo() || undefined,
+      repoName: this.createRepo() && repoName ? repoName : undefined,
     });
   }
 
@@ -140,5 +163,14 @@ export class ProjectFormModal {
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/^-+|-+$/g, '')
       .slice(0, 80);
+  }
+
+  private slugifyRepo(s: string): string {
+    return s
+      .toLowerCase()
+      .normalize('NFKD').replace(/[̀-ͯ]/g, '')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 100);
   }
 }

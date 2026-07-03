@@ -15,7 +15,8 @@ public sealed record ProjectDto(
     string? DefaultBranch,
     int InFlightWorkItems,
     DateTimeOffset CreatedAt,
-    string? BoundExecutorProtocol);
+    string? BoundExecutorProtocol,
+    IReadOnlyList<string>? Warnings = null);
 
 public sealed class CreateProjectRequest
 {
@@ -39,6 +40,12 @@ public sealed class CreateProjectRequest
 
     [MaxLength(200)]
     public string? DefaultBranch { get; init; }
+
+    public bool CreateGitHubRepo { get; init; }
+
+    [MaxLength(100), RegularExpression("^[a-z0-9][a-z0-9-]*$",
+        ErrorMessage = "Repository name must start with a letter or digit and contain only lowercase letters, digits, and hyphens.")]
+    public string? RepoName { get; init; }
 }
 
 public sealed class UpdateProjectRequest

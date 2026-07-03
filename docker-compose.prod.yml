@@ -26,6 +26,8 @@ services:
       OperatorSeed__DisplayName: "${OperatorSeed__DisplayName}"
       OperatorSeed__Password:    "${OperatorSeed__Password}"
       ORCHESTRATOR_API_KEY: "${ORCHESTRATOR_API_KEY}"
+      GitHub__Pat:   "${GitHub__Pat}"
+      GitHub__Owner: "${GitHub__Owner}"
       ASPNETCORE_URLS: "http://+:8080"
       ASPNETCORE_ENVIRONMENT: "Production"
     healthcheck:
