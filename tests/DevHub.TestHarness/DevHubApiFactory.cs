@@ -23,6 +23,11 @@ public sealed class DevHubApiFactory : WebApplicationFactory<Program>
     /// cases should set this to false and seed explicitly.
     public bool SeedFeatureDeliveryBinding { get; init; } = true;
 
+    /// Optional service registrations applied after the app's own services are registered.
+    /// Use to replace or augment DI entries for specific test scenarios (e.g. swap a real
+    /// HTTP client with a fake handler).
+    public IReadOnlyList<Action<IServiceCollection>> ServiceOverrides { get; init; } = [];
+
     /// When true, starts a <see cref="FakeExecutorHost"/> on a random local port and seeds
     /// the feature-delivery binding's <c>BaseUrl</c> to point at it. Required by every
     /// FEAT-004 façade test. Mutually exclusive with <see cref="UseFakeOrchestrator"/>.
@@ -73,6 +78,15 @@ public sealed class DevHubApiFactory : WebApplicationFactory<Program>
                 ["OperatorSeed:Password"]    = OperatorPassword,
             });
         });
+        if (ServiceOverrides.Count > 0)
+        {
+            builder.ConfigureServices(services =>
+            {
+                foreach (var action in ServiceOverrides)
+                    action(services);
+            });
+        }
+
         if (SeedFeatureDeliveryBinding)
         {
             var baseUrlOverride = _fake?.BaseUrl ?? _fakeOrch?.BaseUrl;

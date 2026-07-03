@@ -8,6 +8,14 @@
   }
 </header>
 
+@if (createWarning()) {
+  <div class="mb-6 flex items-start gap-3 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 text-sm" role="alert">
+    <span class="flex-1">{{ createWarning() }}</span>
+    <button type="button" class="shrink-0 text-amber-600 hover:text-amber-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 rounded"
+            (click)="createWarning.set(null)" aria-label="Dismiss">✕</button>
+  </div>
+}
+
 <!-- Filter bar -->
 <section class="bg-white rounded-xl shadow-sm p-4 flex flex-wrap items-center gap-3 mb-8" [formGroup]="filterForm">
   <select

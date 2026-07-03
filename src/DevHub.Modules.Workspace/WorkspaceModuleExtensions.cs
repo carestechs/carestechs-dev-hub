@@ -2,6 +2,7 @@ using DevHub.Contracts.Authorization;
 using DevHub.Contracts.Identity;
 using DevHub.Contracts.Persistence;
 using DevHub.Contracts.Workspace;
+using DevHub.Modules.Workspace.Options;
 using DevHub.Modules.Workspace.Seeding;
 using DevHub.Modules.Workspace.Services;
 using Microsoft.EntityFrameworkCore;
@@ -37,6 +38,19 @@ public static class WorkspaceModuleExtensions
 
         services.AddOptions<WorkspaceSeedOptions>()
             .Bind(configuration.GetSection(WorkspaceSeedOptions.SectionName));
+
+        services.AddOptions<GitHubOptions>()
+            .Bind(configuration.GetSection(GitHubOptions.SectionName));
+
+        services.AddHttpClient(GitHubService.HttpClientName, client =>
+        {
+            client.BaseAddress = new Uri("https://api.github.com");
+            client.DefaultRequestHeaders.Add("User-Agent", "DevHub");
+            client.DefaultRequestHeaders.Add("Accept", "application/vnd.github+json");
+            client.DefaultRequestHeaders.Add("X-GitHub-Api-Version", "2022-11-28");
+        });
+
+        services.AddScoped<IGitHubService, GitHubService>();
 
         services.AddHostedService<WorkspaceSeeder>();
 

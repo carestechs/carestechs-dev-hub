@@ -52,6 +52,7 @@ export class ProjectListPage {
   protected readonly createOpen = signal(false);
   protected readonly creating = signal(false);
   protected readonly createError = signal<AppError | null>(null);
+  protected readonly createWarning = signal<string | null>(null);
 
   protected readonly filterForm = new FormGroup({
     teamId: new FormControl<string>('', { nonNullable: true }),
@@ -153,6 +154,9 @@ export class ProjectListPage {
     try {
       const created = await this.ws.createProject(req);
       this.createOpen.set(false);
+      if (created.warnings?.includes('githubRepoCreationFailed')) {
+        this.createWarning.set('Project created, but GitHub repository creation failed. You can set the repo manually from the project page.');
+      }
       void this.router.navigate(['/projects', created.slug]);
     } catch (e: unknown) {
       this.createError.set(this.toAppError(e));
