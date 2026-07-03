@@ -165,6 +165,8 @@ internal sealed class ProjectService(
                     ProjectId = project.Id,
                     Details = new Dictionary<string, object?> { ["repo"] = fullName },
                 }, ct);
+
+                await gitHub.SeedScaffoldAsync(fullName, ct);
             }
             catch (GitHubApiException ex)
             {
