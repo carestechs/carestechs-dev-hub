@@ -1,11 +1,12 @@
 import { HttpErrorResponse } from '@angular/common/http';
+import { SlicePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { WorkItemsService } from '../../core/api/work-items.service';
 import type { StartWorkItemRequest, WorkItemSummaryDto } from '../../core/api/work-items.types';
 import { WorkspaceService } from '../../core/api/workspace.service';
-import type { PageMeta, PageRequest, ProjectDto, UpdateProjectRequest } from '../../core/api/workspace.types';
+import type { PageMeta, PageRequest, ProjectDocSummaryDto, ProjectDto, UpdateProjectRequest } from '../../core/api/workspace.types';
 import { AuthService } from '../../core/auth/auth.service';
 import type { AppError } from '../../core/errors/app-error';
 import { AppButton } from '../../shared';
@@ -14,6 +15,7 @@ import { StartWorkModal } from './work-items/start-work.modal';
 
 type ErrorKind = 'forbidden' | 'not-found' | 'other';
 type StatusFilter = 'All' | 'Running' | 'WaitingOnCheckpoint' | 'Completed' | 'Failed' | 'Cancelled';
+type ActiveTab = 'work-items' | 'docs';
 
 const STATUS_FILTERS: readonly StatusFilter[] = [
   'All', 'Running', 'WaitingOnCheckpoint', 'Completed', 'Failed', 'Cancelled',
@@ -22,7 +24,7 @@ const STATUS_FILTERS: readonly StatusFilter[] = [
 @Component({
   selector: 'project-home-page',
   standalone: true,
-  imports: [RouterLink, AppButton, CodeSourceEditModal, StartWorkModal],
+  imports: [RouterLink, AppButton, CodeSourceEditModal, StartWorkModal, SlicePipe],
   templateUrl: './project-home.page.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -56,6 +58,16 @@ export class ProjectHomePage {
   protected readonly modalOpen = signal(false);
   protected readonly modalWorking = signal(false);
   protected readonly modalError = signal<AppError | null>(null);
+
+  // Tab state
+  protected readonly activeTab = signal<ActiveTab>('work-items');
+
+  // Docs tab state
+  protected readonly docs = signal<ProjectDocSummaryDto[]>([]);
+  protected readonly docsLoading = signal(false);
+  protected readonly docsError = signal<AppError | null>(null);
+  protected readonly docsFilledCount = computed(() => this.docs().filter(d => d.filled).length);
+  protected readonly allDocsFilled = computed(() => this.docs().length === 7 && this.docsFilledCount() === 7);
 
   // Code-source edit modal state (operator-only).
   protected readonly codeSourceOpen = signal(false);
@@ -103,6 +115,28 @@ export class ProjectHomePage {
       this.itemsError.set(toAppError(e, 'Could not load work items'));
     } finally {
       this.itemsLoading.set(false);
+    }
+  }
+
+  protected async switchTab(tab: ActiveTab): Promise<void> {
+    this.activeTab.set(tab);
+    if (tab === 'docs' && this.docs().length === 0) {
+      await this.loadDocs();
+    }
+  }
+
+  protected async loadDocs(): Promise<void> {
+    const p = this.project();
+    if (!p) return;
+    this.docsLoading.set(true);
+    this.docsError.set(null);
+    try {
+      const list = await this.ws.listDocs(p.id);
+      this.docs.set(list);
+    } catch (e: unknown) {
+      this.docsError.set(toAppError(e, 'Could not load documents'));
+    } finally {
+      this.docsLoading.set(false);
     }
   }
 

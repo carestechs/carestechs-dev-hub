@@ -5,7 +5,24 @@
   (closed)="onCancel()"
 >
   @if (serverError()) {
-    <app-error-banner [error]="serverError()" class="block mb-4" />
+    @if (isDocsIncomplete()) {
+      <div class="mb-4 flex items-start gap-3 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 text-sm">
+        <svg class="shrink-0 mt-0.5" width="16" height="16" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+          <path fill-rule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd"/>
+        </svg>
+        <div class="flex-1">
+          <p class="font-medium">Project documentation is incomplete.</p>
+          <p class="mt-0.5 text-xs text-amber-700">All 7 documents must be filled before work items can be created.</p>
+          <button type="button"
+            class="mt-2 inline-block text-xs font-medium underline hover:no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 rounded"
+            (click)="onGoToDocs()">
+            Go to Docs tab →
+          </button>
+        </div>
+      </div>
+    } @else {
+      <app-error-banner [error]="serverError()" class="block mb-4" />
+    }
   }
 
   <form [formGroup]="form" (ngSubmit)="onSubmit()" class="space-y-4" novalidate>

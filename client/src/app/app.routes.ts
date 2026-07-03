@@ -45,6 +45,11 @@ export const routes: Routes = [
           import('./features/projects/work-items/review.page').then(m => m.ReviewPage),
       },
       {
+        path: 'projects/:slug/docs/:key',
+        loadComponent: () =>
+          import('./features/projects/doc-editor.page').then(m => m.DocEditorPage),
+      },
+      {
         path: 'projects/:slug/audit',
         loadComponent: () =>
           import('./features/audit/project-audit.page').then(m => m.ProjectAuditPage),

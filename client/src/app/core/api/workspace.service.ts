@@ -10,6 +10,8 @@ import type {
   MemberDto,
   PageRequest,
   PagedEnvelope,
+  ProjectDocDto,
+  ProjectDocSummaryDto,
   ProjectDto,
   ProjectMembershipDto,
   RoleDto,
@@ -18,6 +20,7 @@ import type {
   UpdateMembershipRequest,
   UpdateProjectRequest,
   UpdateTeamRequest,
+  UpsertDocRequest,
 } from './workspace.types';
 
 /**
@@ -71,6 +74,17 @@ export class WorkspaceService {
     return firstValueFrom(this.http.delete<void>(`/api/projects/${projectId}/memberships/${membershipId}`));
   }
 
+  // Project Docs ----------------------------------------------------------
+  listDocs(projectId: string): Promise<ProjectDocSummaryDto[]> {
+    return this.getUnwrap<ProjectDocSummaryDto[]>(`/api/projects/${projectId}/docs`);
+  }
+  getDoc(projectId: string, key: string): Promise<ProjectDocDto> {
+    return this.getUnwrap<ProjectDocDto>(`/api/projects/${projectId}/docs/${key}`);
+  }
+  upsertDoc(projectId: string, key: string, body: UpsertDocRequest): Promise<ProjectDocDto> {
+    return this.putUnwrap<ProjectDocDto, UpsertDocRequest>(`/api/projects/${projectId}/docs/${key}`, body);
+  }
+
   // Roles -----------------------------------------------------------------
   listRoles(): Promise<RoleDto[]> { return this.getUnwrap<RoleDto[]>('/api/roles'); }
 
@@ -88,6 +102,10 @@ export class WorkspaceService {
   }
   private async patchUnwrap<T, B>(url: string, body: B): Promise<T> {
     const env = await firstValueFrom(this.http.patch<Envelope<T>>(url, body));
+    return env.data;
+  }
+  private async putUnwrap<T, B>(url: string, body: B): Promise<T> {
+    const env = await firstValueFrom(this.http.put<Envelope<T>>(url, body));
     return env.data;
   }
   private toParams(req: Record<string, unknown>): HttpParams {

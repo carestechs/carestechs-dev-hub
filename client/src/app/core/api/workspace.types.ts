@@ -113,3 +113,25 @@ export interface PageMeta {
 
 export interface Envelope<T> { data: T; meta?: unknown; }
 export interface PagedEnvelope<T> { data: T[]; meta: PageMeta; }
+
+export interface ProjectDocSummaryDto {
+  key: string;
+  label: string;
+  description: string;
+  filled: boolean;
+  filledAt?: string;
+  updatedByName?: string;
+}
+
+export interface ProjectDocDto {
+  key: string;
+  label: string;
+  description: string;
+  hints: string;
+  content?: string;
+  filled: boolean;
+  filledAt?: string;
+  updatedByName?: string;
+}
+
+export interface UpsertDocRequest { content: string; }

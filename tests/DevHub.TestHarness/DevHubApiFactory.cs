@@ -1,3 +1,4 @@
+using DevHub.Contracts.Workspace;
 using DevHub.TestHarness.FakeExecutor;
 using DevHub.TestHarness.FakeOrchestrator;
 using Microsoft.AspNetCore.Hosting;
@@ -27,6 +28,11 @@ public sealed class DevHubApiFactory : WebApplicationFactory<Program>
     /// Use to replace or augment DI entries for specific test scenarios (e.g. swap a real
     /// HTTP client with a fake handler).
     public IReadOnlyList<Action<IServiceCollection>> ServiceOverrides { get; init; } = [];
+
+    /// When true (default), replaces <c>IProjectDocsQuery</c> with <see cref="FakeProjectDocsQuery"/>
+    /// so existing integration tests are not blocked by the FEAT-014 gate. Set to false to use
+    /// the real Workspace implementation (required by gate-specific tests).
+    public bool BypassDocsGate { get; init; } = true;
 
     /// When true, starts a <see cref="FakeExecutorHost"/> on a random local port and seeds
     /// the feature-delivery binding's <c>BaseUrl</c> to point at it. Required by every
@@ -78,6 +84,16 @@ public sealed class DevHubApiFactory : WebApplicationFactory<Program>
                 ["OperatorSeed:Password"]    = OperatorPassword,
             });
         });
+        if (BypassDocsGate)
+        {
+            builder.ConfigureServices(services =>
+            {
+                var descriptor = services.FirstOrDefault(d => d.ServiceType == typeof(IProjectDocsQuery));
+                if (descriptor is not null) services.Remove(descriptor);
+                services.AddScoped<IProjectDocsQuery, FakeProjectDocsQuery>();
+            });
+        }
+
         if (ServiceOverrides.Count > 0)
         {
             builder.ConfigureServices(services =>
