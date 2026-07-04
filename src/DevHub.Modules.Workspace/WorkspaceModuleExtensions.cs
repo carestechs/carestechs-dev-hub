@@ -38,6 +38,7 @@ public static class WorkspaceModuleExtensions
         services.AddScoped<ProjectDocsService>();
         services.AddScoped<IProjectDocsService>(sp => sp.GetRequiredService<ProjectDocsService>());
         services.AddScoped<IProjectDocsQuery>(sp => sp.GetRequiredService<ProjectDocsService>());
+        services.AddScoped<IDocTemplateVersionService, DocTemplateVersionService>();
 
         services.AddOptions<WorkspaceSeedOptions>()
             .Bind(configuration.GetSection(WorkspaceSeedOptions.SectionName));

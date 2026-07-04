@@ -114,24 +114,57 @@ export interface PageMeta {
 export interface Envelope<T> { data: T; meta?: unknown; }
 export interface PagedEnvelope<T> { data: T[]; meta: PageMeta; }
 
-export interface ProjectDocSummaryDto {
+export interface ProjectDocSectionSummaryDto {
   key: string;
+  label: string;
+  required: boolean;
+  filled: boolean;
+}
+
+export interface ProjectDocSummaryDto {
+  docKey: string;
   label: string;
   description: string;
   filled: boolean;
-  filledAt?: string;
-  updatedByName?: string;
+  locked: boolean;
+  filledSectionCount: number;
+  totalSectionCount: number;
+  sections: ProjectDocSectionSummaryDto[];
 }
 
-export interface ProjectDocDto {
+export interface ProjectDocSectionDto {
   key: string;
   label: string;
-  description: string;
-  hints: string;
+  hint?: string;
+  required: boolean;
   content?: string;
   filled: boolean;
   filledAt?: string;
   updatedByName?: string;
 }
 
-export interface UpsertDocRequest { content: string; }
+export interface ProjectDocDto {
+  docKey: string;
+  label: string;
+  description: string;
+  filled: boolean;
+  locked: boolean;
+  sections: ProjectDocSectionDto[];
+}
+
+export interface UpsertDocSectionsRequest { sections: Record<string, string>; }
+
+export interface DocTemplateVersionDto {
+  id: string;
+  versionNumber: number;
+  isActive: boolean;
+  notes?: string;
+  sectionCount: number;
+  projectCount: number;
+  createdAt: string;
+}
+
+export interface CreateDocTemplateVersionRequest {
+  sourceVersionId: string;
+  notes?: string;
+}

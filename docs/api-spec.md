@@ -343,6 +343,101 @@ Accepts any subset of `{ name, description, projectType, repo, defaultBranch }`.
 
 > Soft delete; `System:operator`.
 
+#### Project Docs (section-based, FEAT-015)
+
+##### GET /api/projects/{projectId}/docs
+
+> *List all doc keys for the project's pinned template version.*
+
+| Attribute | Value |
+|-----------|-------|
+| **Auth** | Required |
+| **Roles** | `project:read` (any membership) |
+
+**Response (200 OK):** envelope with `data: ProjectDocSummaryDto[]`.
+
+##### GET /api/projects/{projectId}/docs/{docKey}
+
+> *Get a single document with all its section content.*
+
+| Attribute | Value |
+|-----------|-------|
+| **Auth** | Required |
+| **Roles** | `project:read` |
+
+**Response (200 OK):** envelope with `data: ProjectDocDto`.
+
+| Code | Condition |
+|------|-----------|
+| 400 | `docKey` not in project's template version |
+| 403 | Caller not a member |
+| 404 | Project not found |
+
+##### PUT /api/projects/{projectId}/docs/{docKey}
+
+> *Save content for one or more sections of a document. Partial saves are allowed — sections omitted from the request body are left unchanged.*
+
+| Attribute | Value |
+|-----------|-------|
+| **Auth** | Required |
+| **Roles** | `System:operator` |
+
+**Request Body:**
+
+```json
+{
+  "sections": {
+    "system-overview": "string — content for this section",
+    "tech-stack": "string — content for this section"
+  }
+}
+```
+
+Only sections present in the `sections` map are written. Keys must match `DocTemplateSection.section_key` values for the project's pinned version and the given `docKey`.
+
+| Code | Condition |
+|------|-----------|
+| 200 | Saved; returns updated `ProjectDocDto` |
+| 400 | `docKey` unknown, or any section key not in the template |
+| 403 | Not an operator |
+
+#### Admin: Doc Template Versions (FEAT-015)
+
+> All three endpoints are `System:operator`.
+
+##### GET /api/admin/doc-templates
+
+> *List all template versions, most recent first.*
+
+**Response (200 OK):** envelope with `data: DocTemplateVersionDto[]`.
+
+##### POST /api/admin/doc-templates
+
+> *Create a new inactive version by copying all sections from a source version.*
+
+**Request Body:**
+
+```json
+{
+  "sourceVersionId": "uuid — required",
+  "notes": "string — optional"
+}
+```
+
+| Code | Condition |
+|------|-----------|
+| 201 | Created; returns new `DocTemplateVersionDto` (inactive, `sectionCount` = source) |
+| 404 | `sourceVersionId` not found or has no sections |
+
+##### POST /api/admin/doc-templates/{id}/activate
+
+> *Atomically activates the target version and deactivates all others. Idempotent if already active.*
+
+| Code | Condition |
+|------|-----------|
+| 200 | Activated; returns updated `DocTemplateVersionDto` |
+| 404 | Version not found |
+
 #### Roles (lookup)
 
 ##### GET /api/roles
@@ -800,6 +895,62 @@ Extends `WorkItemSummaryDto` with `executorState: object` (opaque) and `signals:
 
 See `GET /api/notifications/pending` response.
 
+### ProjectDocSummaryDto (FEAT-015)
+
+| Field | Type | Nullable | Description |
+|-------|------|----------|-------------|
+| docKey | string | No | Stable document identifier (e.g. `architecture`) |
+| label | string | No | Human-readable document title |
+| description | string | No | One-line description of the document's purpose |
+| filled | boolean | No | `true` when all required sections are non-blank |
+| filledSectionCount | int | No | Number of sections (required or optional) with non-blank content |
+| totalSectionCount | int | No | Total number of sections for this doc key in the project's template version |
+| sections | `ProjectDocSectionSummaryDto[]` | No | Summary of each section |
+
+### ProjectDocSectionSummaryDto (FEAT-015)
+
+| Field | Type | Nullable | Description |
+|-------|------|----------|-------------|
+| key | string | No | Section key (e.g. `system-overview`) |
+| label | string | No | Section label |
+| required | boolean | No | Whether this section must be filled for the doc to count as complete |
+| filled | boolean | No | Whether this section has non-blank content |
+
+### ProjectDocDto (FEAT-015)
+
+| Field | Type | Nullable | Description |
+|-------|------|----------|-------------|
+| docKey | string | No | Document key |
+| label | string | No | |
+| description | string | No | |
+| filled | boolean | No | All required sections are non-blank |
+| sections | `ProjectDocSectionDto[]` | No | Full section list with content |
+
+### ProjectDocSectionDto (FEAT-015)
+
+| Field | Type | Nullable | Description |
+|-------|------|----------|-------------|
+| key | string | No | Section key |
+| label | string | No | |
+| hint | string | Yes | Guidance text shown in the editor |
+| required | boolean | No | |
+| content | string | Yes | User-authored Markdown; `null` if not yet filled |
+| filled | boolean | No | `content` is non-blank |
+| filledAt | iso-8601 | Yes | `updatedAt` of the `ProjectDocSection` row when last filled |
+| updatedByName | string | Yes | Display name of the last member who wrote this section |
+
+### DocTemplateVersionDto (FEAT-015)
+
+| Field | Type | Nullable | Description |
+|-------|------|----------|-------------|
+| id | uuid | No | |
+| versionNumber | int | No | Monotonically increasing |
+| isActive | boolean | No | Exactly one version is active at a time |
+| notes | string | Yes | Description of changes in this version |
+| sectionCount | int | No | Total sections across all doc keys in this version |
+| projectCount | int | No | Number of projects currently pinned to this version |
+| createdAt | iso-8601 | No | |
+
 ### ProblemDetailsDto
 
 Standard RFC 7807 fields (`type`, `title`, `status`, `detail`, `instance`) plus `correlationId` and `errors` (validation-style map).
@@ -832,6 +983,12 @@ Standard RFC 7807 fields (`type`, `title`, `status`, `detail`, `instance`) plus 
 | PATCH | /api/projects/{id}/memberships/{mid} | Workspace | System:operator | Update roles |
 | DELETE | /api/projects/{id}/memberships/{mid} | Workspace | System:operator | Soft-delete membership |
 | GET | /api/roles | Workspace | Authenticated | List role definitions |
+| GET | /api/projects/{id}/docs | Workspace | Project:any | List doc summaries (section-based) |
+| GET | /api/projects/{id}/docs/{docKey} | Workspace | Project:any | Get doc with all section content |
+| PUT | /api/projects/{id}/docs/{docKey} | Workspace | System:operator | Save doc sections (partial save) |
+| GET | /api/admin/doc-templates | Workspace | System:operator | List doc template versions |
+| POST | /api/admin/doc-templates | Workspace | System:operator | Create new version from source |
+| POST | /api/admin/doc-templates/{id}/activate | Workspace | System:operator | Activate a version |
 | GET | /api/admin/executors | ExecutorRegistry | System:operator | List executors |
 | POST | /api/admin/executors | ExecutorRegistry | System:operator | Register executor |
 | GET | /api/admin/executors/{id} | ExecutorRegistry | System:operator | Read executor |
@@ -878,3 +1035,4 @@ Standard RFC 7807 fields (`type`, `title`, `status`, `detail`, `instance`) plus 
 - **2026-05-17 (FEAT-009 / T-068)** — `SignalRequest` gained optional `taskId`, forwarded verbatim to the executor (omitted from the body when null). `assignment-confirmed` contracts (`perTask=true` + `checkpointKey="assignment-confirmed"`) require a non-empty `payload.assignee` at the DevHub boundary; rejected values produce `400` with no executor call. Audit details carry both `taskId` and `assignee` when present.
 - **2026-05-17 (FEAT-010 / T-086)** — `ExecutorDto`, `CreateExecutorRequest`, `UpdateExecutorRequest` gained optional `protocol` (defaults to `"devhub"`; valid values `"devhub"` and `"orchestrator"`). `WorkItemDto` + `WorkItemSummaryDto` gained `executorRunId` (nullable uuid). Internally, `IExecutorHttpClient` signature changed from `correlationMarker: string` to `workItem: WorkItemRef` so both protocol implementations can route by the right id. The new `IExecutorClientFactory` selects the implementation per request based on `descriptor.Protocol`.
 - **2026-05-19 (IMP-001 / T-090)** — `ProjectDto` gained `boundExecutorProtocol` (`'devhub' | 'orchestrator' | null`). Resolved at read time via `IExecutorRouter.ResolveAsync` and projected onto the DTO on single-project endpoints; always `null` on list responses by design (no N+1). No new endpoint, no migration, wire `StartWorkItemRequest` unchanged.
+- **2026-07-04 (FEAT-015)** — Replaced flat `/docs/{key}` API (single `content` field) with a section-based API. `GET /api/projects/{id}/docs` now returns `ProjectDocSummaryDto[]` with `docKey`, `filledSectionCount`, `totalSectionCount`, and `sections[]`. `GET /api/projects/{id}/docs/{docKey}` returns `ProjectDocDto` with `sections: ProjectDocSectionDto[]` (each with `key`, `label`, `hint`, `required`, `content`, `filled`, `filledAt`, `updatedByName`). `PUT /api/projects/{id}/docs/{docKey}` body changed from `{ content }` to `{ sections: Record<string, string> }` — partial saves allowed. Added three `System:operator` admin endpoints: `GET/POST /api/admin/doc-templates` (list/create versions) and `POST /api/admin/doc-templates/{id}/activate`. New DTOs: `ProjectDocSummaryDto`, `ProjectDocSectionSummaryDto`, `ProjectDocDto`, `ProjectDocSectionDto`, `DocTemplateVersionDto`.

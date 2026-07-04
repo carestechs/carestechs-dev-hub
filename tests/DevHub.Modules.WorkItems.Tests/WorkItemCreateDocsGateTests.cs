@@ -9,12 +9,24 @@ using Xunit;
 namespace DevHub.Modules.WorkItems.Tests;
 
 /// <summary>
-/// FEAT-014 / T-010 — Work item creation gate: all 7 project docs must be filled.
+/// FEAT-015 — Work item creation gate: all required doc sections must be filled.
 /// Uses the real IProjectDocsQuery (BypassDocsGate = false).
 /// </summary>
 [Collection("postgres")]
 public class WorkItemCreateDocsGateTests : IAsyncLifetime
 {
+    // Required section keys per doc key — must match version-1 seed in the migration.
+    private static readonly Dictionary<string, string[]> RequiredSections = new(StringComparer.Ordinal)
+    {
+        ["stakeholder-definition"] = ["overview", "personas"],
+        ["architecture"]           = ["system-overview", "tech-stack"],
+        ["data-model"]             = ["entities"],
+        ["api-spec"]               = ["endpoints", "auth"],
+        ["ui-specification"]       = ["screens", "interactions"],
+        ["primary-user-persona"]   = ["profile", "goals"],
+        ["claude-md"]              = ["conventions", "patterns"],
+    };
+
     private static readonly string[] AllDocKeys =
     [
         "stakeholder-definition", "architecture", "data-model",
@@ -102,9 +114,11 @@ public class WorkItemCreateDocsGateTests : IAsyncLifetime
 
     private async Task FillDocAsync(string key)
     {
+        var sections = RequiredSections[key]
+            .ToDictionary(k => k, k => $"Content for {key}/{k}.");
         var resp = await _operator.PutAsJsonAsync(
             $"/api/projects/{_projectId}/docs/{key}",
-            new { content = $"# {key}\n\nContent for {key}." });
+            new { sections });
         resp.EnsureSuccessStatusCode();
     }
 }

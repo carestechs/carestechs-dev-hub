@@ -14,7 +14,9 @@ public sealed class WorkspaceDbContext(DbContextOptions<WorkspaceDbContext> opti
     public DbSet<ProjectMembership> ProjectMemberships => Set<ProjectMembership>();
     public DbSet<RoleAssignment> RoleAssignments => Set<RoleAssignment>();
     public DbSet<WorkspaceRoleAssignment> WorkspaceRoleAssignments => Set<WorkspaceRoleAssignment>();
-    public DbSet<ProjectDoc> ProjectDocs => Set<ProjectDoc>();
+    public DbSet<DocTemplateVersion> DocTemplateVersions => Set<DocTemplateVersion>();
+    public DbSet<DocTemplateSection> DocTemplateSections => Set<DocTemplateSection>();
+    public DbSet<ProjectDocSection> ProjectDocSections => Set<ProjectDocSection>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -55,6 +57,8 @@ public sealed class WorkspaceDbContext(DbContextOptions<WorkspaceDbContext> opti
             b.HasIndex(p => p.OwningTeamId);
             b.HasIndex(p => p.ProjectType);
             b.HasQueryFilter(p => p.DeletedAt == null);
+            b.HasOne<DocTemplateVersion>().WithMany().HasForeignKey(p => p.DocTemplateVersionId)
+             .OnDelete(DeleteBehavior.Restrict);
         });
 
         modelBuilder.Entity<ProjectMembership>(b =>
@@ -81,13 +85,30 @@ public sealed class WorkspaceDbContext(DbContextOptions<WorkspaceDbContext> opti
             b.HasQueryFilter(w => w.DeletedAt == null);
         });
 
-        modelBuilder.Entity<ProjectDoc>(b =>
+        modelBuilder.Entity<DocTemplateVersion>(b =>
         {
-            b.Property(d => d.DocKey).HasMaxLength(80).IsRequired();
-            b.Property(d => d.Content).HasColumnType("text");
-            b.HasIndex(d => new { d.ProjectId, d.DocKey }).IsUnique();
-            b.HasOne<Project>().WithMany().HasForeignKey(d => d.ProjectId)
+            b.Property(v => v.Notes).HasColumnType("text");
+        });
+
+        modelBuilder.Entity<DocTemplateSection>(b =>
+        {
+            b.Property(s => s.DocKey).HasMaxLength(80).IsRequired();
+            b.Property(s => s.SectionKey).HasMaxLength(80).IsRequired();
+            b.Property(s => s.Label).HasMaxLength(200).IsRequired();
+            b.Property(s => s.Hint).HasColumnType("text");
+            b.HasIndex(s => new { s.VersionId, s.DocKey, s.SectionKey }).IsUnique();
+            b.HasOne<DocTemplateVersion>().WithMany().HasForeignKey(s => s.VersionId)
              .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<ProjectDocSection>(b =>
+        {
+            b.Property(ps => ps.Content).HasColumnType("text");
+            b.HasIndex(ps => new { ps.ProjectId, ps.SectionId }).IsUnique();
+            b.HasOne<Project>().WithMany().HasForeignKey(ps => ps.ProjectId)
+             .OnDelete(DeleteBehavior.Cascade);
+            b.HasOne<DocTemplateSection>().WithMany().HasForeignKey(ps => ps.SectionId)
+             .OnDelete(DeleteBehavior.Restrict);
         });
 
         base.OnModelCreating(modelBuilder);

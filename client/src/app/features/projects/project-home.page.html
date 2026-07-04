@@ -107,7 +107,7 @@
             [class.text-emerald-700]="allDocsFilled()"
             [class.bg-slate-100]="!allDocsFilled()"
             [class.text-slate-500]="!allDocsFilled()">
-            {{ docsFilledCount() }}/7
+            {{ docsFilledCount() }}/{{ docs().length }}
           </span>
         }
       </button>
@@ -130,14 +130,14 @@
         @if (allDocsFilled()) {
           <div class="mb-4 flex items-center gap-3 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 px-4 py-3 text-sm">
             <svg class="shrink-0" width="16" height="16" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clip-rule="evenodd"/>
+              <path fill-rule="evenodd" d="M10 1a4.5 4.5 0 00-4.5 4.5V9H5a2 2 0 00-2 2v6a2 2 0 002 2h10a2 2 0 002-2v-6a2 2 0 00-2-2h-.5V5.5A4.5 4.5 0 0010 1zm3 8V5.5a3 3 0 10-6 0V9h6z" clip-rule="evenodd"/>
             </svg>
-            <span>All documents filled — work items can now be created.</span>
+            <span>All documents filled and locked — work items can now be created. Future doc updates go through a work item.</span>
           </div>
         }
         <div class="space-y-3">
-          @for (doc of docs(); track doc.key) {
-            <a [routerLink]="['/projects', p.slug, 'docs', doc.key]"
+          @for (doc of docs(); track doc.docKey) {
+            <a [routerLink]="['/projects', p.slug, 'docs', doc.docKey]"
                class="flex items-start gap-4 bg-white rounded-xl shadow-sm p-4 border-l-4 hover:shadow-md transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
                [class.border-emerald-400]="doc.filled"
                [class.border-slate-200]="!doc.filled">
@@ -145,15 +145,13 @@
                    [class.bg-emerald-500]="doc.filled"
                    [class.bg-slate-300]="!doc.filled"></div>
               <div class="flex-1 min-w-0">
-                <p class="font-medium text-sm" [class.text-slate-800]="true">{{ doc.label }}</p>
+                <p class="font-medium text-sm text-slate-800">{{ doc.label }}</p>
                 <p class="text-xs text-slate-500 mt-0.5">{{ doc.description }}</p>
-                @if (doc.filled && doc.filledAt) {
-                  <p class="text-xs text-emerald-600 mt-1 font-medium">
-                    Filled {{ doc.filledAt | slice:0:10 }}@if (doc.updatedByName) { by {{ doc.updatedByName }}}
-                  </p>
-                } @else {
-                  <p class="text-xs text-slate-400 mt-1 italic">Not filled yet</p>
-                }
+                <p class="text-xs mt-1.5 font-medium"
+                   [class.text-emerald-600]="doc.filled"
+                   [class.text-slate-400]="!doc.filled">
+                  {{ doc.filledSectionCount }}/{{ doc.totalSectionCount }} sections filled
+                </p>
               </div>
               <svg class="shrink-0 self-center text-slate-400" width="16" height="16" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                 <path fill-rule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" clip-rule="evenodd"/>

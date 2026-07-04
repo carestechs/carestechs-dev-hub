@@ -10,6 +10,8 @@ import type {
   MemberDto,
   PageRequest,
   PagedEnvelope,
+  CreateDocTemplateVersionRequest,
+  DocTemplateVersionDto,
   ProjectDocDto,
   ProjectDocSummaryDto,
   ProjectDto,
@@ -20,7 +22,7 @@ import type {
   UpdateMembershipRequest,
   UpdateProjectRequest,
   UpdateTeamRequest,
-  UpsertDocRequest,
+  UpsertDocSectionsRequest,
 } from './workspace.types';
 
 /**
@@ -81,8 +83,19 @@ export class WorkspaceService {
   getDoc(projectId: string, key: string): Promise<ProjectDocDto> {
     return this.getUnwrap<ProjectDocDto>(`/api/projects/${projectId}/docs/${key}`);
   }
-  upsertDoc(projectId: string, key: string, body: UpsertDocRequest): Promise<ProjectDocDto> {
-    return this.putUnwrap<ProjectDocDto, UpsertDocRequest>(`/api/projects/${projectId}/docs/${key}`, body);
+  upsertDocSections(projectId: string, key: string, body: UpsertDocSectionsRequest): Promise<ProjectDocDto> {
+    return this.putUnwrap<ProjectDocDto, UpsertDocSectionsRequest>(`/api/projects/${projectId}/docs/${key}`, body);
+  }
+
+  // Doc Template Versions -------------------------------------------------
+  listDocTemplateVersions(): Promise<DocTemplateVersionDto[]> {
+    return this.getUnwrap<DocTemplateVersionDto[]>('/api/admin/doc-templates');
+  }
+  createDocTemplateVersion(body: CreateDocTemplateVersionRequest): Promise<DocTemplateVersionDto> {
+    return this.postUnwrap<DocTemplateVersionDto, CreateDocTemplateVersionRequest>('/api/admin/doc-templates', body);
+  }
+  activateDocTemplateVersion(id: string): Promise<DocTemplateVersionDto> {
+    return this.postUnwrap<DocTemplateVersionDto, Record<string, never>>(`/api/admin/doc-templates/${id}/activate`, {});
   }
 
   // Roles -----------------------------------------------------------------

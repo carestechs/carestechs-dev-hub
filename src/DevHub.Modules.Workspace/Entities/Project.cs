@@ -11,5 +11,6 @@ public sealed class Project : BaseEntity, ISoftDeletable
     public string? Description { get; set; }
     public string? Repo { get; set; }
     public string? DefaultBranch { get; set; }
+    public Guid DocTemplateVersionId { get; set; }
     public DateTimeOffset? DeletedAt { get; set; }
 }

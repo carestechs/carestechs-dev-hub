@@ -1,10 +1,9 @@
-import { SlicePipe } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { WorkspaceService } from '../../core/api/workspace.service';
-import type { ProjectDocDto } from '../../core/api/workspace.types';
+import type { ProjectDocDto, ProjectDocSectionDto } from '../../core/api/workspace.types';
 import { AuthService } from '../../core/auth/auth.service';
 import type { AppError } from '../../core/errors/app-error';
 import { AppButton } from '../../shared';
@@ -12,7 +11,7 @@ import { AppButton } from '../../shared';
 @Component({
   selector: 'doc-editor-page',
   standalone: true,
-  imports: [RouterLink, AppButton, SlicePipe],
+  imports: [RouterLink, AppButton],
   templateUrl: './doc-editor.page.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -36,10 +35,15 @@ export class DocEditorPage {
   protected readonly saveError = signal<AppError | null>(null);
   protected readonly savedOk = signal(false);
 
-  protected readonly editorValue = signal('');
+  protected readonly sectionValues = signal<Record<string, string>>({});
+
+  protected readonly isLocked = computed(() => this.doc()?.locked ?? false);
+
   protected readonly isDirty = computed(() => {
     const d = this.doc();
-    return this.editorValue() !== (d?.content ?? '');
+    if (!d || d.locked) return false;
+    const vals = this.sectionValues();
+    return d.sections.some(s => (vals[s.key] ?? '') !== (s.content ?? ''));
   });
 
   constructor() {
@@ -64,7 +68,7 @@ export class DocEditorPage {
       this.projectName.set(project.name);
       const doc = await this.ws.getDoc(project.id, key);
       this.doc.set(doc);
-      this.editorValue.set(doc.content ?? '');
+      this.initSectionValues(doc);
     } catch (e: unknown) {
       this.classify(e);
     } finally {
@@ -72,9 +76,20 @@ export class DocEditorPage {
     }
   }
 
-  protected onInput(event: Event): void {
-    this.editorValue.set((event.target as HTMLTextAreaElement).value);
+  private initSectionValues(doc: ProjectDocDto): void {
+    const vals: Record<string, string> = {};
+    for (const s of doc.sections) vals[s.key] = s.content ?? '';
+    this.sectionValues.set(vals);
+  }
+
+  protected onSectionInput(key: string, event: Event): void {
+    const value = (event.target as HTMLTextAreaElement).value;
+    this.sectionValues.update(prev => ({ ...prev, [key]: value }));
     this.savedOk.set(false);
+  }
+
+  protected sectionValue(section: ProjectDocSectionDto): string {
+    return this.sectionValues()[section.key] ?? '';
   }
 
   protected async save(): Promise<void> {
@@ -85,9 +100,10 @@ export class DocEditorPage {
     this.saveError.set(null);
     this.savedOk.set(false);
     try {
-      const updated = await this.ws.upsertDoc(pid, doc.key, { content: this.editorValue() });
+      const vals = this.sectionValues();
+      const updated = await this.ws.upsertDocSections(pid, doc.docKey, { sections: { ...vals } });
       this.doc.set(updated);
-      this.editorValue.set(updated.content ?? '');
+      this.initSectionValues(updated);
       this.savedOk.set(true);
     } catch (e: unknown) {
       this.saveError.set(toAppError(e, 'Could not save document'));

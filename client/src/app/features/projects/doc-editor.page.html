@@ -4,10 +4,13 @@
 </a>
 
 @if (loading()) {
-  <div class="mt-6 bg-white rounded-xl shadow-sm p-6 space-y-3" aria-busy="true">
-    <div class="h-6 w-1/3 bg-slate-200 rounded animate-pulse"></div>
-    <div class="h-3 w-1/2 bg-slate-200 rounded animate-pulse"></div>
-    <div class="h-48 w-full bg-slate-200 rounded animate-pulse"></div>
+  <div class="mt-6 space-y-4" aria-busy="true">
+    <div class="bg-white rounded-xl shadow-sm p-6 space-y-3">
+      <div class="h-6 w-1/3 bg-slate-200 rounded animate-pulse"></div>
+      <div class="h-3 w-1/2 bg-slate-200 rounded animate-pulse"></div>
+    </div>
+    <div class="bg-white rounded-xl shadow-sm p-6 h-40 bg-slate-200 animate-pulse rounded-xl"></div>
+    <div class="bg-white rounded-xl shadow-sm p-6 h-40 bg-slate-200 animate-pulse rounded-xl"></div>
   </div>
 } @else if (errorKind() === 'not-found') {
   <div class="mt-6 bg-white rounded-xl shadow-sm text-center py-12">
@@ -25,68 +28,89 @@
     <p class="text-sm text-slate-600">{{ error()!.detail }}</p>
   </div>
 } @else if (doc(); as d) {
-  <div class="mt-6 grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-6 max-w-5xl">
-    <!-- Sidebar -->
-    <aside class="bg-white rounded-xl shadow-sm p-5 space-y-4 h-fit">
-      <div>
-        <p class="text-xs font-semibold uppercase tracking-wide text-slate-400">Document</p>
-        <h1 class="mt-1 text-lg font-bold text-slate-800">{{ d.label }}</h1>
-        <p class="mt-1 text-sm text-slate-500 leading-relaxed">{{ d.description }}</p>
-      </div>
-      <div>
-        <p class="text-xs font-semibold uppercase tracking-wide text-slate-400 mb-2">What to include</p>
-        <ul class="space-y-1">
-          @for (hint of d.hints.split('·'); track hint) {
-            @if (hint.trim()) {
-              <li class="flex items-baseline gap-2 text-xs text-slate-600">
-                <span class="w-1 h-1 rounded-full bg-sky-400 shrink-0 mt-1.5"></span>
-                {{ hint.trim() }}
-              </li>
-            }
-          }
-        </ul>
-      </div>
-      @if (d.filled && d.filledAt) {
-        <div class="pt-3 border-t border-slate-100 text-xs text-slate-400">
-          Last saved {{ d.filledAt | slice:0:10 }}@if (d.updatedByName) { by {{ d.updatedByName }}}
+  <div class="mt-6 max-w-5xl space-y-6">
+    <!-- Doc header -->
+    <div class="bg-white rounded-xl shadow-sm p-6">
+      <div class="flex items-start justify-between gap-4">
+        <div>
+          <p class="text-xs font-semibold uppercase tracking-wide text-slate-400">Document</p>
+          <h1 class="mt-1 text-xl font-bold text-slate-800">{{ d.label }}</h1>
+          <p class="mt-1 text-sm text-slate-500 leading-relaxed">{{ d.description }}</p>
         </div>
-      }
-    </aside>
-
-    <!-- Editor card -->
-    <div class="bg-white rounded-xl shadow-sm overflow-hidden flex flex-col">
-      <div class="px-5 py-3 border-b border-slate-100 flex items-center justify-between">
-        <span class="text-xs font-medium text-slate-500">Markdown</span>
-        @if (d.filled) {
-          <span class="inline-flex items-center gap-1 text-xs text-emerald-600 font-medium">
+        <span [class]="d.filled
+          ? 'shrink-0 inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full'
+          : 'shrink-0 inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-full'">
+          @if (d.filled) {
             <svg width="12" height="12" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
               <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clip-rule="evenodd"/>
             </svg>
             Filled
-          </span>
-        } @else {
-          <span class="text-xs text-slate-400">Not filled</span>
+          } @else {
+            Incomplete
+          }
+        </span>
+      </div>
+    </div>
+
+    @if (isLocked()) {
+      <div class="rounded-xl px-4 py-3 bg-sky-50 border border-sky-100 text-sm text-sky-700 flex items-start gap-2.5">
+        <svg class="shrink-0 mt-0.5" width="16" height="16" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+          <path fill-rule="evenodd" d="M10 1a4.5 4.5 0 00-4.5 4.5V9H5a2 2 0 00-2 2v6a2 2 0 002 2h10a2 2 0 002-2v-6a2 2 0 00-2-2h-.5V5.5A4.5 4.5 0 0010 1zm3 8V5.5a3 3 0 10-6 0V9h6z" clip-rule="evenodd"/>
+        </svg>
+        <span>All required sections are filled. These docs are now <strong>read-only</strong>. To request an update, submit a work item.</span>
+      </div>
+    } @else if (!isOperator()) {
+      <div class="rounded-xl px-4 py-3 bg-amber-50 border border-amber-100 text-sm text-amber-700">
+        You have read-only access to this document. Contact an operator to update it.
+      </div>
+    }
+
+    <!-- Sections -->
+    @for (section of d.sections; track section.key) {
+      <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+        <div class="px-5 py-4 border-b border-slate-100 flex items-start justify-between gap-3">
+          <div>
+            <p class="text-sm font-semibold text-slate-800">
+              {{ section.label }}
+              @if (section.required) {
+                <span class="ml-1 text-xs text-slate-400">(required)</span>
+              }
+            </p>
+            @if (section.hint) {
+              <p class="mt-0.5 text-xs text-slate-400 leading-relaxed">{{ section.hint }}</p>
+            }
+          </div>
+          @if (section.filled) {
+            <span class="shrink-0 text-xs text-emerald-600 font-medium flex items-center gap-1">
+              <svg width="12" height="12" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clip-rule="evenodd"/>
+              </svg>
+              Filled
+            </span>
+          }
+        </div>
+        <textarea
+          class="w-full min-h-[140px] px-5 py-4 text-sm font-mono text-slate-700 resize-y leading-relaxed placeholder-slate-300 focus:outline-none"
+          [class.bg-white]="!isLocked() && isOperator()"
+          [class.bg-slate-50]="isLocked() || !isOperator()"
+          [class.cursor-not-allowed]="isLocked() || !isOperator()"
+          [disabled]="isLocked() || !isOperator() || saving()"
+          [placeholder]="'Write the ' + section.label + ' here… (Markdown supported)'"
+          [value]="sectionValue(section)"
+          (input)="onSectionInput(section.key, $event)"
+          [attr.aria-label]="section.label"
+        ></textarea>
+        @if (section.filled && section.updatedByName) {
+          <div class="px-5 py-2 border-t border-slate-50 text-xs text-slate-400">
+            Last saved by {{ section.updatedByName }}
+          </div>
         }
       </div>
+    }
 
-      @if (!isOperator()) {
-        <div class="px-5 py-3 bg-amber-50 border-b border-amber-100 text-xs text-amber-700">
-          You have read-only access to this document. Contact an operator to update it.
-        </div>
-      }
-
-      <textarea
-        class="flex-1 w-full min-h-[320px] px-5 py-4 text-sm font-mono text-slate-700 resize-y leading-relaxed bg-white placeholder-slate-300 focus:outline-none"
-        [class.bg-slate-50]="!isOperator()"
-        [class.cursor-not-allowed]="!isOperator()"
-        [disabled]="!isOperator() || saving()"
-        [placeholder]="'Write your ' + d.label + ' here… (Markdown supported)'"
-        [value]="editorValue()"
-        (input)="onInput($event)"
-        aria-label="Document content"
-      ></textarea>
-
-      <div class="px-5 py-3 border-t border-slate-100 flex items-center justify-between gap-3">
+    <!-- Action bar -->
+    @if (isOperator() && !isLocked()) {
+      <div class="flex items-center justify-between gap-3 pb-8">
         <div class="text-sm">
           @if (saveError()) {
             <span class="text-red-600 font-medium">{{ saveError()!.title }}</span>
@@ -94,15 +118,13 @@
             <span class="text-emerald-600 font-medium">Saved successfully.</span>
           }
         </div>
-        @if (isOperator()) {
-          <div class="flex items-center gap-2">
-            <app-button variant="secondary" [disabled]="saving()" (clicked)="cancel()">Cancel</app-button>
-            <app-button variant="primary" [disabled]="saving() || !isDirty()" (clicked)="save()">
-              {{ saving() ? 'Saving…' : 'Save' }}
-            </app-button>
-          </div>
-        }
+        <div class="flex items-center gap-2">
+          <app-button variant="secondary" [disabled]="saving()" (clicked)="cancel()">Cancel</app-button>
+          <app-button variant="primary" [disabled]="saving() || !isDirty()" (clicked)="save()">
+            {{ saving() ? 'Saving…' : 'Save' }}
+          </app-button>
+        </div>
       </div>
-    </div>
+    }
   </div>
 }
