@@ -35,6 +35,9 @@ public static class WorkspaceModuleExtensions
         services.AddScoped<IProjectService, ProjectService>();
         services.AddScoped<IMembershipService, MembershipService>();
         services.AddScoped<IRoleService, RoleService>();
+        services.AddScoped<ProjectDocsService>();
+        services.AddScoped<IProjectDocsService>(sp => sp.GetRequiredService<ProjectDocsService>());
+        services.AddScoped<IProjectDocsQuery>(sp => sp.GetRequiredService<ProjectDocsService>());
 
         services.AddOptions<WorkspaceSeedOptions>()
             .Bind(configuration.GetSection(WorkspaceSeedOptions.SectionName));

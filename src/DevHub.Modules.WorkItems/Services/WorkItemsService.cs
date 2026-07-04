@@ -24,6 +24,7 @@ internal sealed class WorkItemsService(
     IProjectLookup projects,
     IAuditWriter audit,
     IPendingActionReconciler reconciler,
+    IProjectDocsQuery docsQuery,
     ILogger<WorkItemsService> log) : IWorkItemsService
 {
     private const string StartCheckpointKey = "start";
@@ -152,6 +153,10 @@ internal sealed class WorkItemsService(
         var requiredRole = startContract?.RequiredRoleKey ?? "operator";
 
         await authz.EnsureAuthorizedAsync(actingMemberId, projectId, "workitem:start", requiredRole, ct);
+
+        var (allFilled, missingKeys) = await docsQuery.CheckAllFilledAsync(projectId, ct);
+        if (!allFilled)
+            throw new ProjectDocsIncompleteException(missingKeys);
 
         // Boundary validation for the optional per-work-item branch override.
         // Empty string is rejected at start time (operators clear via PATCH instead).

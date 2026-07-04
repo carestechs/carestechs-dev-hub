@@ -42,9 +42,16 @@ export class StartWorkModal {
   readonly serverError = input<AppError | null>(null);
   /** IMP-001. Bound executor's protocol; drives which example payload pre-fills the textarea. */
   readonly protocol = input<ExecutorProtocol | null>(null);
+  /** Project slug — used to build the Docs tab link on docs-incomplete errors. */
+  readonly projectSlug = input<string>('');
+
+  protected readonly isDocsIncomplete = computed(
+    () => this.serverError()?.type === '/probs/project-docs-incomplete',
+  );
 
   @Output() readonly submitted = new EventEmitter<StartWorkItemRequest>();
   @Output() readonly cancelled = new EventEmitter<void>();
+  @Output() readonly goToDocs = new EventEmitter<void>();
 
   protected readonly form = new FormGroup({
     title: new FormControl<string>('', {
@@ -104,5 +111,10 @@ export class StartWorkModal {
   protected onCancel(): void {
     if (this.working()) return;
     this.cancelled.emit();
+  }
+
+  protected onGoToDocs(): void {
+    this.cancelled.emit();
+    this.goToDocs.emit();
   }
 }

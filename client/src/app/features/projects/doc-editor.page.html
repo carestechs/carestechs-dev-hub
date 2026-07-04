@@ -1,0 +1,108 @@
+<a [routerLink]="['/projects', slug()]" [fragment]="'docs'"
+   class="text-sm text-sky-600 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300 rounded">
+  ← Back to {{ projectName() ?? 'project' }} docs
+</a>
+
+@if (loading()) {
+  <div class="mt-6 bg-white rounded-xl shadow-sm p-6 space-y-3" aria-busy="true">
+    <div class="h-6 w-1/3 bg-slate-200 rounded animate-pulse"></div>
+    <div class="h-3 w-1/2 bg-slate-200 rounded animate-pulse"></div>
+    <div class="h-48 w-full bg-slate-200 rounded animate-pulse"></div>
+  </div>
+} @else if (errorKind() === 'not-found') {
+  <div class="mt-6 bg-white rounded-xl shadow-sm text-center py-12">
+    <h1 class="text-2xl font-bold">Document not found.</h1>
+    <a [routerLink]="['/projects', slug()]" class="inline-block mt-6 text-sm text-sky-600 hover:underline">Back to project →</a>
+  </div>
+} @else if (errorKind() === 'forbidden') {
+  <div class="mt-6 bg-white rounded-xl shadow-sm text-center py-12">
+    <h1 class="text-2xl font-bold">You don't have access.</h1>
+    <a [routerLink]="['/projects', slug()]" class="inline-block mt-6 text-sm text-sky-600 hover:underline">Back to project →</a>
+  </div>
+} @else if (errorKind() === 'other' && error()) {
+  <div class="mt-6 bg-white rounded-xl shadow-sm p-6">
+    <h1 class="text-xl font-bold mb-2">{{ error()!.title }}</h1>
+    <p class="text-sm text-slate-600">{{ error()!.detail }}</p>
+  </div>
+} @else if (doc(); as d) {
+  <div class="mt-6 grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-6 max-w-5xl">
+    <!-- Sidebar -->
+    <aside class="bg-white rounded-xl shadow-sm p-5 space-y-4 h-fit">
+      <div>
+        <p class="text-xs font-semibold uppercase tracking-wide text-slate-400">Document</p>
+        <h1 class="mt-1 text-lg font-bold text-slate-800">{{ d.label }}</h1>
+        <p class="mt-1 text-sm text-slate-500 leading-relaxed">{{ d.description }}</p>
+      </div>
+      <div>
+        <p class="text-xs font-semibold uppercase tracking-wide text-slate-400 mb-2">What to include</p>
+        <ul class="space-y-1">
+          @for (hint of d.hints.split('·'); track hint) {
+            @if (hint.trim()) {
+              <li class="flex items-baseline gap-2 text-xs text-slate-600">
+                <span class="w-1 h-1 rounded-full bg-sky-400 shrink-0 mt-1.5"></span>
+                {{ hint.trim() }}
+              </li>
+            }
+          }
+        </ul>
+      </div>
+      @if (d.filled && d.filledAt) {
+        <div class="pt-3 border-t border-slate-100 text-xs text-slate-400">
+          Last saved {{ d.filledAt | slice:0:10 }}@if (d.updatedByName) { by {{ d.updatedByName }}}
+        </div>
+      }
+    </aside>
+
+    <!-- Editor card -->
+    <div class="bg-white rounded-xl shadow-sm overflow-hidden flex flex-col">
+      <div class="px-5 py-3 border-b border-slate-100 flex items-center justify-between">
+        <span class="text-xs font-medium text-slate-500">Markdown</span>
+        @if (d.filled) {
+          <span class="inline-flex items-center gap-1 text-xs text-emerald-600 font-medium">
+            <svg width="12" height="12" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clip-rule="evenodd"/>
+            </svg>
+            Filled
+          </span>
+        } @else {
+          <span class="text-xs text-slate-400">Not filled</span>
+        }
+      </div>
+
+      @if (!isOperator()) {
+        <div class="px-5 py-3 bg-amber-50 border-b border-amber-100 text-xs text-amber-700">
+          You have read-only access to this document. Contact an operator to update it.
+        </div>
+      }
+
+      <textarea
+        class="flex-1 w-full min-h-[320px] px-5 py-4 text-sm font-mono text-slate-700 resize-y leading-relaxed bg-white placeholder-slate-300 focus:outline-none"
+        [class.bg-slate-50]="!isOperator()"
+        [class.cursor-not-allowed]="!isOperator()"
+        [disabled]="!isOperator() || saving()"
+        [placeholder]="'Write your ' + d.label + ' here… (Markdown supported)'"
+        [value]="editorValue()"
+        (input)="onInput($event)"
+        aria-label="Document content"
+      ></textarea>
+
+      <div class="px-5 py-3 border-t border-slate-100 flex items-center justify-between gap-3">
+        <div class="text-sm">
+          @if (saveError()) {
+            <span class="text-red-600 font-medium">{{ saveError()!.title }}</span>
+          } @else if (savedOk()) {
+            <span class="text-emerald-600 font-medium">Saved successfully.</span>
+          }
+        </div>
+        @if (isOperator()) {
+          <div class="flex items-center gap-2">
+            <app-button variant="secondary" [disabled]="saving()" (clicked)="cancel()">Cancel</app-button>
+            <app-button variant="primary" [disabled]="saving() || !isDirty()" (clicked)="save()">
+              {{ saving() ? 'Saving…' : 'Save' }}
+            </app-button>
+          </div>
+        }
+      </div>
+    </div>
+  </div>
+}

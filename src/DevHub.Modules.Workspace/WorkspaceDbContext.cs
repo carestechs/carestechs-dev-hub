@@ -14,6 +14,7 @@ public sealed class WorkspaceDbContext(DbContextOptions<WorkspaceDbContext> opti
     public DbSet<ProjectMembership> ProjectMemberships => Set<ProjectMembership>();
     public DbSet<RoleAssignment> RoleAssignments => Set<RoleAssignment>();
     public DbSet<WorkspaceRoleAssignment> WorkspaceRoleAssignments => Set<WorkspaceRoleAssignment>();
+    public DbSet<ProjectDoc> ProjectDocs => Set<ProjectDoc>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -78,6 +79,15 @@ public sealed class WorkspaceDbContext(DbContextOptions<WorkspaceDbContext> opti
              .IsUnique()
              .HasFilter("deleted_at IS NULL");
             b.HasQueryFilter(w => w.DeletedAt == null);
+        });
+
+        modelBuilder.Entity<ProjectDoc>(b =>
+        {
+            b.Property(d => d.DocKey).HasMaxLength(80).IsRequired();
+            b.Property(d => d.Content).HasColumnType("text");
+            b.HasIndex(d => new { d.ProjectId, d.DocKey }).IsUnique();
+            b.HasOne<Project>().WithMany().HasForeignKey(d => d.ProjectId)
+             .OnDelete(DeleteBehavior.Cascade);
         });
 
         base.OnModelCreating(modelBuilder);

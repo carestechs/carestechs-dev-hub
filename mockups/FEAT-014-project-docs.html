@@ -1,0 +1,1152 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>T-007 / T-008 — Project Docs Mockup — DevHub</title>
+<style>
+/* ── Design tokens ───────────────────────────────────────────── */
+:root {
+  --bg:           #F8FAFC;
+  --surface:      #FFFFFF;
+  --surface-2:    #F1F5F9;
+  --border:       #E2E8F0;
+  --border-focus: #0EA5E9;
+  --text-1:       #0F172A;
+  --text-2:       #334155;
+  --text-3:       #64748B;
+  --text-4:       #94A3B8;
+  --accent:       #0EA5E9;
+  --accent-light: #E0F2FE;
+  --filled:       #10B981;
+  --filled-light: #ECFDF5;
+  --filled-border:#6EE7B7;
+  --warn:         #F59E0B;
+  --warn-light:   #FFFBEB;
+  --warn-border:  #FCD34D;
+  --error:        #EF4444;
+  --shadow-sm: 0 1px 3px 0 rgb(0 0 0/.07), 0 1px 2px -1px rgb(0 0 0/.07);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0/.08), 0 2px 4px -2px rgb(0 0 0/.08);
+  --radius:   0.75rem;
+  --radius-sm:0.5rem;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg:           #0F172A;
+    --surface:      #1E293B;
+    --surface-2:    #0F172A;
+    --border:       #334155;
+    --text-1:       #F1F5F9;
+    --text-2:       #CBD5E1;
+    --text-3:       #94A3B8;
+    --text-4:       #64748B;
+    --accent-light: #0C4A6E;
+    --filled-light: #064E3B;
+    --filled-border:#059669;
+    --warn-light:   #451A03;
+    --warn-border:  #D97706;
+  }
+}
+:root[data-theme="dark"] {
+  --bg:           #0F172A;
+  --surface:      #1E293B;
+  --surface-2:    #0F172A;
+  --border:       #334155;
+  --text-1:       #F1F5F9;
+  --text-2:       #CBD5E1;
+  --text-3:       #94A3B8;
+  --text-4:       #64748B;
+  --accent-light: #0C4A6E;
+  --filled-light: #064E3B;
+  --filled-border:#059669;
+  --warn-light:   #451A03;
+  --warn-border:  #D97706;
+}
+:root[data-theme="light"] {
+  --bg:           #F8FAFC;
+  --surface:      #FFFFFF;
+  --surface-2:    #F1F5F9;
+  --border:       #E2E8F0;
+  --text-1:       #0F172A;
+  --text-2:       #334155;
+  --text-3:       #64748B;
+  --text-4:       #94A3B8;
+  --accent-light: #E0F2FE;
+  --filled-light: #ECFDF5;
+  --filled-border:#6EE7B7;
+  --warn-light:   #FFFBEB;
+  --warn-border:  #FCD34D;
+}
+
+/* ── Reset & base ────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 16px; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text-1);
+  line-height: 1.6;
+  min-height: 100vh;
+}
+a { color: var(--accent); text-decoration: none; }
+button { cursor: pointer; font: inherit; border: none; background: none; }
+
+/* ── Reviewer chrome ─────────────────────────────────────────── */
+.reviewer-bar {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 0.75rem 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+.reviewer-bar .title {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text-3);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.reviewer-bar .subtitle {
+  font-size: 0.8125rem;
+  color: var(--text-4);
+  margin-left: 0.75rem;
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+}
+.theme-toggle {
+  font-size: 0.8125rem;
+  color: var(--text-3);
+  padding: 0.375rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  transition: background 0.15s;
+}
+.theme-toggle:hover { background: var(--surface-2); }
+
+/* ── Section label ───────────────────────────────────────────── */
+.section-wrap {
+  padding: 2.5rem 1.5rem;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+.section-label {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-4);
+  margin-bottom: 1.5rem;
+}
+
+/* ── States row ──────────────────────────────────────────────── */
+.states-row {
+  display: grid;
+  gap: 2rem;
+  align-items: start;
+}
+.states-row.cols-3 { grid-template-columns: repeat(3, 1fr); }
+.states-row.cols-2 { grid-template-columns: repeat(2, 1fr); }
+@media (max-width: 1100px) {
+  .states-row.cols-3,
+  .states-row.cols-2 { grid-template-columns: 1fr; }
+}
+
+.state-box {}
+.state-name {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-4);
+  margin-bottom: 0.875rem;
+  text-align: center;
+}
+
+/* ── App shell chrome ────────────────────────────────────────── */
+.app-shell {
+  background: var(--surface);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-md);
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+.app-topbar {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 0 1.25rem;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.app-topbar .breadcrumb {
+  font-size: 0.8125rem;
+  color: var(--text-3);
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+.app-topbar .breadcrumb .current { color: var(--text-1); font-weight: 500; }
+.app-topbar .sep { color: var(--text-4); }
+
+/* ── Page content area ───────────────────────────────────────── */
+.page { padding: 1.25rem; background: var(--bg); min-height: 480px; }
+
+/* ── Back link ───────────────────────────────────────────────── */
+.back-link {
+  font-size: 0.8125rem;
+  color: var(--accent);
+  margin-bottom: 1rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+/* ── Project header card ─────────────────────────────────────── */
+.project-header {
+  background: var(--surface);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1rem;
+}
+.project-header h1 {
+  font-size: 1.375rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.3;
+  margin-bottom: 0.25rem;
+}
+.project-header .slug {
+  font-size: 0.75rem;
+  color: var(--text-3);
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  margin-bottom: 0.75rem;
+}
+.header-badges {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  padding: 0.1875rem 0.625rem;
+  border-radius: 9999px;
+  letter-spacing: 0.02em;
+}
+.badge-sky   { background: var(--accent-light); color: #0369A1; }
+.badge-gh    { background: #1B1F24; color: #fff; }
+.btn-primary {
+  background: var(--accent);
+  color: #fff;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  padding: 0.4375rem 1rem;
+  border-radius: var(--radius-sm);
+  transition: background 0.15s;
+  display: inline-flex; align-items: center; gap: 0.375rem;
+}
+.btn-primary:hover { background: #0284C7; }
+.btn-secondary {
+  background: var(--surface);
+  color: var(--text-2);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  padding: 0.4375rem 1rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  transition: background 0.15s;
+  display: inline-flex; align-items: center; gap: 0.375rem;
+}
+.btn-secondary:hover { background: var(--surface-2); }
+.btn-ghost {
+  background: transparent;
+  color: var(--accent);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  padding: 0.4375rem 0.875rem;
+  border-radius: var(--radius-sm);
+  transition: background 0.15s;
+  display: inline-flex; align-items: center; gap: 0.25rem;
+}
+.btn-ghost:hover { background: var(--accent-light); }
+
+/* ── Alert banner ────────────────────────────────────────────── */
+.banner {
+  border-radius: var(--radius-sm);
+  padding: 0.75rem 1rem;
+  font-size: 0.8125rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.625rem;
+  margin-bottom: 1rem;
+}
+.banner-warn {
+  background: var(--warn-light);
+  border: 1px solid var(--warn-border);
+  color: #92400E;
+}
+:root[data-theme="dark"] .banner-warn { color: #FDE68A; }
+.banner-warn .banner-icon { color: var(--warn); flex-shrink: 0; margin-top: 0.05rem; }
+.banner-title { font-weight: 600; margin-bottom: 0.25rem; }
+.banner-list {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+  margin-top: 0.375rem;
+}
+.banner-doc-chip {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  background: rgb(0 0 0 / 0.07);
+  border-radius: 4px;
+  padding: 0.1875rem 0.5rem;
+  color: #92400E;
+}
+:root[data-theme="dark"] .banner-doc-chip { color: #FDE68A; background: rgb(255 255 255 / 0.08); }
+
+/* ── Tabs ────────────────────────────────────────────────────── */
+.tabs {
+  background: var(--surface);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  margin-bottom: 1rem;
+  overflow: hidden;
+}
+.tabs-nav {
+  display: flex;
+  border-bottom: 1px solid var(--border);
+  padding: 0 1rem;
+  gap: 0;
+}
+.tab-btn {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--text-3);
+  padding: 0.6875rem 0.875rem;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  transition: color 0.15s;
+}
+.tab-btn:hover { color: var(--text-2); }
+.tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+/* ── Progress bar ────────────────────────────────────────────── */
+.doc-progress {
+  padding: 0.875rem 1.25rem 0;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+.progress-pips {
+  display: flex;
+  gap: 4px;
+}
+.pip {
+  width: 24px;
+  height: 5px;
+  border-radius: 9999px;
+  background: var(--border);
+  transition: background 0.2s;
+}
+.pip.done { background: var(--filled); }
+.pip.empty { background: var(--warn); }
+.progress-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-3);
+}
+.progress-label .count { color: var(--text-1); }
+
+/* ── Doc list ────────────────────────────────────────────────── */
+.doc-list {
+  padding: 0.75rem 1.25rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+.doc-row {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+  padding: 0.75rem 0.875rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  border-left-width: 3px;
+  transition: box-shadow 0.15s;
+}
+.doc-row:hover { box-shadow: var(--shadow-sm); }
+.doc-row.filled { border-left-color: var(--filled); background: var(--filled-light); border-color: var(--filled-border); border-left-width: 3px; }
+.doc-row.empty  { border-left-color: var(--warn);   }
+
+.doc-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.doc-status-dot.filled { background: var(--filled); }
+.doc-status-dot.empty  { background: var(--warn); }
+
+.doc-info { flex: 1; min-width: 0; }
+.doc-name {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-1);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.doc-desc {
+  font-size: 0.75rem;
+  color: var(--text-3);
+  margin-top: 0.125rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.doc-meta {
+  font-size: 0.6875rem;
+  color: var(--text-4);
+  white-space: nowrap;
+  flex-shrink: 0;
+  width: 120px;
+  text-align: right;
+}
+.doc-meta.filled { color: var(--filled); font-weight: 500; }
+
+.doc-actions { flex-shrink: 0; }
+.btn-edit {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--accent);
+  padding: 0.3125rem 0.75rem;
+  border: 1px solid currentColor;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  transition: background 0.15s;
+  white-space: nowrap;
+}
+.btn-edit:hover { background: var(--accent-light); }
+.btn-view {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--text-3);
+  padding: 0.3125rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  transition: background 0.15s;
+}
+.btn-view:hover { background: var(--surface-2); }
+
+/* ── All-filled success strip ────────────────────────────────── */
+.success-strip {
+  margin: 0.75rem 1.25rem 1.25rem;
+  background: var(--filled-light);
+  border: 1px solid var(--filled-border);
+  border-radius: var(--radius-sm);
+  padding: 0.625rem 0.875rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: #065F46;
+}
+:root[data-theme="dark"] .success-strip { color: #6EE7B7; }
+.success-strip .icon { color: var(--filled); }
+
+/* ── Divider ─────────────────────────────────────────────────── */
+.divider {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 2.5rem 0;
+}
+
+/* ── Editor page ─────────────────────────────────────────────── */
+.editor-layout {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  gap: 1.25rem;
+  align-items: start;
+}
+@media (max-width: 700px) {
+  .editor-layout { grid-template-columns: 1fr; }
+}
+.editor-sidebar {
+  background: var(--surface);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  padding: 1.25rem;
+}
+.editor-sidebar .doc-label {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-4);
+  margin-bottom: 0.5rem;
+}
+.editor-sidebar h2 {
+  font-size: 1.0625rem;
+  font-weight: 700;
+  color: var(--text-1);
+  margin-bottom: 0.75rem;
+  line-height: 1.35;
+  letter-spacing: -0.01em;
+}
+.editor-sidebar .doc-hint {
+  font-size: 0.8125rem;
+  color: var(--text-3);
+  line-height: 1.6;
+  margin-bottom: 1rem;
+}
+.editor-sidebar .hint-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4375rem;
+  font-size: 0.75rem;
+  color: var(--text-3);
+}
+.editor-sidebar .hint-list li {
+  display: flex;
+  align-items: baseline;
+  gap: 0.375rem;
+}
+.editor-sidebar .hint-list li::before {
+  content: '→';
+  color: var(--accent);
+  flex-shrink: 0;
+  font-size: 0.625rem;
+}
+.doc-main {
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+}
+.editor-card {
+  background: var(--surface);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+.editor-toolbar {
+  padding: 0.625rem 1rem;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+.editor-toolbar .mode-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-3);
+  letter-spacing: 0.04em;
+}
+.editor-toolbar .kbd-hint {
+  font-size: 0.6875rem;
+  color: var(--text-4);
+  font-family: 'SF Mono', 'Fira Code', monospace;
+}
+.editor-textarea {
+  display: block;
+  width: 100%;
+  padding: 1rem;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  font-size: 0.8125rem;
+  line-height: 1.7;
+  color: var(--text-1);
+  background: var(--surface);
+  border: none;
+  resize: vertical;
+  min-height: 320px;
+  outline: none;
+}
+.editor-textarea:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+.editor-textarea.readonly {
+  background: var(--surface-2);
+  color: var(--text-2);
+  cursor: default;
+}
+.editor-textarea::placeholder { color: var(--text-4); }
+.editor-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+.editor-actions-right { display: flex; gap: 0.5rem; }
+.readonly-notice {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.875rem;
+  background: var(--surface-2);
+  border-radius: var(--radius-sm);
+  font-size: 0.75rem;
+  color: var(--text-3);
+  border: 1px solid var(--border);
+}
+
+/* ── Nav back ────────────────────────────────────────────────── */
+.page-nav {
+  display: flex;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+</style>
+</head>
+<body>
+
+<!-- Reviewer chrome -->
+<header class="reviewer-bar">
+  <div>
+    <span class="title">T-007 / T-008 — Project Docs</span>
+    <span class="subtitle">Docs tab (3 states) · Doc editor (3 states) · DevHub</span>
+  </div>
+  <button class="theme-toggle" onclick="
+    const t = document.documentElement;
+    t.dataset.theme = (t.dataset.theme === 'dark') ? 'light' : 'dark';
+    this.textContent = (t.dataset.theme === 'dark') ? '☀ Light' : '☾ Dark';
+  ">☾ Dark</button>
+</header>
+
+<!-- ════════════════════════════════════════════════════════════ -->
+<!-- SCREEN 1 — Docs Tab                                         -->
+<!-- ════════════════════════════════════════════════════════════ -->
+<div class="section-wrap">
+  <p class="section-label">Screen 1 — Docs tab · Project home page</p>
+
+  <div class="states-row cols-3">
+
+    <!-- State A: All empty (new project) -->
+    <div class="state-box">
+      <p class="state-name">All empty — operator</p>
+      <div class="app-shell">
+        <div class="app-topbar">
+          <span class="breadcrumb">
+            <span>Projects</span>
+            <span class="sep">/</span>
+            <span class="current">carestechs-store</span>
+          </span>
+        </div>
+        <div class="page">
+          <a class="back-link" href="#">← All projects</a>
+
+          <!-- Project header -->
+          <div class="project-header">
+            <h1>Carestechs Store</h1>
+            <div class="slug">carestechs-store</div>
+            <div class="header-badges" style="justify-content:space-between;align-items:center;">
+              <div style="display:flex;gap:.5rem;align-items:center;">
+                <span class="badge badge-sky">lifecycle-manual</span>
+                <span class="badge badge-gh" style="gap:.375rem;">
+                  <svg width="11" height="11" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+                  carestechs/carestechs-store
+                </span>
+              </div>
+              <button class="btn-primary" style="font-size:.75rem;padding:.3125rem .75rem;">Start work →</button>
+            </div>
+          </div>
+
+          <!-- Amber banner -->
+          <div class="banner banner-warn">
+            <svg class="banner-icon" width="16" height="16" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd"/></svg>
+            <div>
+              <div class="banner-title">7 documents required before starting work</div>
+              <div style="font-size:.75rem;margin-top:.25rem;color:#92400E;opacity:.85;">Fill all documents in the Docs tab to unlock work item creation.</div>
+            </div>
+          </div>
+
+          <!-- Tabs -->
+          <div class="tabs">
+            <div class="tabs-nav">
+              <button class="tab-btn">Work items</button>
+              <button class="tab-btn active">Docs</button>
+              <button class="tab-btn">Audit</button>
+            </div>
+
+            <!-- Progress -->
+            <div class="doc-progress">
+              <div class="progress-pips">
+                <div class="pip empty"></div><div class="pip empty"></div><div class="pip empty"></div>
+                <div class="pip empty"></div><div class="pip empty"></div><div class="pip empty"></div>
+                <div class="pip empty"></div>
+              </div>
+              <span class="progress-label"><span class="count">0</span> / 7 documents filled</span>
+            </div>
+
+            <!-- Doc list -->
+            <div class="doc-list">
+              <div class="doc-row empty">
+                <div class="doc-status-dot empty"></div>
+                <div class="doc-info">
+                  <div class="doc-name">Stakeholder Definition</div>
+                  <div class="doc-desc">Why this project exists, who it's for, what's in scope</div>
+                </div>
+                <div class="doc-meta">Not filled</div>
+                <div class="doc-actions"><button class="btn-edit">Fill</button></div>
+              </div>
+              <div class="doc-row empty">
+                <div class="doc-status-dot empty"></div>
+                <div class="doc-info">
+                  <div class="doc-name">Architecture</div>
+                  <div class="doc-desc">System structure, modules, data flow</div>
+                </div>
+                <div class="doc-meta">Not filled</div>
+                <div class="doc-actions"><button class="btn-edit">Fill</button></div>
+              </div>
+              <div class="doc-row empty">
+                <div class="doc-status-dot empty"></div>
+                <div class="doc-info">
+                  <div class="doc-name">Data Model</div>
+                  <div class="doc-desc">Entities, fields, relationships, constraints</div>
+                </div>
+                <div class="doc-meta">Not filled</div>
+                <div class="doc-actions"><button class="btn-edit">Fill</button></div>
+              </div>
+              <div class="doc-row empty">
+                <div class="doc-status-dot empty"></div>
+                <div class="doc-info">
+                  <div class="doc-name">API Specification</div>
+                  <div class="doc-desc">Endpoints, request/response shapes, status codes</div>
+                </div>
+                <div class="doc-meta">Not filled</div>
+                <div class="doc-actions"><button class="btn-edit">Fill</button></div>
+              </div>
+              <div class="doc-row empty">
+                <div class="doc-status-dot empty"></div>
+                <div class="doc-info">
+                  <div class="doc-name">UI Specification</div>
+                  <div class="doc-desc">Screens, components, interactions, states</div>
+                </div>
+                <div class="doc-meta">Not filled</div>
+                <div class="doc-actions"><button class="btn-edit">Fill</button></div>
+              </div>
+              <div class="doc-row empty">
+                <div class="doc-status-dot empty"></div>
+                <div class="doc-info">
+                  <div class="doc-name">Primary User Persona</div>
+                  <div class="doc-desc">Who the primary user is, their goals and pain points</div>
+                </div>
+                <div class="doc-meta">Not filled</div>
+                <div class="doc-actions"><button class="btn-edit">Fill</button></div>
+              </div>
+              <div class="doc-row empty">
+                <div class="doc-status-dot empty"></div>
+                <div class="doc-info">
+                  <div class="doc-name">CLAUDE.md</div>
+                  <div class="doc-desc">Implementation conventions, patterns, anti-patterns</div>
+                </div>
+                <div class="doc-meta">Not filled</div>
+                <div class="doc-actions"><button class="btn-edit">Fill</button></div>
+              </div>
+            </div>
+          </div><!-- /tabs -->
+        </div><!-- /page -->
+      </div><!-- /app-shell -->
+    </div><!-- /state A -->
+
+    <!-- State B: In progress (4/7) -->
+    <div class="state-box">
+      <p class="state-name">In progress (4 / 7) — operator</p>
+      <div class="app-shell">
+        <div class="app-topbar">
+          <span class="breadcrumb">
+            <span>Projects</span><span class="sep">/</span>
+            <span class="current">carestechs-store</span>
+          </span>
+        </div>
+        <div class="page">
+          <a class="back-link" href="#">← All projects</a>
+          <div class="project-header">
+            <h1>Carestechs Store</h1>
+            <div class="slug">carestechs-store</div>
+            <div class="header-badges" style="justify-content:space-between;align-items:center;">
+              <div style="display:flex;gap:.5rem;align-items:center;">
+                <span class="badge badge-sky">lifecycle-manual</span>
+                <span class="badge badge-gh" style="gap:.375rem;">
+                  <svg width="11" height="11" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+                  carestechs/carestechs-store
+                </span>
+              </div>
+              <button class="btn-primary" style="font-size:.75rem;padding:.3125rem .75rem;">Start work →</button>
+            </div>
+          </div>
+
+          <div class="banner banner-warn">
+            <svg class="banner-icon" width="16" height="16" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd"/></svg>
+            <div>
+              <div class="banner-title">3 documents still needed</div>
+              <ul class="banner-list">
+                <li><span class="banner-doc-chip">UI Specification</span></li>
+                <li><span class="banner-doc-chip">Primary User Persona</span></li>
+                <li><span class="banner-doc-chip">CLAUDE.md</span></li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="tabs">
+            <div class="tabs-nav">
+              <button class="tab-btn">Work items</button>
+              <button class="tab-btn active">Docs</button>
+              <button class="tab-btn">Audit</button>
+            </div>
+            <div class="doc-progress">
+              <div class="progress-pips">
+                <div class="pip done"></div><div class="pip done"></div><div class="pip done"></div>
+                <div class="pip done"></div><div class="pip empty"></div><div class="pip empty"></div>
+                <div class="pip empty"></div>
+              </div>
+              <span class="progress-label"><span class="count">4</span> / 7 documents filled</span>
+            </div>
+            <div class="doc-list">
+              <div class="doc-row filled">
+                <div class="doc-status-dot filled"></div>
+                <div class="doc-info">
+                  <div class="doc-name">Stakeholder Definition</div>
+                  <div class="doc-desc">Why this project exists, who it's for, what's in scope</div>
+                </div>
+                <div class="doc-meta filled">Updated Jul 2</div>
+                <div class="doc-actions"><button class="btn-edit">Edit</button></div>
+              </div>
+              <div class="doc-row filled">
+                <div class="doc-status-dot filled"></div>
+                <div class="doc-info">
+                  <div class="doc-name">Architecture</div>
+                  <div class="doc-desc">System structure, modules, data flow</div>
+                </div>
+                <div class="doc-meta filled">Updated Jul 2</div>
+                <div class="doc-actions"><button class="btn-edit">Edit</button></div>
+              </div>
+              <div class="doc-row filled">
+                <div class="doc-status-dot filled"></div>
+                <div class="doc-info">
+                  <div class="doc-name">Data Model</div>
+                  <div class="doc-desc">Entities, fields, relationships, constraints</div>
+                </div>
+                <div class="doc-meta filled">Updated Jul 3</div>
+                <div class="doc-actions"><button class="btn-edit">Edit</button></div>
+              </div>
+              <div class="doc-row filled">
+                <div class="doc-status-dot filled"></div>
+                <div class="doc-info">
+                  <div class="doc-name">API Specification</div>
+                  <div class="doc-desc">Endpoints, request/response shapes, status codes</div>
+                </div>
+                <div class="doc-meta filled">Updated Jul 3</div>
+                <div class="doc-actions"><button class="btn-edit">Edit</button></div>
+              </div>
+              <div class="doc-row empty">
+                <div class="doc-status-dot empty"></div>
+                <div class="doc-info">
+                  <div class="doc-name">UI Specification</div>
+                  <div class="doc-desc">Screens, components, interactions, states</div>
+                </div>
+                <div class="doc-meta">Not filled</div>
+                <div class="doc-actions"><button class="btn-edit">Fill</button></div>
+              </div>
+              <div class="doc-row empty">
+                <div class="doc-status-dot empty"></div>
+                <div class="doc-info">
+                  <div class="doc-name">Primary User Persona</div>
+                  <div class="doc-desc">Who the primary user is, their goals and pain points</div>
+                </div>
+                <div class="doc-meta">Not filled</div>
+                <div class="doc-actions"><button class="btn-edit">Fill</button></div>
+              </div>
+              <div class="doc-row empty">
+                <div class="doc-status-dot empty"></div>
+                <div class="doc-info">
+                  <div class="doc-name">CLAUDE.md</div>
+                  <div class="doc-desc">Implementation conventions, patterns, anti-patterns</div>
+                </div>
+                <div class="doc-meta">Not filled</div>
+                <div class="doc-actions"><button class="btn-edit">Fill</button></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div><!-- /state B -->
+
+    <!-- State C: All filled -->
+    <div class="state-box">
+      <p class="state-name">All filled — operator</p>
+      <div class="app-shell">
+        <div class="app-topbar">
+          <span class="breadcrumb">
+            <span>Projects</span><span class="sep">/</span>
+            <span class="current">carestechs-store</span>
+          </span>
+        </div>
+        <div class="page">
+          <a class="back-link" href="#">← All projects</a>
+          <div class="project-header">
+            <h1>Carestechs Store</h1>
+            <div class="slug">carestechs-store</div>
+            <div class="header-badges" style="justify-content:space-between;align-items:center;">
+              <div style="display:flex;gap:.5rem;align-items:center;">
+                <span class="badge badge-sky">lifecycle-manual</span>
+              </div>
+              <button class="btn-primary" style="font-size:.75rem;padding:.3125rem .75rem;">Start work →</button>
+            </div>
+          </div>
+
+          <!-- No banner — all filled -->
+          <div class="tabs">
+            <div class="tabs-nav">
+              <button class="tab-btn">Work items</button>
+              <button class="tab-btn active">Docs</button>
+              <button class="tab-btn">Audit</button>
+            </div>
+
+            <div class="success-strip">
+              <svg class="icon" width="15" height="15" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clip-rule="evenodd"/></svg>
+              All 7 documents filled — work items can be created.
+            </div>
+
+            <div class="doc-progress">
+              <div class="progress-pips">
+                <div class="pip done"></div><div class="pip done"></div><div class="pip done"></div>
+                <div class="pip done"></div><div class="pip done"></div><div class="pip done"></div>
+                <div class="pip done"></div>
+              </div>
+              <span class="progress-label"><span class="count">7</span> / 7 documents filled</span>
+            </div>
+            <div class="doc-list">
+              <div class="doc-row filled"><div class="doc-status-dot filled"></div><div class="doc-info"><div class="doc-name">Stakeholder Definition</div><div class="doc-desc">Why this project exists, who it's for, what's in scope</div></div><div class="doc-meta filled">Updated Jul 2</div><div class="doc-actions"><button class="btn-edit">Edit</button></div></div>
+              <div class="doc-row filled"><div class="doc-status-dot filled"></div><div class="doc-info"><div class="doc-name">Architecture</div><div class="doc-desc">System structure, modules, data flow</div></div><div class="doc-meta filled">Updated Jul 2</div><div class="doc-actions"><button class="btn-edit">Edit</button></div></div>
+              <div class="doc-row filled"><div class="doc-status-dot filled"></div><div class="doc-info"><div class="doc-name">Data Model</div><div class="doc-desc">Entities, fields, relationships, constraints</div></div><div class="doc-meta filled">Updated Jul 3</div><div class="doc-actions"><button class="btn-edit">Edit</button></div></div>
+              <div class="doc-row filled"><div class="doc-status-dot filled"></div><div class="doc-info"><div class="doc-name">API Specification</div><div class="doc-desc">Endpoints, request/response shapes, status codes</div></div><div class="doc-meta filled">Updated Jul 3</div><div class="doc-actions"><button class="btn-edit">Edit</button></div></div>
+              <div class="doc-row filled"><div class="doc-status-dot filled"></div><div class="doc-info"><div class="doc-name">UI Specification</div><div class="doc-desc">Screens, components, interactions, states</div></div><div class="doc-meta filled">Updated Jul 3</div><div class="doc-actions"><button class="btn-edit">Edit</button></div></div>
+              <div class="doc-row filled"><div class="doc-status-dot filled"></div><div class="doc-info"><div class="doc-name">Primary User Persona</div><div class="doc-desc">Who the primary user is, their goals and pain points</div></div><div class="doc-meta filled">Updated Jul 3</div><div class="doc-actions"><button class="btn-edit">Edit</button></div></div>
+              <div class="doc-row filled"><div class="doc-status-dot filled"></div><div class="doc-info"><div class="doc-name">CLAUDE.md</div><div class="doc-desc">Implementation conventions, patterns, anti-patterns</div></div><div class="doc-meta filled">Updated Jul 3</div><div class="doc-actions"><button class="btn-edit">Edit</button></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div><!-- /state C -->
+
+  </div><!-- /states-row -->
+</div><!-- /section-wrap -->
+
+<hr class="divider" style="margin:0 1.5rem;" />
+
+<!-- ════════════════════════════════════════════════════════════ -->
+<!-- SCREEN 2 — Doc Editor                                       -->
+<!-- ════════════════════════════════════════════════════════════ -->
+<div class="section-wrap">
+  <p class="section-label">Screen 2 — Doc editor · /projects/:slug/docs/:key</p>
+
+  <div class="states-row cols-3">
+
+    <!-- State A: Empty doc, operator editing -->
+    <div class="state-box">
+      <p class="state-name">Empty doc — operator</p>
+      <div class="app-shell">
+        <div class="app-topbar">
+          <span class="breadcrumb">
+            <span>Projects</span><span class="sep">/</span>
+            <span>carestechs-store</span><span class="sep">/</span>
+            <span class="current">Docs</span>
+          </span>
+        </div>
+        <div class="page">
+          <div class="page-nav">
+            <a class="back-link" href="#">← Back to Docs</a>
+          </div>
+
+          <div class="editor-layout">
+            <div class="editor-sidebar">
+              <div class="doc-label">Document</div>
+              <h2>Stakeholder Definition</h2>
+              <p class="doc-hint">Describe why this project exists, who it serves, and what is firmly out of scope. This anchors every future decision.</p>
+              <ul class="hint-list">
+                <li>Executive summary and value proposition</li>
+                <li>Core business problem being solved</li>
+                <li>Primary success criteria</li>
+                <li>Scope lock — what's in and what's out</li>
+                <li>Guiding principles</li>
+              </ul>
+            </div>
+            <div class="doc-main">
+              <div class="editor-card">
+                <div class="editor-toolbar">
+                  <span class="mode-label">Editing</span>
+                  <span class="kbd-hint">⌘S to save</span>
+                </div>
+                <textarea class="editor-textarea" placeholder="# Stakeholder Definition
+
+## Executive Summary
+...
+
+## Core Business Problem
+...
+
+## Success Criteria
+..."></textarea>
+              </div>
+              <div class="editor-actions">
+                <button class="btn-secondary">Cancel</button>
+                <div class="editor-actions-right">
+                  <button class="btn-primary">Save document</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- State B: Filled doc, operator editing -->
+    <div class="state-box">
+      <p class="state-name">Filled doc — operator editing</p>
+      <div class="app-shell">
+        <div class="app-topbar">
+          <span class="breadcrumb">
+            <span>Projects</span><span class="sep">/</span>
+            <span>carestechs-store</span><span class="sep">/</span>
+            <span class="current">Docs</span>
+          </span>
+        </div>
+        <div class="page">
+          <div class="page-nav">
+            <a class="back-link" href="#">← Back to Docs</a>
+          </div>
+          <div class="editor-layout">
+            <div class="editor-sidebar">
+              <div class="doc-label">Document</div>
+              <h2>Architecture</h2>
+              <p class="doc-hint">Describe the system's structure — the modules, services, and how data flows between them.</p>
+              <ul class="hint-list">
+                <li>Architectural style (modular monolith, microservices…)</li>
+                <li>Key modules and their responsibilities</li>
+                <li>Data flow and integration points</li>
+                <li>External dependencies</li>
+              </ul>
+              <div style="margin-top:1rem;padding-top:1rem;border-top:1px solid var(--border);">
+                <div style="font-size:.6875rem;color:var(--text-4);font-weight:600;letter-spacing:.04em;text-transform:uppercase;margin-bottom:.25rem;">Last saved</div>
+                <div style="font-size:.75rem;color:var(--text-3);">Jul 2, 2026 · by operator</div>
+              </div>
+            </div>
+            <div class="doc-main">
+              <div class="editor-card">
+                <div class="editor-toolbar">
+                  <span class="mode-label">Editing</span>
+                  <span class="kbd-hint">⌘S to save</span>
+                </div>
+                <textarea class="editor-textarea"># Architecture
+
+## Overview
+Carestechs Store is a modular monolith built on .NET 10 / ASP.NET Core
+with an Angular 20 SPA frontend. Data is stored in PostgreSQL.
+
+## Modules
+- **Catalog** — Product listings, categories, inventory levels
+- **Orders** — Cart, checkout, order lifecycle
+- **Identity** — Auth, JWT, member management
+- **Notifications** — Email and push delivery
+
+## Data Flow
+Browser → Angular SPA → API Gateway → Module controllers
+→ Service layer → EF Core → PostgreSQL</textarea>
+              </div>
+              <div class="editor-actions">
+                <button class="btn-secondary">Cancel</button>
+                <div class="editor-actions-right">
+                  <button class="btn-primary">Save document</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- State C: Read-only (non-operator) -->
+    <div class="state-box">
+      <p class="state-name">Read-only — non-operator</p>
+      <div class="app-shell">
+        <div class="app-topbar">
+          <span class="breadcrumb">
+            <span>Projects</span><span class="sep">/</span>
+            <span>carestechs-store</span><span class="sep">/</span>
+            <span class="current">Docs</span>
+          </span>
+        </div>
+        <div class="page">
+          <div class="page-nav">
+            <a class="back-link" href="#">← Back to Docs</a>
+          </div>
+          <div class="editor-layout">
+            <div class="editor-sidebar">
+              <div class="doc-label">Document</div>
+              <h2>Architecture</h2>
+              <p class="doc-hint">Describes the system's structure — the modules, services, and how data flows between them.</p>
+              <div style="margin-top:1rem;padding-top:1rem;border-top:1px solid var(--border);">
+                <div style="font-size:.6875rem;color:var(--text-4);font-weight:600;letter-spacing:.04em;text-transform:uppercase;margin-bottom:.25rem;">Last saved</div>
+                <div style="font-size:.75rem;color:var(--text-3);">Jul 2, 2026 · by operator</div>
+              </div>
+            </div>
+            <div class="doc-main">
+              <div class="editor-card">
+                <div class="editor-toolbar">
+                  <span class="mode-label">Viewing</span>
+                  <span class="readonly-notice">
+                    <svg width="13" height="13" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 1a4.5 4.5 0 00-4.5 4.5V9H5a2 2 0 00-2 2v6a2 2 0 002 2h10a2 2 0 002-2v-6a2 2 0 00-2-2h-.5V5.5A4.5 4.5 0 0010 1zm3 8V5.5a3 3 0 10-6 0V9h6z" clip-rule="evenodd"/></svg>
+                    Operator role required to edit
+                  </span>
+                </div>
+                <textarea class="editor-textarea readonly" readonly># Architecture
+
+## Overview
+Carestechs Store is a modular monolith built on .NET 10 / ASP.NET Core
+with an Angular 20 SPA frontend. Data is stored in PostgreSQL.
+
+## Modules
+- **Catalog** — Product listings, categories, inventory levels
+- **Orders** — Cart, checkout, order lifecycle
+- **Identity** — Auth, JWT, member management
+- **Notifications** — Email and push delivery
+
+## Data Flow
+Browser → Angular SPA → API Gateway → Module controllers
+→ Service layer → EF Core → PostgreSQL</textarea>
+              </div>
+              <!-- No save button for read-only -->
+              <div class="editor-actions">
+                <button class="btn-secondary">← Back to Docs</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /states-row -->
+</div><!-- /section-wrap -->
+
+</body>
+</html>
