@@ -2,26 +2,42 @@ using System.ComponentModel.DataAnnotations;
 
 namespace DevHub.Modules.Workspace.DTOs;
 
-public sealed record ProjectDocSummaryDto(
+public sealed record ProjectDocSectionSummaryDto(
     string Key,
+    string Label,
+    bool Required,
+    bool Filled);
+
+public sealed record ProjectDocSummaryDto(
+    string DocKey,
     string Label,
     string Description,
     bool Filled,
-    DateTimeOffset? FilledAt,
-    string? UpdatedByName);
+    bool Locked,
+    int FilledSectionCount,
+    int TotalSectionCount,
+    IReadOnlyList<ProjectDocSectionSummaryDto> Sections);
 
-public sealed record ProjectDocDto(
+public sealed record ProjectDocSectionDto(
     string Key,
     string Label,
-    string Description,
-    string Hints,
+    string? Hint,
+    bool Required,
     string? Content,
     bool Filled,
     DateTimeOffset? FilledAt,
     string? UpdatedByName);
 
-public sealed class UpsertDocRequest
+public sealed record ProjectDocDto(
+    string DocKey,
+    string Label,
+    string Description,
+    bool Filled,
+    bool Locked,
+    IReadOnlyList<ProjectDocSectionDto> Sections);
+
+public sealed class UpsertDocSectionsRequest
 {
     [Required]
-    public string Content { get; init; } = string.Empty;
+    public required Dictionary<string, string> Sections { get; init; }
 }

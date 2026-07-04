@@ -45,6 +45,7 @@ Six modules own data; each owns its own `DbContext` and its own schema. Cross-mo
 | description | text | Optional | Free-form description |
 | repo | varchar(140) | Optional | GitHub `owner/name` (no scheme, no `.git`). Forwarded as `intake.codeSource.repo` to the executor on work-item start. Validated at the DevHub boundary per the orchestrator's `intake.codeSource` schema. |
 | default_branch | varchar(200) | Optional | Default git branch name (e.g. `main`). Forwarded as `intake.codeSource.baseBranch` on start. Same validation rules as a git branch shorthand (no whitespace, no leading `/`, no `..`, no control chars). |
+| doc_template_version_id | UUID | Required, FK → DocTemplateVersion.id | The versioned doc template pinned to this project at creation time (FEAT-015) |
 | created_at | timestamptz | Required, Auto | Record creation timestamp |
 | updated_at | timestamptz | Required, Auto | Last modification timestamp |
 | deleted_at | timestamptz | Nullable (soft delete) | Soft-delete marker |
@@ -54,11 +55,83 @@ Six modules own data; each owns its own `DbContext` and its own schema. Cross-mo
 - Unique on `(name)` where `deleted_at IS NULL`.
 - Index on `(owning_team_id)`.
 - Index on `(project_type)`.
+- Index on `(doc_template_version_id)`.
 
 **Business Rules:**
 - A project has exactly one owning team. Members from other teams may still hold a `ProjectMembership` (i.e. participate cross-team) but the *owning* team is singular.
 - `project_type` MUST resolve to an existing `ExecutorBinding` at creation time. Otherwise the project cannot start work.
 - **Bound executor protocol** is not stored on `Project`; it is projected at read time on single-project DTO loads (`Get`, `GetBySlug`, `Create`, `Update`) from the active `ExecutorBinding` for the project's `project_type` via the cross-module `IExecutorRouter` contract. List responses omit the projection by design (no per-row router call). Exposed to API consumers as `ProjectDto.boundExecutorProtocol`.
+- `doc_template_version_id` is set at project creation to the currently active `DocTemplateVersion`. It never changes after creation — existing projects keep their pinned version even when a new version is activated (FEAT-015).
+
+---
+
+### DocTemplateVersion
+
+> *Module: Workspace — A named snapshot of the documentation section schema. New projects are pinned to the active version at creation time.*
+
+| Field | Type | Constraints | Description |
+|-------|------|-------------|-------------|
+| id | UUID | PK | Primary key |
+| version_number | integer | Required, auto-increment | Monotonically increasing version identifier |
+| is_active | boolean | Required | At most one version may be active at a time. Activation is an atomic swap (all others set to `false`). |
+| notes | text | Optional | Human description of what changed in this version |
+| created_at | timestamptz | Required, Auto | |
+| updated_at | timestamptz | Required, Auto | |
+
+**Business Rules:**
+- Exactly one (or zero during bootstrap) version may be `is_active = true` at a time.
+- Activating a version atomically deactivates all others.
+- A version cannot be deleted once any project is pinned to it (FK Restrict).
+- Projects are pinned at creation; the pin is never updated.
+
+---
+
+### DocTemplateSection
+
+> *Module: Workspace — A single editable section within a `DocTemplateVersion`. Sections are grouped by `doc_key` (the 7 canonical document types) and ordered by `display_order`.*
+
+| Field | Type | Constraints | Description |
+|-------|------|-------------|-------------|
+| id | UUID | PK | Primary key |
+| version_id | UUID | Required, FK → DocTemplateVersion.id (cascade delete) | Owning version |
+| doc_key | varchar(80) | Required | Groups sections under a logical document (e.g. `architecture`, `data-model`) |
+| section_key | varchar(80) | Required | Stable identifier for this section within a doc (e.g. `system-overview`) |
+| label | varchar(200) | Required | Human-readable section title shown in the editor |
+| hint | text | Optional | Guidance text displayed below the label in the editor |
+| required | boolean | Required | If `true`, this section must be non-blank for the doc to count as filled |
+| display_order | integer | Required | Sort order within `doc_key` |
+| created_at | timestamptz | Required, Auto | |
+| updated_at | timestamptz | Required, Auto | |
+
+**Indexes:**
+- Unique on `(version_id, doc_key, section_key)`.
+
+**Business Rules:**
+- Sections are copied wholesale when a new version is created from a source version (`CreateAsync` copies all sections from the source).
+- Section keys are stable identifiers — callers reference them by key in `PUT /api/projects/{id}/docs/{docKey}`.
+
+---
+
+### ProjectDocSection
+
+> *Module: Workspace — Per-project content for a single `DocTemplateSection`. Rows are created lazily on first save and never deleted.*
+
+| Field | Type | Constraints | Description |
+|-------|------|-------------|-------------|
+| id | UUID | PK | Primary key |
+| project_id | UUID | Required, FK → Project.id (cascade delete) | Owning project |
+| section_id | UUID | Required, FK → DocTemplateSection.id (Restrict delete) | Which template section this content belongs to |
+| content | text | Nullable | The user-authored content; `NULL` or empty = unfilled |
+| updated_by_id | UUID | Nullable, cross-module → Member.id | Last member who wrote to this section |
+| created_at | timestamptz | Required, Auto | |
+| updated_at | timestamptz | Required, Auto | |
+
+**Indexes:**
+- Unique on `(project_id, section_id)`.
+
+**Business Rules:**
+- A doc is considered **filled** when all `DocTemplateSection` rows for that `doc_key` where `required = true` have a corresponding `ProjectDocSection` with non-blank `content`.
+- Partial saves are allowed — a `PUT` body may include only a subset of section keys; sections omitted from the body are left unchanged.
 
 ---
 
@@ -354,6 +427,10 @@ Six modules own data; each owns its own `DbContext` and its own schema. Cross-mo
 | Parent Entity | Child Entity | Foreign Key | Cascade Behavior |
 |---------------|-------------|-------------|------------------|
 | Team | Project | `owning_team_id` on Project | Restrict delete (a team owning projects cannot be deleted) |
+| DocTemplateVersion | DocTemplateSection | `version_id` on DocTemplateSection | Cascade delete |
+| DocTemplateVersion | Project | `doc_template_version_id` on Project | Restrict delete (a version in use cannot be deleted) |
+| Project | ProjectDocSection | `project_id` on ProjectDocSection | Cascade delete |
+| DocTemplateSection | ProjectDocSection | `section_id` on ProjectDocSection | Restrict delete |
 | Project | ProjectMembership | `project_id` on ProjectMembership | Soft cascade (deleting a project soft-deletes memberships) |
 | Member | ProjectMembership | `member_id` on ProjectMembership | Soft cascade |
 | ProjectMembership | RoleAssignment | `project_membership_id` on RoleAssignment | Soft cascade |
@@ -458,3 +535,4 @@ Conventional values: `Running`, `WaitingOnCheckpoint`, `Completed`, `Failed`, `C
 - **2026-05-17 (FEAT-009 / T-064)** — `CheckpointContract` gained `per_task` (bool, default `false`). `WorkItem` gained `current_task_id` (nullable varchar 60). `PendingActionSignal` gained `task_id` (nullable varchar 60); active-row uniqueness rewritten to `(member_id, work_item_id, checkpoint_key, COALESCE(task_id, '<root>'))` where `dismissed_at IS NULL`. Existing rows survive (legacy `task_id = NULL` rows collide as a single sentinel — same behavior as today).
 - **2026-05-17 (FEAT-010 / T-084)** — `WorkItem` gained nullable `executor_run_id` (uuid). `ExecutorRegistration` gained `protocol` (varchar 20, default `"devhub"`). Drives the `IExecutorHttpClient` implementation selection (FEAT-010). Existing executor rows backfill to `"devhub"` so all legacy flows continue to use the existing `ExecutorHttpClient`.
 - **2026-05-19 (IMP-001 / T-090)** — No schema change. `Project` documents a new *read-time projection*: `ProjectDto.boundExecutorProtocol` is resolved on single-project loads via `IExecutorRouter` from the active `ExecutorBinding` for the project's `project_type`; list responses pass `null` to avoid an N+1.
+- **2026-07-04 (FEAT-015)** — Replaced flat `project_docs` table with three new entities: `DocTemplateVersion`, `DocTemplateSection`, `ProjectDocSection`. `Project` gained `doc_template_version_id` (NOT NULL FK → `DocTemplateVersion`), pinned at creation. Migration `VersionedDocTemplates` seeds version 1 (active) with 22 sections across 7 doc keys. Existing projects deleted (dev data only). Docs are now section-based: partial saves allowed; filled = all required sections non-blank.

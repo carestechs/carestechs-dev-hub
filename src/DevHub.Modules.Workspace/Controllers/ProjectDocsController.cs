@@ -23,7 +23,7 @@ public sealed class ProjectDocsController(IProjectDocsService svc, ICurrentMembe
 
     [HttpPut("{key}")]
     public async Task<IActionResult> Upsert(
-        Guid projectId, string key, [FromBody] UpsertDocRequest req, CancellationToken ct) =>
+        Guid projectId, string key, [FromBody] UpsertDocSectionsRequest req, CancellationToken ct) =>
         Ok(new EnvelopeDto<ProjectDocDto>(
-            await svc.UpsertAsync(projectId, key, req.Content, me.MemberId, ct)));
+            await svc.UpsertDocSectionsAsync(projectId, key, req.Sections, me.MemberId, ct)));
 }

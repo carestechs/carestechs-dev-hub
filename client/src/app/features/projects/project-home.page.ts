@@ -1,5 +1,4 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { SlicePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -24,7 +23,7 @@ const STATUS_FILTERS: readonly StatusFilter[] = [
 @Component({
   selector: 'project-home-page',
   standalone: true,
-  imports: [RouterLink, AppButton, CodeSourceEditModal, StartWorkModal, SlicePipe],
+  imports: [RouterLink, AppButton, CodeSourceEditModal, StartWorkModal],
   templateUrl: './project-home.page.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -67,7 +66,10 @@ export class ProjectHomePage {
   protected readonly docsLoading = signal(false);
   protected readonly docsError = signal<AppError | null>(null);
   protected readonly docsFilledCount = computed(() => this.docs().filter(d => d.filled).length);
-  protected readonly allDocsFilled = computed(() => this.docs().length === 7 && this.docsFilledCount() === 7);
+  protected readonly allDocsFilled = computed(() => {
+    const d = this.docs();
+    return d.length > 0 && d.every(doc => doc.filled);
+  });
 
   // Code-source edit modal state (operator-only).
   protected readonly codeSourceOpen = signal(false);

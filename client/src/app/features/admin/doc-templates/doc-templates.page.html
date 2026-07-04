@@ -1,0 +1,113 @@
+<div class="max-w-5xl py-8">
+  <div class="flex items-center justify-between mb-8">
+    <div>
+      <h1 class="text-2xl font-bold text-slate-800">Doc Templates</h1>
+      <p class="text-sm text-slate-500 mt-1">Versioned section schemas for project documentation. The active version is assigned to new projects at creation.</p>
+    </div>
+    <app-button variant="primary" (clicked)="openNewVersionModal()" [disabled]="loading()">
+      New version
+    </app-button>
+  </div>
+
+  @if (loading()) {
+    <div class="space-y-3" aria-busy="true">
+      @for (_ of [1,2]; track _) {
+        <div class="bg-white rounded-xl shadow-sm p-6 animate-pulse space-y-3">
+          <div class="h-5 w-1/4 bg-slate-200 rounded"></div>
+          <div class="h-3 w-1/3 bg-slate-200 rounded"></div>
+        </div>
+      }
+    </div>
+  } @else if (error()) {
+    <div class="bg-white rounded-xl shadow-sm p-6 text-sm">
+      <p class="font-medium text-red-700">{{ error()!.title }}</p>
+      <p class="text-slate-500 mt-1">{{ error()!.detail }}</p>
+    </div>
+  } @else if (versions().length === 0) {
+    <div class="bg-white rounded-xl shadow-sm p-12 text-center text-slate-500 text-sm">
+      No template versions found.
+    </div>
+  } @else {
+    <div class="space-y-3">
+      @for (v of versions(); track v.id) {
+        <div class="bg-white rounded-xl shadow-sm p-6 flex items-start gap-4">
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-3 flex-wrap">
+              <span class="text-base font-semibold text-slate-800">Version {{ v.versionNumber }}</span>
+              @if (v.isActive) {
+                <span class="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full">
+                  <svg width="10" height="10" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                    <circle cx="10" cy="10" r="7"/>
+                  </svg>
+                  Active
+                </span>
+              }
+            </div>
+            @if (v.notes) {
+              <p class="text-sm text-slate-500 mt-1">{{ v.notes }}</p>
+            }
+            <p class="text-xs text-slate-400 mt-2">
+              {{ v.sectionCount }} sections · {{ v.projectCount }} project{{ v.projectCount === 1 ? '' : 's' }} · Created {{ v.createdAt | date:'mediumDate' }}
+            </p>
+          </div>
+          @if (!v.isActive) {
+            <app-button variant="secondary" [disabled]="activating()" (clicked)="confirmActivate(v)">
+              Activate
+            </app-button>
+          }
+        </div>
+      }
+    </div>
+  }
+</div>
+
+<!-- New version modal -->
+@if (modalOpen()) {
+  <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40" (click)="modalOpen.set(false)" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-6" (click)="$event.stopPropagation()">
+      <h2 id="modal-title" class="text-lg font-bold text-slate-800 mb-1">New template version</h2>
+      <p class="text-sm text-slate-500 mb-5">Copies sections from the source version. The new version starts inactive.</p>
+
+      <label class="block text-sm font-medium text-slate-700 mb-1" for="sourceVersion">Source version</label>
+      <select id="sourceVersion"
+              class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-300 mb-4"
+              (change)="onSourceVersionChange($event)">
+        @for (v of versions(); track v.id) {
+          <option [value]="v.id" [selected]="v.id === sourceVersionId()">
+            Version {{ v.versionNumber }}{{ v.isActive ? ' (active)' : '' }}
+          </option>
+        }
+      </select>
+
+      <label class="block text-sm font-medium text-slate-700 mb-1" for="notes">Notes (optional)</label>
+      <textarea id="notes"
+                rows="3"
+                class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-300 resize-none"
+                placeholder="Describe what changed in this version…"
+                [value]="notes()"
+                (input)="onNotesInput($event)"></textarea>
+
+      @if (modalError()) {
+        <p class="mt-3 text-sm text-red-600 font-medium">{{ modalError()!.title }}</p>
+      }
+
+      <div class="flex items-center justify-end gap-2 mt-5">
+        <app-button variant="secondary" [disabled]="modalWorking()" (clicked)="modalOpen.set(false)">Cancel</app-button>
+        <app-button variant="primary" [disabled]="modalWorking() || !sourceVersionId()" (clicked)="createVersion()">
+          {{ modalWorking() ? 'Creating…' : 'Create version' }}
+        </app-button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- Activate confirm dialog -->
+<confirm-dialog
+  [open]="!!toActivate()"
+  [title]="'Activate Version ' + (toActivate()?.versionNumber ?? '') + '?'"
+  message="New projects will be created with this version's sections. Existing projects keep their current version."
+  confirmLabel="Activate"
+  variant="primary"
+  [working]="activating()"
+  (confirmed)="doActivate()"
+  (cancelled)="toActivate.set(null)" />

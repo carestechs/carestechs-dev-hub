@@ -94,6 +94,11 @@ export const routes: Routes = [
         loadComponent: () => import('./features/admin/executor-bindings/executor-bindings.page').then(m => m.ExecutorBindingsPage),
       },
       {
+        path: 'admin/doc-templates',
+        canActivate: [operatorGuard],
+        loadComponent: () => import('./features/admin/doc-templates/doc-templates.page').then(m => m.DocTemplatesPage),
+      },
+      {
         path: 'me',
         loadComponent: () => import('./features/profile/profile.page').then(m => m.ProfilePage),
       },

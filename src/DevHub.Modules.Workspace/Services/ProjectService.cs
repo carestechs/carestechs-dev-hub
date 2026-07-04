@@ -118,6 +118,13 @@ internal sealed class ProjectService(
         if (!await router.IsProjectTypeBoundAsync(req.ProjectType, ct))
             throw new ConflictException($"No executor bound for project type '{req.ProjectType}'.");
 
+        var activeVersionId = await db.DocTemplateVersions
+            .AsNoTracking()
+            .Where(v => v.IsActive)
+            .Select(v => (Guid?)v.Id)
+            .FirstOrDefaultAsync(ct)
+            ?? throw new ConflictException("No active documentation template version configured. Contact your workspace operator.");
+
         var project = new Project
         {
             Name = req.Name,
@@ -127,6 +134,7 @@ internal sealed class ProjectService(
             Description = req.Description,
             Repo = req.Repo,
             DefaultBranch = req.DefaultBranch,
+            DocTemplateVersionId = activeVersionId,
         };
         db.Projects.Add(project);
 
