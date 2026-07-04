@@ -7,7 +7,7 @@
 | **ID** | FEAT-013 |
 | **Name** | Project GitHub integration — repo link + auto-creation |
 | **Target Version** | Continuous |
-| **Status** | Open |
+| **Status** | Completed |
 | **Priority** | High |
 | **Requested By** | Carlos |
 | **Date Created** | 2026-07-01 |
