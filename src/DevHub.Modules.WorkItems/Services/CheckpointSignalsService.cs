@@ -6,9 +6,12 @@ using DevHub.Contracts.Executors;
 using DevHub.Contracts.Identity;
 using DevHub.Contracts.Notifications;
 using DevHub.Contracts.Pagination;
+using DevHub.Contracts.Workspace;
 using DevHub.Modules.WorkItems.DTOs;
 using DevHub.Modules.WorkItems.Entities;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace DevHub.Modules.WorkItems.Services;
 
@@ -20,7 +23,9 @@ internal sealed class CheckpointSignalsService(
     IMemberLookup members,
     IAuditWriter audit,
     IWorkItemsService workItemsService,
-    IPendingActionReconciler reconciler) : ICheckpointSignalsService
+    IPendingActionReconciler reconciler,
+    IServiceScopeFactory scopeFactory,
+    ILogger<CheckpointSignalsService> logger) : ICheckpointSignalsService
 {
     public async Task<WorkItemDto> SignalAsync(
         Guid projectId, Guid workItemId, string checkpointKey, SignalRequest request,
@@ -157,6 +162,12 @@ internal sealed class CheckpointSignalsService(
         // Post-commit: status moved (terminal or different checkpoint) — recompute.
         await reconciler.RecomputeForWorkItemAsync(workItemId, ct);
 
+        // Post-commit: on successful completion, pull doc updates from the repo into the DB.
+        // CancellationToken.None: the request token is cancelled when the response is delivered;
+        // the pull must outlive the request.
+        if (signalResp.CurrentStatus == "Completed")
+            _ = TryPullDocsFromRepoAsync(projectId, CancellationToken.None);
+
         var createdBy = await members.FindByIdAsync(wi.CreatedByMemberId, ct);
         return new WorkItemDto(
             wi.Id, wi.ProjectId, wi.Title, wi.CurrentStatus, wi.CurrentCheckpointKey,
@@ -210,6 +221,23 @@ internal sealed class CheckpointSignalsService(
 
         return new PagedEnvelopeDto<CheckpointSignalDto>(dtos,
             new PageMeta(totalCount, page.Page, page.PageSize, page.SortBy, page.SortDir));
+    }
+
+    private async Task TryPullDocsFromRepoAsync(Guid projectId, CancellationToken ct)
+    {
+        // Create a fresh scope: the request scope is disposed by the time this fire-and-forget
+        // task executes, so all scoped services (DbContext, IProjectDocSyncService) must come
+        // from a new scope that we own.
+        try
+        {
+            await using var scope = scopeFactory.CreateAsyncScope();
+            var docSync = scope.ServiceProvider.GetRequiredService<IProjectDocSyncService>();
+            await docSync.PullDocsFromRepoAsync(projectId, ct);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Doc pull from repo failed for project {ProjectId}; signal response unaffected.", projectId);
+        }
     }
 
     /// <summary>

@@ -86,7 +86,7 @@ internal static class ExecutorStateProjection
 
             var isActive = checkpointKey is not null
                 && checkpointKey == currentCheckpointKey
-                && rawStatus == "dispatched";
+                && (rawStatus == "dispatched" || rawStatus == "pending");
             var status = isActive ? "active"
                 : rawStatus == "completed" ? "completed"
                 : rawStatus == "failed" ? "failed"

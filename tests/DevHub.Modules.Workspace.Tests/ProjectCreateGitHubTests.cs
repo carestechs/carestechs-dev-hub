@@ -194,5 +194,14 @@ public class ProjectCreateGitHubTests : IAsyncLifetime
             }
             return Task.FromResult(NextResult);
         }
+
+        public Task SeedScaffoldAsync(string targetRepo, CancellationToken ct)
+            => Task.CompletedTask;
+
+        public Task UpsertFileAsync(string repo, string path, string content, string branch, string commitMessage, CancellationToken ct)
+            => Task.CompletedTask;
+
+        public Task<string?> GetFileContentAsync(string repo, string path, string branch, CancellationToken ct)
+            => Task.FromResult<string?>(null);
     }
 }

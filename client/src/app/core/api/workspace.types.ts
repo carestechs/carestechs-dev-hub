@@ -150,6 +150,7 @@ export interface ProjectDocDto {
   filled: boolean;
   locked: boolean;
   sections: ProjectDocSectionDto[];
+  repoSynced?: boolean;
 }
 
 export interface UpsertDocSectionsRequest { sections: Record<string, string>; }
