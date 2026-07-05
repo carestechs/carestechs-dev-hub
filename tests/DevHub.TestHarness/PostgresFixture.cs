@@ -16,6 +16,7 @@ public sealed class PostgresFixture : IAsyncLifetime
         .WithUsername("devhub_test")
         .WithPassword("devhub_test")
         .WithDatabase("devhub_test")
+        .WithCommand("-c", "max_connections=500")
         .Build();
 
     public string AdminConnectionString => _container.GetConnectionString();

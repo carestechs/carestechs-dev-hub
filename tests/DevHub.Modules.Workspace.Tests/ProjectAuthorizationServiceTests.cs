@@ -84,12 +84,18 @@ public class ProjectAuthorizationServiceTests(PostgresFixture pg)
 
     private static async Task<Project> SeedProjectAsync(WorkspaceDbContext ws, Guid teamId)
     {
+        var templateVersionId = await ws.DocTemplateVersions
+            .Where(v => v.IsActive)
+            .Select(v => v.Id)
+            .FirstAsync();
+
         var project = new Project
         {
             Name = $"Proj_{Guid.NewGuid():N}",
             Slug = $"proj-{Guid.NewGuid():N}".Substring(0, 20),
             ProjectType = "feature-delivery",
             OwningTeamId = teamId,
+            DocTemplateVersionId = templateVersionId,
         };
         ws.Projects.Add(project);
         await ws.SaveChangesAsync();

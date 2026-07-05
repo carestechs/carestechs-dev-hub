@@ -29,6 +29,11 @@ public sealed class DevHubApiFactory : WebApplicationFactory<Program>
     /// HTTP client with a fake handler).
     public IReadOnlyList<Action<IServiceCollection>> ServiceOverrides { get; init; } = [];
 
+    /// Additional key/value configuration entries merged into the in-memory config layer.
+    /// Use to inject test-specific settings (e.g. GitHub:Pat) without subclassing.
+    public IReadOnlyDictionary<string, string?> ExtraConfig { get; init; } =
+        new Dictionary<string, string?>();
+
     /// When true (default), replaces <c>IProjectDocsQuery</c> with <see cref="FakeProjectDocsQuery"/>
     /// so existing integration tests are not blocked by the FEAT-014 gate. Set to false to use
     /// the real Workspace implementation (required by gate-specific tests).
@@ -83,6 +88,8 @@ public sealed class DevHubApiFactory : WebApplicationFactory<Program>
                 ["OperatorSeed:DisplayName"] = "Operator",
                 ["OperatorSeed:Password"]    = OperatorPassword,
             });
+            if (ExtraConfig.Count > 0)
+                cfg.AddInMemoryCollection(ExtraConfig);
         });
         if (BypassDocsGate)
         {

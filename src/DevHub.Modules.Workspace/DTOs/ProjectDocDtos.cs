@@ -34,7 +34,8 @@ public sealed record ProjectDocDto(
     string Description,
     bool Filled,
     bool Locked,
-    IReadOnlyList<ProjectDocSectionDto> Sections);
+    IReadOnlyList<ProjectDocSectionDto> Sections,
+    bool? RepoSynced = null);
 
 public sealed class UpsertDocSectionsRequest
 {
