@@ -4,6 +4,7 @@ import type { PanelSubmit } from './panel-submit';
 interface TaskItem {
   id: string;
   title: string;
+  kind?: string;
   description?: string;
 }
 
@@ -51,6 +52,7 @@ export class TaskListReviewPanel implements OnInit {
           .map(t => ({
             id: typeof t['id'] === 'string' ? t['id'] : '',
             title: typeof t['title'] === 'string' ? t['title'] : '',
+            kind: typeof t['kind'] === 'string' ? t['kind'] : undefined,
             description: typeof t['description'] === 'string' ? t['description'] : undefined,
           }))
       );

@@ -1,0 +1,76 @@
+<section class="bg-white rounded-xl shadow-sm p-6">
+  <h3 class="text-base font-semibold mb-1">Mockup review</h3>
+  <p class="text-sm text-slate-500 mb-4">
+    @if (currentTask().id; as tid) {
+      Mockup for task <span class="font-mono text-xs bg-sky-100 text-sky-700 rounded px-1.5 py-0.5">{{ tid }}</span>
+      @if (currentTask().title; as title) {
+        — {{ title }}
+      }
+    } @else {
+      Review the generated mockup and approve or request changes.
+    }
+  </p>
+
+  <!-- Task description -->
+  @if (currentTask().description; as desc) {
+    <p class="text-sm text-slate-600 bg-slate-50 rounded-lg border border-slate-200 px-4 py-3 mb-4">{{ desc }}</p>
+  }
+
+  <!-- Mockup iframe -->
+  @if (mockupHtml(); as html) {
+    <div class="rounded-lg border border-slate-200 overflow-hidden mb-3">
+      <iframe
+        [srcdoc]="html"
+        sandbox="allow-same-origin allow-scripts allow-forms"
+        class="w-full min-h-[600px] block border-0"
+        title="Generated mockup">
+      </iframe>
+    </div>
+    @if (mockupDescription(); as desc) {
+      <p class="text-xs text-slate-500 italic mb-4">{{ desc }}</p>
+    }
+  } @else {
+    <div class="rounded-lg border border-slate-200 bg-slate-50 flex items-center justify-center min-h-[200px] mb-4">
+      <p class="text-sm text-slate-400">No mockup available.</p>
+    </div>
+  }
+
+  <!-- Actions -->
+  @if (requesting()) {
+    <label class="block text-sm font-medium text-slate-700 mb-1">Changes requested</label>
+    <textarea rows="3"
+              [value]="feedback()"
+              (input)="feedback.set($any($event.target).value)"
+              [disabled]="working()"
+              placeholder="Describe the changes needed (layout, content, colours, interactions)..."
+              class="block w-full border border-slate-300 focus:border-sky-500 focus:ring-2 focus:ring-sky-100 rounded-lg px-3 py-2 outline-none disabled:bg-slate-50 text-sm mb-4"></textarea>
+    <div class="flex items-center justify-end gap-2">
+      <button type="button"
+              class="text-sm text-slate-500 hover:text-slate-700 px-3 h-10"
+              [disabled]="working()"
+              (click)="toggleRequest()">Cancel</button>
+      <button type="button"
+              class="bg-amber-500 disabled:bg-slate-300 disabled:cursor-not-allowed text-white text-sm font-medium px-4 h-10 rounded-lg hover:bg-amber-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300"
+              [disabled]="!canRequestChanges()"
+              (click)="onRequestChanges()">
+        @if (working()) { Submitting... } @else { Submit change request }
+      </button>
+    </div>
+  } @else {
+    <div class="flex items-center justify-end gap-2">
+      @if (!canAct()) {
+        <span class="text-xs text-slate-500 mr-auto">You don't have the role required for this action.</span>
+      }
+      <button type="button"
+              class="text-sm text-amber-500 hover:text-amber-700 px-3 h-10"
+              [disabled]="working() || !canAct()"
+              (click)="toggleRequest()">Request changes</button>
+      <button type="button"
+              class="bg-emerald-500 disabled:bg-slate-300 disabled:cursor-not-allowed text-white text-sm font-medium px-4 h-10 rounded-lg hover:bg-emerald-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300"
+              [disabled]="!canApprove()"
+              (click)="onApprove()">
+        @if (working()) { Submitting... } @else { Looks good }
+      </button>
+    </div>
+  }
+</section>

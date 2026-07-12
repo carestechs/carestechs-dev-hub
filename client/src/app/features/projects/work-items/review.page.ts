@@ -25,6 +25,7 @@ import { LifecycleTimeline, type TimelineStep } from './components/lifecycle-tim
 import type { PanelSubmit } from './components/panel-submit';
 import { PlanReviewPanel } from './components/plan-review-panel';
 import { StreamFeed } from './components/stream-feed';
+import { MockupReviewPanel } from './components/mockup-review-panel';
 import { TaskListReviewPanel } from './components/task-list-review-panel';
 
 type ErrorKind = 'forbidden' | 'not-found' | 'other';
@@ -45,6 +46,7 @@ const TERMINAL_STATUSES = new Set(['Completed', 'Failed', 'Cancelled']);
     TaskListReviewPanel,
     PlanReviewPanel,
     ImplementationReviewPanel,
+    MockupReviewPanel,
     FinalReviewPanel,
     StreamFeed,
   ],

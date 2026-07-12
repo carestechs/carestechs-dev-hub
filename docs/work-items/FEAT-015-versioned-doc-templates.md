@@ -7,7 +7,7 @@
 | **ID** | FEAT-015 |
 | **Name** | Versioned Doc Templates — structured, evolvable framework document schemas |
 | **Target Version** | Continuous |
-| **Status** | In Progress |
+| **Status** | Completed |
 | **Priority** | High |
 | **Requested By** | Carlos |
 | **Date Created** | 2026-07-03 |
