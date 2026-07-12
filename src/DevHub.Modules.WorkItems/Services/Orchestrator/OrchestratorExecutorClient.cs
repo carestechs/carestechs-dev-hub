@@ -127,18 +127,21 @@ internal sealed class OrchestratorExecutorClient(
         var runId = workItem.ExecutorRunId
             ?? throw new NotFoundException($"No orchestrator run id for marker '{correlationMarker}'.");
 
-        // The orchestrator routes by `name`. DevHub's `checkpointKey` IS the signal name.
+        // The orchestrator routes by `name`. DevHub's `checkpointKey` IS the signal name
+        // for all standard checkpoints; exceptions are resolved by ResolveSignalName.
         // `outcome` is DevHub-side bookkeeping (it's logged + audited on the DevHub side);
         // the orchestrator doesn't use it directly.
         _ = outcome;
+
+        var signalName = ResolveSignalName(checkpointKey);
 
         // The orchestrator's SignalCreateRequest body shape. taskId must be omitted (not
         // serialized as JSON null) when there's no per-task discriminator — its pydantic
         // model rejects null with "Input should be a valid string".
         var payloadElement = payload ?? JsonDocument.Parse("{}").RootElement;
         object body = taskId is null
-            ? new { name = checkpointKey, payload = payloadElement }
-            : new { name = checkpointKey, taskId, payload = payloadElement };
+            ? new { name = signalName, payload = payloadElement }
+            : new { name = signalName, taskId, payload = payloadElement };
 
         using var req = NewRequest(HttpMethod.Post, executor, $"/api/v1/runs/{runId}/signals");
         req.Content = JsonContent.Create(body);
@@ -206,6 +209,13 @@ internal sealed class OrchestratorExecutorClient(
     /// when registering). Future FEAT can add a dedicated AgentRef column if this is too
     /// coupled.
     /// </summary>
+    // confirm_mockup uses a different signal name than its DevHub checkpointKey.
+    private static string ResolveSignalName(string checkpointKey) => checkpointKey switch
+    {
+        "confirm_mockup" => "mockup-approved",
+        _ => checkpointKey,
+    };
+
     private static string ResolveAgentRef(ExecutorRegistrationDescriptor executor) => executor.Key;
 
     private static readonly System.Text.RegularExpressions.Regex IntakeIdRe =

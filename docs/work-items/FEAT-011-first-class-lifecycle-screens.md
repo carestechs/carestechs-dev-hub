@@ -7,7 +7,7 @@
 | **ID** | FEAT-011 |
 | **Name** | First-Class Lifecycle-Agent Review Screens (`lifecycle-agent@0.4.0-manual`) |
 | **Target Version** | v1 |
-| **Status** | Open |
+| **Status** | Completed |
 | **Priority** | High |
 | **Requested By** | Operator (replace generic checkpoint UI with purpose-built screens per lifecycle stage) |
 | **Date Created** | 2026-05-24 |

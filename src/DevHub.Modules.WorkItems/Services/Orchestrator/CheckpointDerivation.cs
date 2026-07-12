@@ -35,6 +35,9 @@ internal static class CheckpointDerivation
             // Legacy 0.3.0 aliases (kept for back-compat with older agent versions).
             case "wait_for_implementation": return "implementation-complete";
             case "confirm_review": return "review-completed";
+            // confirm_mockup does not follow the confirm_<X> → <X>-confirmed pattern;
+            // the orchestrator signal name is "mockup-approved" (resolved in OrchestratorExecutorClient).
+            case "confirm_mockup": return "confirm_mockup";
         }
 
         // confirm_<X> → <X>-confirmed (the dominant pattern in lifecycle-agent@0.4.0-manual).

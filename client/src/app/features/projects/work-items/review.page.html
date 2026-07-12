@@ -105,6 +105,13 @@
             [working]="submitting() !== null"
             (submitted)="onAssignmentSubmitted($event)" />
         }
+        @case ('confirm_mockup') {
+          <mockup-review-panel
+            [artefact]="displayedArtefact()"
+            [canAct]="callerHasRole()"
+            [working]="submitting() !== null"
+            (submitted)="onPanelSubmitted($event)" />
+        }
         @case ('plan-confirmed') {
           <plan-review-panel
             [artefact]="displayedArtefact()"
